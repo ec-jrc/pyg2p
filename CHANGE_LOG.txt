@@ -1,0 +1,125 @@
+v. 1.2.1
+------
+024 Improvement (minor):
+    Improved output of test_reqs.py
+
+024 Improvement (minor):
+    Added some information to Correction chapter in User manual.
+
+023 Improvement (major):
+    When no messages found, the application exits gracefully (error code: 0) and an error message is displayed.
+    "Error: >>>>>>>>>>>>>>> Application Error: No Messages found using {'shortName': 'tp', 'perturbationNumber': 1}"
+
+022 Bug fix (major):
+    Logger was closed when exception raised after the application startup so
+        a criptic message "no handlers found" was shown.
+
+
+v. 1.2
+------
+021 Improvement (major):
+    Added a new input parameter -T (--dataTime) (or Parameter#dataTime attribute in XML templating)
+        for grib selection (specific for some UKMO files).
+
+020 Improvement (major):
+    Improved test functionality.
+    - Now multiple grib2pcraster executions are allowed in a single test case.
+      Needed for spatial multiresolution grib files (e.g. global) tests.
+    - Now only pyg2p tests (without comparison) are allowed.
+      Needed to fire-test commands not configurable in grib2pcraster (e.g. UKMO files)
+
+019 Bug fix (major):
+    Bug fix in test functionality. Tests with id>9 were overwriting test 1 and lost in configuration.
+
+
+v. 1.1
+------
+018 Improvement (major):
+    Added a little test tool for comparing results between the grib2pcraster C application and any new pyg2p release.
+    The functionality compares the number of output maps in each test case
+        and produces diff PCRaster maps for manual comparison.
+
+v. 1.06
+------
+017 Improvement (minor):
+    File logging can be disabled in logger-configuration.xml using activated="False" in the root Loggers XML element.
+    You can set to false,False,no,NO,No for deactivating.
+    Any other string will be evaluated to True. The element is optional. Default value is True.
+
+016 Improvement (major):
+    Added -s and -e CLI arguments for grib start and end timestamps, overriding xml parameters.
+
+v. 1.05
+------
+015 Improvement (major):
+    added "pyg2p -t test.xml" for running test suites all in once
+    useful for fire tests, to spot severe bugs.
+    (alpha version: only pyg2p commands are executed in this version)
+
+014 Bug fix (major):
+    Fixed a number of bugs introduced in last release.
+
+v. 1.04
+------
+013 Improvement (minor):
+    test_reqs.py now tests the content of the release (core packages and configuration files).
+
+012 Improvement (major):
+    Added a new xml configuration option: intertableDir to use alternative sets of interlookup tables.
+
+
+v. 1.03
+------
+011 Bug fix (minor):
+    Fixed message's key after instananeous aggregation (was affecting only as wrong log messages).
+
+010 Bug fix (major):
+    Fixed bug in writing PCRaster maps. Clone's zero values were considered as missing values.
+
+009 Bug fix (major):
+    Fixed bug for Aggregation instantaneous (messages were not ordered)
+
+
+v. 1.02
+------
+008 Improvement (minor):
+    Now cutting of negative values is done before writing maps, after manipulation and interpolation.
+    This speeds disk writing operations.
+
+007 Bug fix (major):
+    Fixed bug when tstart and tend were not configured, for unsorted grib files
+
+
+v. 1.01
+------
+006 Bug fix (minor):
+    Fixed output directory path ending with double slashes when issued with a final slash.
+
+005 Bug fix (major):
+    For some gribs, step zero is missing which is needed
+    for aggregations starting from zero.
+    During aggregation, a Zero by Division was arising while trying to create
+    the zero message from two existing ones.
+    Now, a zero filled message is used instead.
+
+004 Bug fix (major):
+    Fixed scipy invdist interpolation mode for lat/long maps
+    having missing values (like COSMO ones).
+
+003 Bug fix (minor):
+    Wrong log message during accumulation.
+
+002 Improvement (major):
+    Conversion is applied at the very beginning, in one raw, instead of
+    when writing maps. In this way, operations are made
+    in target unit and it can be desiderable.
+    This brings also a little improvement in performances.
+    Note that cutting of negative values is still done before to write the map.
+
+001 Improvement (minor):
+    Improved logs in Manipulator.py, Interpolation.py, Controller.py.
+
+v 1.00
+------
+First Release.
+Added the -g option to the initial requirements.

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    <Execution name = "cosmo_r06" id="3" >
+        <Parameter shortName="tp" applyConversion="cut" />
+         <Aggregation type="accumulation" step="6" />
+
+        <OutMaps namePrefix="pR06" fmap="1" unitTime="24"
+                 cloneMap="/dataset/maps/cosmo/dem05.map" >
+            <Interpolation mode="grib_invdist"
+                           latMap="/dataset/maps/cosmo/cosmo05_lat.map"
+                           lonMap="/dataset/maps/cosmo/cosmo05_lon.map" />
+        </OutMaps>
+    </Execution>

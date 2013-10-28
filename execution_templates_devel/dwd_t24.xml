@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+grib2pcraster
+-i /gpfs/r_lxab/efas/emos/efas/meteo/forecasted/dwd/2013/06/dwd_grib1_ispra_LME_2013061700
+-o /gpfs/r_lxab/efas/emos/efas/europe5km/201306/DWD2013061800/initcond/for/
+-p 11.2 -n T24a -t 24 -fmap=1 -s 0 -e 30 -ext=4
+-->
+<Execution name = "dwd_T24a" id="6" >
+    <Parameter shortName="2t" tstart="0" tend="30" applyConversion="k2c"/>
+    <Aggregation type="average" step="24" />
+
+    <OutMaps namePrefix="pT24" fmap="1" ext="4"
+             cloneMap="/dataset/maps/dwd/dem05.map" unitTime="24">
+
+        <Interpolation mode="grib_nearest"
+                       latMap="/dataset/maps/dwd/dwdlme05_lat.map"
+                       lonMap="/dataset/maps/dwd/dwdlme05_lon.map" />
+    </OutMaps>
+</Execution>

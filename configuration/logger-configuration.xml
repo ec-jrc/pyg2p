@@ -1,0 +1,42 @@
+<Loggers enabled="no">
+
+    <Logger file="XmlReader.log" level="ERROR" name="xml-reader"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="Application.log" level="ERROR" name="application"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="Controller.log" level="ERROR" name="controller"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="ExecutionContext.log" level="ERROR" name="ExecutionContext"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="GRIBReader.log" level="ERROR" name="GRIBReader"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="Interpolator.log" level="ERROR" name="Interpolator"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="Correction.log" level="ERROR" name="Corrector"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="PCRasterWriter.log" level="ERROR" name="PCRasterWriter"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="PCRasterReader.log" level="ERROR" name="PCRasterReader"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="Converter.log" level="ERROR" name="Converter"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s"/>
+
+    <Logger file="Manipulator.log" level="ERROR" name="Manipulator"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="Messages.log" level="ERROR" name="Messages"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+    <Logger file="LatLongDem.log" level="ERROR" name="LatLongMapsBuffer"
+            formatting="[%(asctime)s] : %(levelname)s %(message)s" />
+
+</Loggers>
