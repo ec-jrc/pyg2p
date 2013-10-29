@@ -36,9 +36,9 @@ class Manipulator(object):
         self._logger = Logger('Manipulator', loggingLevel=ex.global_logger_level)
 
         if self._input_step != 0:
-            self._usable_start = (self._start-self._aggregation_step)
+            self._usable_start = (self._start -self._aggregation_step)
             if self._usable_start < 0:
-                self._usable_start=0
+                self._usable_start = 0
         else:
             self._usable_start = self._start
         self._log('Aggregation %s with step %s for %s values from %d to %d [considering from ts=%d]'
@@ -68,30 +68,26 @@ class Manipulator(object):
         return self._functs[self._aggregation](values)
 
     def _cumulation(self, values):
+
         if self._step_type in [PARAM_INSTANT, PARAM_CUM, PARAM_AVG]:
             out_values = {}
             res = values.keys()[0].resolution
             v = self._convert_key_to_endstep(values)  # original key is 'start-end-resolution'
-            v_ord=collections.OrderedDict(sorted(v.items(), key = lambda k : k[0]))
+            v_ord = collections.OrderedDict(sorted(v.items(), key = lambda k : k[0]))
             self._log('Cumulation at resolution: %s'%res)
 
             if self._start == 0:
-                self._log('start 0: change to the first aggregation_timestep %d'%self._aggregation_step)
-                self._start=self._aggregation_step
+                self._log('start 0: change to the first aggregation_timestep %d' % self._aggregation_step)
+                self._start = self._aggregation_step
 
             created_zero_array = False
             for iter_ in range(self._start, self._end+1, self._aggregation_step):
-                #raw_input('iter --> %d,start: %d, end+1:%d, step: %d'%(iter_,self._start, self._end+1, self._aggregation_step))
+                #raw_input('iter --> %d,start: %d, end:%d, step: %d' % (iter_,self._start, int(self._end)+1, self._aggregation_step))
                 if iter_ not in v_ord.keys():
                     ind_next_ts= bisect.bisect_left(v_ord.keys(), iter_)
-                    next_ts=v_ord.keys()[ind_next_ts]
-                    v_nts_ma = _mask_it(v[next_ts], self._mvGrib)
+                    next_ts = v_ord.keys()[ind_next_ts]
 
-                    # if iter_ == 0:
-                    #     self._log('Message %d not in dataset. Creating it as zero values array'%iter_)
-                    #     v[iter_] = _mask_it(np.zeros(v[next_ts].shape), self._mvGrib)
-                    #     created_zero_array = True
-                    # else:
+                    v_nts_ma = _mask_it(v[next_ts], self._mvGrib)
                     self._log('Message %d not in dataset. Creating it. Masking with %.2f'%(iter_ , self._mvGrib))
 
                     ind_originalts= bisect.bisect_right(v_ord.keys(), iter_)

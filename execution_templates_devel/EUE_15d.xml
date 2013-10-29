@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <Execution name = "eue_r24_15d" id="xx" >
+        <Parameter shortName="sro" applyConversion="m2mm" tstart="0" tend="360"/>
+        <Aggregation type="accumulation" step="24" />
+
+        <OutMaps namePrefix="psro" fmap="1"
+                 cloneMap="/dataset/maps/global/dem.map" unitTime="24">
+            <Interpolation mode="grib_nearest"
+                          latMap="/dataset/maps/global/lat.map"
+                           lonMap="/dataset/maps/global/lon.map" />
+        </OutMaps>
+    </Execution>

@@ -1,5 +1,6 @@
 __author__ = 'dominik'
 
+
 class Key(object):
 
     def __init__(self, start_step_,end_step_,points_meridian_,input_step_):
@@ -19,3 +20,8 @@ class Key(object):
 
     def __str__(self):
         return 's:%d e:%d res:%d step-lenght:%d'%(int(self.start_step), int(self.end_step), int(self.resolution), int(self.input_step))
+
+    def __lt__(self, other):
+        return self.start_step < other.start_step
+    def __le__(self, other):
+        return self.start_step < other.start_step

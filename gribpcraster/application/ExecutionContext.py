@@ -235,6 +235,7 @@ class ExecutionContext:
         raise ApplicationException.get_programmatic_exc(1200)
 
     def _readParameterFrom(self, untangled, shortName):
+
         if isinstance(untangled.Parameters.Parameter, collections.Iterable):
             for p in untangled.Parameters.Parameter:
                 if p['shortName'] == shortName:
@@ -377,7 +378,8 @@ class ExecutionContext:
 
     def createCommandForGribReader(self, start_, end_):
         self._log('\n\n**********Selecting gribs using:************ \n')
-        readerArguments = {'shortName': self._params['parameter.shortName']}
+        ## 'var' suffix is for multiresolution 240 step message (global EUE files)
+        readerArguments = {'shortName': [self._params['parameter.shortName'], self._params['parameter.shortName']+'var']}
         self._log('---variable short name = %s' % readerArguments['shortName'])
         if self._params['parameter.level'] is not None:
             readerArguments['level'] = self._params['parameter.level']

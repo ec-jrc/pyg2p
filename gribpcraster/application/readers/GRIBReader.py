@@ -15,8 +15,6 @@ def get_id(grib_file, readerArgs):
     return grid.getGridId()
 
 
-
-
 class GRIBReader(IReader):
 
     def __init__(self, grib_file):
@@ -96,8 +94,6 @@ class GRIBReader(IReader):
             #rewind file
             self._grbindx.seek(0)
 
-            # print kwargs['startStep'](0)
-            # raw_input('f')
 
             if (len(gribs) == 0) and ('startStep' in kwargs and hasattr(kwargs['startStep'], '__call__') and not kwargs['startStep'](0)):
                 kwargs['startStep']=lambda s:s>=0
@@ -139,7 +135,7 @@ class GRIBReader(IReader):
 
             missing_value = GRIB.grib_get(self._selected_grbs[0],'missingValue')
             allValues = {}
-            allValues2ndRes = None
+            allValues2ndRes = {}
             grid2 = None
             input_step = self._step_grib
             second_time_res = False
@@ -154,21 +150,22 @@ class GRIBReader(IReader):
                     input_step = self._step_grib2
                     second_time_res = True
 
-                key = Key(start_step,end_step,points_meridian,input_step)
-
+                key = Key(start_step, end_step, points_meridian, input_step)
                 if points_meridian != grid.getNumberOfPointsAlongMeridian() and grid.get_2nd_resolution() is None:
                     #found second resolution messages
                     grid2 = GribGridDetails(g)
-                    grid.set_2nd_resolution(grid2, key)
-                    points_meridian = grid2.getNumberOfPointsAlongMeridian()
-                    allValues2ndRes = {}
 
-                values = GRIB.grib_get_double_array(g,'values')
+                values = GRIB.grib_get_double_array(g, 'values')
                 if grid2 is None:
                     allValues[key] = values
-                else:
+                #grid.getNumberOfPointsAlongMeridian() is first resolution
+                elif points_meridian != grid.getNumberOfPointsAlongMeridian():
                     allValues2ndRes[key] = values
-            has_2_timestep_= self._step_grib2 != -1
+
+            if grid2 is not None:
+                key_2nd_spatial_res = min(allValues2ndRes.keys())
+                grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
+            second_time_res = self._step_grib2 != -1
 
             return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes, has_2_timestep_= second_time_res), shortName
         #no messages found
@@ -180,27 +177,26 @@ class GRIBReader(IReader):
         self._log('Getting start / end steps...')
         start_steps = [GRIB.grib_get(self._gribs_for_utils[i], 'startStep') for i in range(len(self._gribs_for_utils))]
         end_steps = [GRIB.grib_get(self._gribs_for_utils[i], 'endStep') for i in range(len(self._gribs_for_utils))]
+
         start_grib = min(start_steps)
         end_grib = max(end_steps)
-        od = sorted(end_steps)
-        od1=sorted(start_steps)
-
-        step = od[1]-od[0]
-        step2=-1
+        ord_end_steps = sorted(end_steps)
+        ord_start_steps = sorted(start_steps)
+        step = ord_end_steps[1]-ord_end_steps[0]
+        step2 = -1
         change_step_at = ''
         #         self._change_step_at = str(GRIB.grib_get(self._gribs_for_utils[i],'startStep'))+'-'+str(GRIB.grib_get(self._gribs_for_utils[i],'endStep'))
             #         self._log('Changing time res at %s'%self._change_step_at)
-        for i in range(2,len(od)):
-            if step2==-1 and od[i]-od[i-1]!=step:
-                step2 = od[i]-od[i-1]
-                change_step_at = str(od1[i])+'-'+str(od[i])
-
+        for i in range(2, len(ord_end_steps)):
+            if step2 == -1 and ord_end_steps[i]-ord_end_steps[i-1] != step:
+                step2 = ord_end_steps[i]-ord_end_steps[i-1]
+                change_step_at = str(ord_start_steps[i])+'-'+str(ord_end_steps[i])
         return start_grib, end_grib, step, step2, change_step_at
 
     def getAggregationInfo(self, readerArgs):
         self._gribs_for_utils = self.getGids(**readerArgs)
         if len(self._gribs_for_utils) > 0:
-            type_of_step =GRIB.grib_get(self._gribs_for_utils[1],'stepType')  #instant,avg,cumul
+            type_of_step = GRIB.grib_get(self._gribs_for_utils[1],'stepType')  # instant,avg,cumul
             self._mv = GRIB.grib_get_double(self._gribs_for_utils[0],'missingValue')
             start_grib, end_grib,  self._step_grib, self._step_grib2, self._change_step_at = self.getStartEndAndSteps()
             self._log("Grib input step %d [type of step: %s]"%(self._step_grib,type_of_step))

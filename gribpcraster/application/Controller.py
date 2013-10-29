@@ -58,11 +58,11 @@ class Controller:
         #values = messages.getValuesOfFirstOrSingleRes()
         type_of_param = messages.getTypeOfStep()
         grid_id = messages.getGridId()
-        return grid_id, messages, type_of_param #, values
+        return grid_id, messages, type_of_param   #, values
 
     def secondResManipulation(self, change_step, end_step, input_step, messages, mvGrib, type_of_param, values):
         #manipulation of second res messages
-        start_step2 = int(change_step.start_step) + input_step # start step of the first message at 2nd resolution
+        start_step2 = int(change_step.start_step) + input_step  # start step of the first message at 2nd resolution
         from gribpcraster.application.manipulation.Manipulator import Manipulator as mnp
         m2 = mnp(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
                  input_step, type_of_param, start_step2,

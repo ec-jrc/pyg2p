@@ -1,6 +1,12 @@
+v. 1.2.2
+------
+026 Bug fix (major):
+    Single multiresolution gribs extraction was failing for a bug in reading second resolution values.
+    Previous versions are working if using two input files (arguments -i and -I).
+
 v. 1.2.1
 ------
-024 Improvement (minor):
+025 Improvement (minor):
     Improved output of test_reqs.py
 
 024 Improvement (minor):

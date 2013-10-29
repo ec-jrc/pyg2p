@@ -15,19 +15,6 @@ class Messages():
         self.unit=unit_
         self.missing_value = missing_
         self._has_2_timestep = has_2_timestep_
-        #print self._has_2_timestep
-        #print values_
-
-        #order the dict in endStep ascending (key is 'startStep-endStep-resolution')
-
-        #raw_input('ecco')
-        #sss= sorted(values_.iteritems(), key=lambda (k, v): (int(k.end_step), v))
-        #print sss
-        #for k,v in values_.iteritems():
-        #    if k.end_step==0:
-        #        raw_input('ecco')
-        #        print v
-            #raw_input('ecco')
 
         od = collections.OrderedDict(sorted(values_.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
         self.values_first_or_single_res = od
