@@ -19,7 +19,8 @@ except ImportError, e:
 
 import util.file.FileManager as fm
 import os
-dir_ = os.path.dirname(__file__)
+
+dir_ = os.path.abspath(os.path.dirname(__file__))
 if not (fm.exists(dir_+'/configuration/geopotentials', isDir=True) and fm.exists(dir_+'/configuration/intertables', isDir=True)):
     fails = True
     errs.append('=================XXXX> Important configuration folders are missing (geopotentials or intertables)!!!')

@@ -72,7 +72,7 @@ class Interpolator:
     def interpolate_with_scipy(self, yp, xp, f, grid_id, iMap=0):
         if self._mode=='griddata':
             return self.interpolateGriddata(yp, xp, f)
-        elif self._mode in ['invdist','nearest']:
+        elif self._mode in ['invdist', 'nearest']:
             return self.interpolate_kdtree(yp, xp, f, grid_id, iMap)
 
     def interpolate_kdtree(self, latgrib, longrib, f, grid_id, iMap=0):
@@ -119,12 +119,12 @@ class Interpolator:
 
     def interpolateGriddata(self, yp, xp, f):
 
-        latgrib=yp
-        longrib=xp
+        latgrib = yp
+        longrib = xp
 
         xi = self._latLongBuffer.getLong()
         yi = self._latLongBuffer.getLat()
-        origShape=xi.shape
+        origShape = xi.shape
 
         latefas=yi
         lonefas=xi
