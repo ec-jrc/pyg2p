@@ -30,9 +30,10 @@ def _buildId(gid, grid_type):
     else :
         nj=GRIB.grib_get(gid, 'Nj')
     num_of_values = GRIB.grib_get(gid, 'numberOfValues')
-    long_first = GRIB.grib_get_double(gid, 'longitudeOfFirstGridPointInDegrees')
-    long_last = GRIB.grib_get_double(gid, 'longitudeOfLastGridPointInDegrees')
-    return str(int(long_first))+'$'+str(int(long_last))+'$'+str(ni)+'$'+str(nj)+'$'+str(num_of_values)+'$'+str(grid_type)
+    #('%.2f' % (value,)).rstrip('0').rstrip('.')
+    long_first = ('%.4f' % (GRIB.grib_get_double(gid, 'longitudeOfFirstGridPointInDegrees'),)).rstrip('0').rstrip('.')
+    long_last = ('%.4f' % (GRIB.grib_get_double(gid, 'longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
+    return long_first+'$'+long_last+'$'+str(ni)+'$'+str(nj)+'$'+str(num_of_values)+'$'+str(grid_type)
 
 class GribGridDetails(GridDetails):
 

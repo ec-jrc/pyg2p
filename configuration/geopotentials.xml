@@ -12,10 +12,10 @@
   <geopotential id="37$47$101$111$11211$regular_ll" name="africa_01_degrees.grb" />
   <geopotential id="-5$4$520$350$182000$rotated_ll" name="imprints_ex_const_c2.grib1" />
   <geopotential id="-16$7$393$338$132834$rotated_ll" name="imprints_ex_const_c7.grib1" />
-  <geopotential id="-15$16$511$415$212065$rotated_ll" name="cosmo7km.grb" />
+  <geopotential id="-15.75$16.125$511$415$212065$rotated_ll" name="cosmo7km.grb" />
   <geopotential id="350$40$201$161$32361$regular_ll" name="dwd_gme_2004_72_i256_geo.grib2" />
   <geopotential id="-10$40$140$112$15680$regular_ll" name="dwd_grib1_ispra_gmi_20110417.geo.grib" />
   <geopotential id="-18$23.5$665$657$436905$rotated_ll" name="dwd_grib1_ispra_LME_2013051300" />
   <geopotential id="0$359$MISSING$1280$2140702$reduced_gg" name="global_N640.grb" />
-  <geopotential id="0$359$432$325$140400$regular_ll" name="geo_UKMO2.grb" />
+  <geopotential id="0$359.1667$432$325$140400$regular_ll" name="geo_UKMO2.grb" />
 </geopotentials>

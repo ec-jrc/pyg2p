@@ -1,3 +1,14 @@
+v 1.2.3
+------
+028 Bug fix (major):
+    Grid IS, as used in intertables filenames and in geopotentials IDs (in geopotentials.xml),
+        were erroneously constructed cutting away decimals.
+        This could have lead to ambiguities when selecting intertables or geopotentials,
+        in case some GRIB files have a grid with a difference in decimals in its bounding box longitudes.
+
+027 Bug fix (minor):
+    test_reqs.py was never able to check the existence of configuration directory due a bug in paths.
+
 v. 1.2.2
 ------
 026 Bug fix (major):
