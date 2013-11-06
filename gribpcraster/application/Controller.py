@@ -78,16 +78,16 @@ class Controller:
         values = od_final
         return change_step, values
 
-    def createOutMap(self, grid_id, i, lats, longs, timestep, v):
+    def createOutMap(self, grid_id, i, lats, longs, timestep, v, log_intertable=False):
 
         self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
         self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
         self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep), 'DEBUG')
         if self._ctx.interpolateWithGrib():
-            v = self._interpolator.interpolate_grib(v, -1, grid_id, iMap = i)
+            v = self._interpolator.interpolate_grib(v, -1, grid_id, log_intertable=log_intertable)
         else:
             #interpolating swath data with scipy griddata or with an in house inverse distance code
-            v = self._interpolator.interpolate_with_scipy(lats, longs, v, grid_id, iMap = i)
+            v = self._interpolator.interpolate_with_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
         self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
         self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(), v[v != self._mvEfas].max()))
 
@@ -177,7 +177,10 @@ class Controller:
         self._log('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
 
         i = 0
+        changed_res = False
+
         for timestep in values.keys():
+            log_it = False
             #writing map i
             i += 1
             if messages.change_resolution() and timestep == change_step:
@@ -186,8 +189,12 @@ class Controller:
                 lats = lats2
                 longs = longs2
                 grid_id = grid_id2
+                changed_res = True
             v = values[timestep]
-            self.createOutMap(grid_id, i, lats, longs, timestep, v)
+            if i == 1 or changed_res:
+                log_it = True
+                changed_res = False
+            self.createOutMap(grid_id, i, lats, longs, timestep, v, log_intertable=log_it)
         
     def close(self):
         self._logger.close()

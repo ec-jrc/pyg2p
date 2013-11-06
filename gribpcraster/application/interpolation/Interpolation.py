@@ -17,9 +17,10 @@ import gribpcraster
 dir_ = os.path.dirname(gribpcraster.__file__)
 INTERTABLES_DIR = os.path.join(dir_, '../', 'configuration/intertables/')
 TAB_NAME_SCIPY = '_scipy_'
+SAFE_PREFIX_INTTAB_NAME = 'I'
 
-def _read_intertable(intertable_name, log, iMap=0):
-    if iMap==1:
+def _read_intertable(intertable_name, log=None):
+    if log is not None:
         #first interpolation
         #log filename interpolation table
         log('Using interpolation table: %s'%(intertable_name), 'INFO')
@@ -69,13 +70,13 @@ class Interpolator:
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def interpolate_with_scipy(self, yp, xp, f, grid_id, iMap=0):
+    def interpolate_with_scipy(self, yp, xp, f, grid_id, log_intertable=False):
         if self._mode=='griddata':
             return self.interpolateGriddata(yp, xp, f)
         elif self._mode in ['invdist', 'nearest']:
-            return self.interpolate_kdtree(yp, xp, f, grid_id, iMap)
+            return self.interpolate_kdtree(yp, xp, f, grid_id, log_intertable=log_intertable)
 
-    def interpolate_kdtree(self, latgrib, longrib, f, grid_id, iMap=0):
+    def interpolate_kdtree(self, latgrib, longrib, f, grid_id, log_intertable=False):
         table_dir = INTERTABLES_DIR
 
         lonefas = lonefas_w_mv = self._latLongBuffer.getLong()
@@ -89,10 +90,10 @@ class Interpolator:
         elif self._mode == 'invdist':
             nnear=8
             self._log('Interpolating with inverse distance ')
-        intertable_name = os.path.join(self._intertable_dir, grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+TAB_NAME_SCIPY+self._mode+'.npy')
-
+        intertable_name = os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME+grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+TAB_NAME_SCIPY+self._mode+'.npy')
+        log = self._log if log_intertable else None
         if fm.exists(intertable_name):
-            dists, indexes = _read_intertable(intertable_name, self._log, iMap)
+            dists, indexes = _read_intertable(intertable_name, log=log)
             weights=None
             result = ID.interpolate_invdist(f, self._mvEfas, self._mvGrib, dists, indexes, nnear, self._p, weights)
             grid_data=result.reshape(origShape)
@@ -142,15 +143,15 @@ class Interpolator:
 
     ##### GRIB API INTERPOLATION ####################
 
-    def interpolate_grib(self, v, gid, grid_id, iMap=0):
+    def interpolate_grib(self, v, gid, grid_id, log_intertable=False):
         if self._mode=='grib_nearest':
-            return self.interpolateGribNearest(v, gid, grid_id,iMap)
+            return self.interpolateGribNearest(v, gid, grid_id, log_intertable=log_intertable)
         elif self._mode=='grib_invdist':
-            return self.interpolateGribInvDist(v, gid, grid_id,iMap)
+            return self.interpolateGribInvDist(v, gid, grid_id, log_intertable=log_intertable)
 
-    def interpolateGribNearest(self, v, gid, grid_id, iMap=0):
+    def interpolateGribNearest(self, v, gid, grid_id, log_intertable=False):
 
-        intertable_name = os.path.join(self._intertable_dir, grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+'_nn.npy')
+        intertable_name = os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME+grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+'_nn.npy')
 
         result = np.empty(self._latLongBuffer.getLong().shape)
         result.fill(self._mvEfas)
@@ -162,8 +163,8 @@ class Interpolator:
             self.interpolateGribNearest(self._aux_val, self._aux_gid, grid_id)
 
         if fm.exists(intertable_name):
-
-            xs, ys, idxs = _read_intertable(intertable_name, self._log, iMap)
+            log = self._log if log_intertable else None
+            xs, ys, idxs = _read_intertable(intertable_name, log=log)
             v = np.ma.masked_values(v, self._mvGrib)
             result[xs.astype(int), ys.astype(int)] = v[idxs.astype(int)]
         else:
@@ -181,12 +182,14 @@ class Interpolator:
 
         return result
 
-    def interpolateGribInvDist(self, v, gid, grid_id, iMap=0):
-        intertable_name = os.path.join(self._intertable_dir, grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+'_inv.npy')
+    def interpolateGribInvDist(self, v, gid, grid_id, iMap=0, log_intertable=False):
+        intertable_name = os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME+grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+'_inv.npy')
         result = np.empty(self._latLongBuffer.getLong().shape)
         result.fill(self._mvEfas)
         result=np.ma.masked_array(data=result, fill_value=self._mvEfas)
         v=np.ma.masked_values(v, self._mvGrib)
+
+        log=self._log if log_intertable else None
         if gid==-1 and (not os.path.exists(intertable_name) or not os.path.isfile(intertable_name)):
             #aux_gid and aux_values are only used to create the interlookuptable
             #since manipulated values messages don't have gid reference to grib file any longer
@@ -195,7 +198,7 @@ class Interpolator:
 
         if os.path.exists(intertable_name) and os.path.isfile(intertable_name):
             self._log('Interpolating with table '+intertable_name)
-            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = _read_intertable(intertable_name, self._log, iMap)
+            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = _read_intertable(intertable_name, log=log)
             result[xs.astype(int), ys.astype(int)] = v[idxs1.astype(int)] * coeffs1 +v[idxs2.astype(int)] * coeffs2 + \
                                                      v[idxs3.astype(int)] * coeffs3 + v[idxs4.astype(int)] * coeffs4
 
