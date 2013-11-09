@@ -14,7 +14,7 @@
 
         <OutMaps namePrefix="pT24a" fmap="1" ext="1"
                  cloneMap="/dataset/maps/europe5km/dem.map" unitTime="24">
-            <Interpolation mode="grib_invdist"
+            <Interpolation mode="grib_nearest"
                            latMap="/dataset/maps/europe5km/lat.map"
                            lonMap="/dataset/maps/europe5km/long.map" />
         </OutMaps>

@@ -30,7 +30,7 @@ def _grib_nearest(gid, latEfas, lonEfas, mv, result):
                 result[x,y]=n_nearest[0]['value']
             except GRIB.GribInternalError,err:
                 outs+=1
-                stdout.write('\n\nout of grid!: lat: %.4f - lon: %.4f' % (latEfas[x,y],lonEfas[x,y]))
+                #stdout.write('\n\nout of grid!: lat: %.4f - lon: %.4f' % (latEfas[x,y],lonEfas[x,y]))
                 pass
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs), result
 

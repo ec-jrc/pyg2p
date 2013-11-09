@@ -6,13 +6,13 @@
     -p 228.128 -n R06a -t 06 -fmap=1 -s 12 -e 18
         -->
 
-    <Execution name = "eud_r06" id="9" >
+    <Execution name = "eud_e06" id="9" >
         <Parameter shortName="e" applyConversion="tomm" tstart="12" tend="18" />
         <Aggregation type="accumulation" step="6" />
 
         <OutMaps namePrefix="pE06" fmap="1"
                  cloneMap="/dataset/maps/europe5km/dem.map" unitTime="24">
-            <Interpolation mode="grib_invdist"
+            <Interpolation mode="grib_nearest"
                            latMap="/dataset/maps/europe5km/lat.map"
                            lonMap="/dataset/maps/europe5km/long.map" />
         </OutMaps>

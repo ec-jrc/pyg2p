@@ -50,6 +50,7 @@ class ExecutionContext:
         except ValueError, err:
             raise ApplicationException(err, str(err))
         except Exception, exc:
+
             raise ApplicationException(exc, str(exc))
 
     def interpolateWithGrib(self):
@@ -74,8 +75,8 @@ class ExecutionContext:
         self._params['parameter.tstart'] = None
         self._params['parameter.tend'] = None
         self._params['parameter.dataTime'] = None
-        self._params['outMaps.fmap'] = '1'
-        self._params['outMaps.ext'] = '1'
+        self._params['outMaps.fmap'] = None
+        self._params['outMaps.ext'] = None
 
         for opt, val in opts:
             if opt in ('-c', '--commandsFile'):
@@ -181,8 +182,11 @@ class ExecutionContext:
         #optional parameters
         self._params['outMaps.namePrefix'] = u.Execution.OutMaps['namePrefix'] if u.Execution.OutMaps['namePrefix'] else u.Execution.Parameter['shortName']
         self._params['outMaps.unitTime'] = u.Execution.OutMaps['unitTime'] if u.Execution.OutMaps['unitTime'] else None #in hours #number
-        self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] if u.Execution.OutMaps['ext'] else '1' #number
-
+        #self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] if u.Execution.OutMaps['ext'] else '1' #number
+        if self._params['outMaps.fmap'] is None:
+            self._params['outMaps.fmap'] = u.Execution.OutMaps['fmap'] if u.Execution.OutMaps['fmap'] is not None else '1' #number
+        if self._params['outMaps.ext'] is None:
+            self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] if u.Execution.OutMaps['ext'] else '1' #number
         #if start, end and dataTime are defined via command line input args, these are ignored.
         if self._params['parameter.tstart'] is None:
             self._params['parameter.tstart'] = u.Execution.Parameter['tstart'] #number
@@ -190,10 +194,7 @@ class ExecutionContext:
             self._params['parameter.tend'] = u.Execution.Parameter['tend']  #number
         if self._params['parameter.dataTime'] is None:
             self._params['parameter.dataTime'] = u.Execution.Parameter['dataTime']  #number
-        if self._params['outMaps.fmap'] is None:
-            self._params['outMaps.fmap'] = u.Execution.Parameter['fmap'] if u.Execution.OutMaps['fmap'] is not None else '1' #number
-        if self._params['outMaps.ext'] is None:
-            self._params['outMaps.ext'] = u.Execution.Parameter['ext'] if u.Execution.OutMaps['ext'] is not None else '1' #number
+
         self._params['parameter.level'] = u.Execution.Parameter['level'] #number
 
         if hasattr(u.Execution, 'Aggregation'):
@@ -317,8 +318,8 @@ class ExecutionContext:
                     raise ApplicationException.get_programmatic_exc(1400, 'fmap number')
                 if self._params['outMaps.ext'] and not self._params['outMaps.ext'].isdigit():
                     raise ApplicationException.get_programmatic_exc(1400, 'ext number')
-
                 self._params['outMaps.fmap'] = int(self._params['outMaps.fmap'])
+
                 self._params['outMaps.ext'] = int(self._params['outMaps.ext'])
             except Exception, exc:
 

@@ -35,7 +35,7 @@ class TestContext(object):
 
         self._params = {'file':xmlfile}
         self._params['pcrasterdiff.exec'] = xml_conf.PcRasterDiff['exec']
-        #self._params['eps'] = float(xml_conf['eps'])
+        self._params['atol'] = float(xml_conf['atol'])
         self._params['g2p.exec'] = xml_conf.g2p['exec']
         self._params['pre_commands'] = _get_list_commands(xml_conf['commands'])
         self._params['tests'] = {}

@@ -7,10 +7,8 @@ grib2pcraster
 -->
 <Execution name = "dwd_T24a" id="6" >
     <Parameter shortName="2t" tstart="0" tend="30" applyConversion="k2c"
-
-               gem="(10**((-0.159)*(z/9.81)/1000))"
-                correctionFormula="p/gem*(10**((-0.159)*dem/1000))"
-                demMap="/dataset/maps/europe5km/dem.map"/>
+        correctionFormula="p+gem-dem*0.0065" gem="(z/9.81)*0.0065"
+                demMap="/dataset/maps/dwd/dem05.map"/>
     <Aggregation type="average" step="24" />
 
     <OutMaps namePrefix="pT24" fmap="1" ext="4"

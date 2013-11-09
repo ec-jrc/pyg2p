@@ -6,7 +6,9 @@ grib2pcraster
 -p 11.2 -n T24a -t 24 -fmap=3 -s 30 -e 30 -ext=4
 -->
 <Execution name = "dwd_T24a" id="6" >
-    <Parameter shortName="2t" tstart="30" tend="30" applyConversion="k2c"/>
+    <Parameter shortName="2t" tstart="30" tend="30" applyConversion="k2c"
+               correctionFormula="p+gem-dem*0.0065" gem="(z/9.81)*0.0065"
+                demMap="/dataset/maps/dwd/dem05.map"/>
     <Aggregation type="average" step="24" />
 
     <OutMaps namePrefix="T24a" fmap="3" ext="4"

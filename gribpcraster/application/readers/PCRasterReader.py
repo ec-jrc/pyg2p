@@ -25,8 +25,10 @@ class PCRasterReader:
         self._pxlW = self._getTransform[1]
         self._pxlH = self._getTransform[5]
         self._area_extent = (self._origX, self._origX + (self._pxlW * self._cols), self._origY - (self._pxlH * self._rows), self._origY)
-        self._band = self._dataset.GetRasterBand(1)
 
+        self._band = self._dataset.GetRasterBand(1)
+        self._min = self._band.GetMinimum()
+        self._max = self._band.GetMaximum()
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
@@ -48,5 +50,5 @@ class PCRasterReader:
         return self._area_extent
 
     def getId(self):
-        return "%d_%d_%d_%d"%(self._origX, self._origY, self._pxlW, self._pxlH)
+        return "%d_%d_%d_%d_%.2f_%.2f" % (self._origX, self._origY, self._pxlW, self._pxlH, self._min, self._max)
 

@@ -3,13 +3,35 @@
 
  #pyg2p executing with single file multires
  #edit this test to use all files of same date
- g1@ -i /dataset/multires/20130325_en0to10.grib -o ./multiresSRO2 -p 8.128 -m 50 -n gsro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_2011_medium.txt
- g1@ -i /dataset/multires/20130325_en11to15.grib -o ./multiresSRO2 -p 8.128 -m 50 -n gsro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_2011_low.txt
- p1@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/EUE_15d.xml -i /dataset/multires/sro_2013051300.grb -o ./multiresSRO2 -m 0 -l ERROR
+ #g1@ -i /dataset/multires/20130325_en0to10.grib -o ./multiresSRO2 -p 8.128 -m 50 -n gsro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_2011_medium.txt
+ #g1@ -i /dataset/multires/20130325_en11to15.grib -o ./multiresSRO2 -p 8.128 -m 50 -n gsro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_2011_low.txt
+ #p1@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/EUE_15d.xml -i /dataset/multires/sro_2013051300.grb -o ./multiresSRO2 -m 0 -l ERROR
+
+ #g1@  -p 121.2 --report=2 -n gE06 -t 06 --fmap=14 -s 84 -e 168 -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_e06
+ #p1@  -l DEBUG -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_e06_2.xml -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_e06
+
+ #g1@  -p 102.201 --report=2 -n gR06 -t 06 --fmap=14 -s 84 -e 168 -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_r06NewInter
+ #p1@  -l DEBUG -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_r06_gmi.xml -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_r06NewInter
+
+ #g1@  -p 102.201 --report=2 -n gR06 -t 06 --fmap=14 -s 84 -e 168 -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_r06EfasInter
+ #p1@  -l DEBUG -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_r06_efas.xml -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_r06EfasInter
+
 
  #only pyg2p tests (these are not reproducible with grib2pcraster 1.07)
- p2@ -i /dataset/UKMO/UKMO_20121218.grib -o ./UKMOt24/ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/UKMO_t24_LA.xml -m 0
- p3@ -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o ./UKMOcv/ -c ./execution_templates_devel/EUE_RainAnim_CV.xml -m 0
+ #p2@ -i /dataset/UKMO/UKMO_20121218.grib -o ./UKMOt24/ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/UKMO_t24_LA.xml -m 0
+ #p3@ -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o ./UKMOcv/ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/EUE_RainAnim_CV.xml -m 0
+
+
+ g7@ -p 61.2 -n gR06 -t 06 --fmap=1 -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/cosmoR06 -m 10
+ p7@ -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/cosmo_r06.xml -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/cosmoR06 -m 10
+
+ g8@ -p 121.2 -n gE06 -t 06 --fmap=1 -m 10 -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/cosmoE06
+ p8@ -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/cosmo_e06.xml -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/cosmoE06 -m 10
+
+ g9@ -p 11.2 -n gT24 -t 24 --fmap=1 -m 10 --ext=4 -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/cosmoT24
+ p9@ -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/cosmo_t24.xml -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/cosmoT24 -m 10
+
+
 
 
 

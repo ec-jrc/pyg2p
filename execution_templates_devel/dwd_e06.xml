@@ -7,7 +7,7 @@
     <OutMaps namePrefix="pE06" fmap="1"
              cloneMap="/dataset/maps/dwd/dem05.map" unitTime="24">
 
-        <Interpolation mode="grib_invdist"
+        <Interpolation mode="grib_nearest"
                        latMap="/dataset/maps/dwd/dwdlme05_lat.map"
                        lonMap="/dataset/maps/dwd/dwdlme05_lon.map" />
     </OutMaps>

@@ -1,6 +1,28 @@
 CHANGE LOG
 ========================
 
+v 1.2.5
+------
+034 Improvement (major):
+    Test functionality, activated with -t CLI argument, performs numerical checks of diff maps
+        and logs red messages if values are too big.
+        New configuration parameters is 'atol' (absolute tolerance).
+
+033 Bug fix (minor):
+    Some lat/lon PCRaster maps shared the same metadata so the interpolation id resulted to be the same,
+        even if they are different (because of different projection).
+        Added min and max values of lats and longs to the metadata. This ensures uniqueness in the interpolation filename
+        for each GRIB grid/PCRaster grid couple, also in slighty different projected areas.
+
+032 Bug fix (major):
+    new added CLI arguments fmap and ext prevented corresponding XML configuration to be read
+    so they were set to default '1'.
+
+031 Bug Fix (minor):
+    Removed logs of coordinates when points are out of grid
+        during creation of interpolation table.
+
+
 v 1.2.4
 ------
 030 Bug Fix (minor):
@@ -8,7 +30,7 @@ v 1.2.4
 
 029 Improvement (minor):
     Filenames starting with dash '-' are problematic in linux.
-    Now interttables filename has the prefix 'I'.
+    Now intertables filename has the prefix 'I'.
 
 
 v 1.2.3
