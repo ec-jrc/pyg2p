@@ -96,6 +96,6 @@ class TestRunner(object):
                 self.do_pcdiffs(diff_exec, test_, g_maps)
             else:
                 for p_map in p_maps:
-                    print BOLD + 'aguila ' + test_.out_dir + '/' + p_map + ENDC
+                    print BOLD + 'aguila ' + test_.out_dir + p_map + ENDC
 
 

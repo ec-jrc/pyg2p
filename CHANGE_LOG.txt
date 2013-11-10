@@ -1,12 +1,20 @@
 CHANGE LOG
 ========================
 
+v 1.2.6
+-------
+
+035 Improvement (minor)
+    Some refactoring (moving methods in utils modules)
+
+
+
 v 1.2.5
 ------
 034 Improvement (major):
     Test functionality, activated with -t CLI argument, performs numerical checks of diff maps
         and logs red messages if values are too big.
-        New configuration parameters is 'atol' (absolute tolerance).
+        New XML configuration parameter: 'atol' (absolute tolerance).
 
 033 Bug fix (minor):
     Some lat/lon PCRaster maps shared the same metadata so the interpolation id resulted to be the same,

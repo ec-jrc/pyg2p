@@ -2,7 +2,7 @@ __author__ = 'dominik'
 
 import abc
 import gribpcraster.application.ExecutionContext as ex
-class IReader(object):
+class Reader(object):
 
     __metaclass__ = abc.ABCMeta
 

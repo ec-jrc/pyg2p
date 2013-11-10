@@ -3,9 +3,10 @@ import gribapi as GRIB
 from gribpcraster.application.domain.GribGridDetails import GribGridDetails
 from gribpcraster.application.domain.Messages import Messages
 from util.logger.Logger import Logger
-from gribpcraster.application.readers.IReader import IReader
+from gribpcraster.application.readers.Reader import Reader
 from gribpcraster.exc.ApplicationException import ApplicationException
 from gribpcraster.application.domain.Key import Key
+import util.generics as utils
 import gribpcraster.application.ExecutionContext as ex
 
 def get_id(grib_file, readerArgs):
@@ -15,7 +16,7 @@ def get_id(grib_file, readerArgs):
     return grid.getGridId()
 
 
-class GRIBReader(IReader):
+class GRIBReader(Reader):
 
     def __init__(self, grib_file):
         self._grib_file = grib_file
@@ -29,31 +30,15 @@ class GRIBReader(IReader):
         self._step_grib2 = -1
         self._change_step_at = ''
 
-
-    @staticmethod
-    def _is_stringlike(a):
-        if type(a) == str or type(a) == bytes or type(a) == unicode:
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def _is_container(a):
-        try: 1 in a
-        except: return False
-        if GRIBReader._is_stringlike(a): return False
-        return True
-
-
     @staticmethod
     def _find(gid, **kwargs):
 
         for k, v in kwargs.items():
             if not GRIB.grib_is_defined(gid,k): return False
             # is v a "container-like" non-string object?
-            iscontainer = GRIBReader._is_container(v)
+            iscontainer = utils.is_container(v)
             # is v callable?
-            iscallable = hasattr(v, '__call__')
+            iscallable = utils.is_callable(v)
             if not iscontainer and not iscallable and GRIB.grib_get(gid, k) == v:
                 continue
             elif iscontainer and GRIB.grib_get(gid,k) in v: # v is a list.
@@ -72,10 +57,6 @@ class GRIBReader(IReader):
         for g in self._gribs_for_utils:
             GRIB.grib_release(g)
         self._logger.close()
-
-    # def _log(self, message, level='DEBUG'):
-    #     self._logger.log(message, level)
-    #     ex.global_main_logger2Console.log(message,level)
 
     #returns an array of GRIB selected messages as gribmessage objects
 

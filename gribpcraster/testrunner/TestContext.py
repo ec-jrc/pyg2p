@@ -56,6 +56,9 @@ class TestContext(object):
                 test_ = Test()
                 test_.id = id_
                 test_.out_dir = out_dir_
+                if not test_.out_dir.endswith('/') and not test_.out_dir=='.':
+                    test_.out_dir += '/'
+
                 self._params['tests'][id_] = test_
 
             if type_ == 'g':
