@@ -73,8 +73,8 @@ class Manipulator(object):
             out_values = {}
             res = values.keys()[0].resolution
             v = self._convert_key_to_endstep(values)  # original key is 'start-end-resolution'
-            v_ord = collections.OrderedDict(sorted(v.items(), key = lambda k : k[0]))
-            self._log('Cumulation at resolution: %s'%res)
+            v_ord = collections.OrderedDict(sorted(v.items(), key=lambda k: k[0]))
+            self._log('Cumulation at resolution: %s' % res)
 
             if self._start == 0:
                 self._log('start 0: change to the first aggregation_timestep %d' % self._aggregation_step)
@@ -88,11 +88,11 @@ class Manipulator(object):
                     next_ts = v_ord.keys()[ind_next_ts]
 
                     v_nts_ma = _mask_it(v[next_ts], self._mvGrib)
-                    self._log('Message %d not in dataset. Creating it. Masking with %.2f'%(iter_ , self._mvGrib))
+                    self._log('Message %d not in dataset. Creating it. Masking with %.2f'%(iter_, self._mvGrib))
 
                     ind_originalts= bisect.bisect_right(v_ord.keys(), iter_)
                     if ind_originalts == ind_next_ts:
-                        ind_originalts-=1
+                        ind_originalts -= 1
                     originalts=v_ord.keys()[ind_originalts]
                     v_ots_ma = _mask_it(v[originalts], self._mvGrib)
 
@@ -123,16 +123,24 @@ class Manipulator(object):
                         self._log('Trying to create message grib:%d as grib:%d+(grib:%d-grib:%d)*((%d-%d)/(%d-%d))'
                                   %(iter_-self._aggregation_step,originalts,next_ts,originalts,iter_,originalts,next_ts,originalts))
                         v_out = v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))
-                        v[iter_-self._aggregation_step]=_mask_it(v_out, self._mvGrib)
+                        v[iter_-self._aggregation_step] = _mask_it(v_out, self._mvGrib)
 
                 key = Key(iter_-self._aggregation_step, iter_, res, self._aggregation_step)
                 self._log('out[%s] = (grib:%d - grib:%d)  * (%d/%d))'%(key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
                 v_iter_ma = _mask_it(v[iter_], self._mvGrib)
+
+                #if iter_- self._aggregation_step == 0:
+                #    # forced ZERO array...
+                #    #raw_input('Creating zeros...')
+                #    v_iter_1_ma = _mask_it(np.zeros(v[0].shape), self._mvGrib)
+                #else:
+                #    v_iter_1_ma = _mask_it(v[iter_- self._aggregation_step], self._mvGrib)
+
                 v_iter_1_ma = _mask_it(v[iter_- self._aggregation_step], self._mvGrib)
                 out_value = _mask_it((v_iter_ma-v_iter_1_ma)*(self._unit_time/self._aggregation_step), self._mvGrib)
                 out_values[key] = out_value
 
-        ordered = collections.OrderedDict(sorted(out_values.items(), key = lambda (k,v) : (int(k.end_step),v)))
+        ordered = collections.OrderedDict(sorted(out_values.items(), key=lambda (k,v): (int(k.end_step),v)))
         return ordered
 
     def _average(self, values):
@@ -147,13 +155,13 @@ class Manipulator(object):
             shape_iter = values[values.keys()[0]].shape
 
             v = self._convert_key_to_endstep(values)
-            v_ord=collections.OrderedDict(sorted(v.items(), key = lambda k : k[0]))
+            v_ord=collections.OrderedDict(sorted(v.items(), key=lambda k: k[0]))
             if self._start > 0 and not self._second_t_res:
-                iter_start=self._start-self._aggregation_step+1
+                iter_start = self._start-self._aggregation_step+1
             elif self._second_t_res:
-                iter_start=self._start
+                iter_start = self._start
             else:
-                iter_start=0
+                iter_start = 0
 
             for iter_ in range(iter_start, self._end-self._aggregation_step + 2, self._aggregation_step):
 

@@ -45,6 +45,7 @@ class TestContext(object):
             id_ = splitted[0][1:]
             type_ = splitted[0][0]
             args_ = to_argv(splitted[1])
+            out_dir_ = './'
             for i in range(len(args_)):
                 if args_[i] == '-o':
                     out_dir_ = args_[i+1]
@@ -56,7 +57,7 @@ class TestContext(object):
                 test_ = Test()
                 test_.id = id_
                 test_.out_dir = out_dir_
-                if not test_.out_dir.endswith('/') and not test_.out_dir=='.':
+                if not test_.out_dir.endswith('/') and not test_.out_dir == '.':
                     test_.out_dir += '/'
 
                 self._params['tests'][id_] = test_

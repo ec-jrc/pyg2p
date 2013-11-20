@@ -34,7 +34,7 @@ def interpolate_invdist(z, _mvEfas, _mvGrib, distances, ixs, nnear, p, weights):
             if jinterpol % 1000 == 0:
                 stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, numCells, jinterpol * 100. / numCells))
                 stdout.flush()
-            if dist[dist>= 1e+7].any():
+            if (dist >= 1e+7).all():
                 wz = _mvEfas
             #distances are ordered by the shortest first
             elif dist[0] > 1e-10:

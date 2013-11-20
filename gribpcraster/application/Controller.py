@@ -120,7 +120,7 @@ class Controller:
     def execute(self):
         converter = None
 
-        change_step, commandArgs, end_step, input_step, input_step2, m, manip_2nd_time_res, mvGrib, start_step2 = self.initExecution()
+        change_res_step, commandArgs, end_step, input_step, input_step2, m, manip_2nd_time_res, mvGrib, start_step2 = self.initExecution()
         grid_id, messages, type_of_param = self._readMessages(commandArgs)
 
         if self._ctx.isTwoInputFiles():
@@ -140,15 +140,15 @@ class Controller:
         if self._ctx.mustDoManipulation():
             #messages.change_resolution() returns true if two input files with 2 res
             #                                          or single file multires
-            if messages.change_resolution():
-                change_step = messages.get_change_res_step()
+            if messages.have_change_resolution():
+                change_res_step = messages.get_change_res_step()
                 #end_step1 is the start step of the first message at 2nd resolution
-                end_step1 = int(change_step.start_step)
+                end_step1 = int(change_res_step.start_step)
                 m.change_end_step(end_step1)
             values = m.doManipulation(values)
 
-        if messages.change_resolution():
-            change_step = messages.get_change_res_step()
+        if messages.have_change_resolution():
+            change_res_step = messages.get_change_res_step()
             lats2=None
             longs2=None
             if not self._ctx.interpolateWithGrib():
@@ -156,7 +156,7 @@ class Controller:
                 lats2, longs2=messages.getLatLons2()
             grid_id2 = messages.getGridId2()
             if self._ctx.mustDoManipulation():
-                change_step, values = self.secondResManipulation(change_step, end_step, input_step, messages,
+                change_res_step, values = self.secondResManipulation(change_res_step, end_step, input_step, messages,
                                                                  mvGrib, type_of_param, values)
 
         #Grib lats/lons are used for interpolation methods griddata, invdist.
@@ -183,7 +183,7 @@ class Controller:
             log_it = False
             #writing map i
             i += 1
-            if messages.change_resolution() and timestep == change_step:
+            if messages.have_change_resolution() and timestep == change_res_step:
                 self._log(">>>>>>>>>>>> Change of resolution at message: "+str(timestep), 'DEBUG')
                 #changing interpol parameters to 2nd res
                 lats = lats2

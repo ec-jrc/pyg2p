@@ -1,6 +1,6 @@
- #use '#' for comments and empty lines for readability#
- ######################################################
-
+ ######################################################################
+ #use '#' for comments and to disable tests you don't want to execute #
+ ######################################################################
 
  g1@ -p 228.128 -n gR24 -t 24 --fmap=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueR24 -m 10
  p1@ -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/eue_r24.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueR24 -m 10
@@ -20,6 +20,9 @@
  g6@ -p 11.2 -n gT24 -t 24 --fmap=1 -e 30 --ext=4 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdT24
  p6@ -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_t24.xml -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdT24
 
+ ###test 7: v 1.2.6, pyg2p has the first map different,
+ ###because it uses grib message 0 for accumulation,
+ ###where grib2pcraster uses a zero array
  g7@ -p 61.2 -n gR06 -t 06 --fmap=1 -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/cosmoR06 -m 10
  p7@ -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/cosmo_r06.xml -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/cosmoR06 -m 10
 
@@ -61,7 +64,11 @@
  g19@  -p 102.201 -n gR06 -t 06 --fmap=14 -s 84 -e 168 -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_r06NewInter
  p19@  -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_r06_gmi.xml -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_r06NewInter
 
-
+ ###test 20: v 1.2.6, pyg2p has the first map different,
+ ###because it uses grib message 0 for accumulation,
+ ###where grib2pcraster uses a zero array
+ g20@ -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111912 -o /dataset/testdiffmaps/dwdlme/ -p 102.201 -n gR06a -t 06 -s 6 -e 78
+ p20@ -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111912 -o /dataset/testdiffmaps/dwdlme/ -s 6 -e 78 --fmap=1 -l ERROR -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwdl_r06.xml
 
 
 

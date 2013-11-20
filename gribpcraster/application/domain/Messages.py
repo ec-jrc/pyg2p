@@ -84,7 +84,7 @@ class Messages():
     def getGridDetails2nd(self):
         return self.grid_details.get_2nd_resolution()
 
-    def change_resolution(self):
+    def have_change_resolution(self):
         return self.grid_details.get_2nd_resolution() is not None
 
     def change_time_resolution(self):

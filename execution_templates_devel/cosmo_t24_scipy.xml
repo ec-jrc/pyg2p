@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    <Execution name = "cosmo_T24" id="2" >
+        <Parameter shortName="2t" applyConversion="k2c" tend="48" />
+                <!--gem="(z/9.81)*0.0065"-->
+                <!--correctionFormula="p+gem-dem*0.0065"-->
+                <!--demMap="/dataset/maps/dem05.map"-->
+
+
+         <Aggregation type="average" step="24" />
+
+        <OutMaps namePrefix="pT24" fmap="1" ext="4" unitTime="24"
+                 cloneMap="/dataset/maps/dem05.map" >
+            <Interpolation mode="grib_invdist"
+                           latMap="/dataset/maps/cosmo/cosmo05_lat.map"
+                           lonMap="/dataset/maps/cosmo/cosmo05_lon.map" />
+        </OutMaps>
+    </Execution>

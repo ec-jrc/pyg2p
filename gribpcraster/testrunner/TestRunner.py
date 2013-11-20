@@ -46,8 +46,8 @@ class TestRunner(object):
             comm = [diff_exec, diff_map + ' = ' + g_map + ' - ' + p_map]
             FNULL = open(os.devnull, 'w')
             _run_job(comm, cwd=test_.out_dir, stdout=FNULL, stderr=STDOUT)
-            print BOLD + 'aguila ' + test_.out_dir + '/' + diff_map + ' ' + test_.out_dir + '/' + g_map + ' ' + test_.out_dir + '/' + p_map + ENDC
-            reader_ = pcr(test_.out_dir + '/' + diff_map)
+            print BOLD + 'aguila ' + test_.out_dir + diff_map + ' ' + test_.out_dir + g_map + ' ' + test_.out_dir + p_map + ENDC
+            reader_ = pcr(test_.out_dir + diff_map)
             diff_values = reader_.getValues()
 
             diff_values = diff_values[diff_values != reader_.getMissingValue()]

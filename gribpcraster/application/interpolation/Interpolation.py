@@ -15,13 +15,14 @@ from InverseDistance import InverseDistance
 from gribpcraster.exc.ApplicationException import ApplicationException
 import gribpcraster
 dir_ = os.path.dirname(gribpcraster.__file__)
+#default intertable dir. Can be overwritten with intertableDir xml/CLI parameter
 INTERTABLES_DIR = os.path.join(dir_, '../', 'configuration/intertables/')
 TAB_NAME_SCIPY = '_scipy_'
 SAFE_PREFIX_INTTAB_NAME = 'I'
 
 def _read_intertable(intertable_name, log=None):
     if log is not None:
-        #first interpolation
+        #first interpolation table usage
         #log filename interpolation table
         log('Using interpolation table: %s'%(intertable_name), 'INFO')
     intertable = np.load(intertable_name)

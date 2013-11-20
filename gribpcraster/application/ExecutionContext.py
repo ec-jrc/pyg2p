@@ -37,9 +37,9 @@ class ExecutionContext:
         except ApplicationException, err:
             raise err
         except ValueError, err:
-            raise ApplicationException(err, str(err))
+            raise ApplicationException(err, None, str(err))
         except Exception, exc:
-            raise ApplicationException(exc, str(exc))
+            raise ApplicationException(exc, None, str(exc))
 
         #check numbers, existing dirs and files, supported options, semantics etc.
         try:
@@ -48,10 +48,11 @@ class ExecutionContext:
         except ApplicationException, err:
             raise err
         except ValueError, err:
-            raise ApplicationException(err, str(err))
+            raise ApplicationException(err, None, str(err))
+            #raise err
         except Exception, exc:
-
-            raise ApplicationException(exc, str(exc))
+            raise ApplicationException(exc, None, str(exc))
+            #raise exc
 
     def interpolateWithGrib(self):
         return self._params['interpolation.mode'].startswith('grib_')  # in ['grib_invdist', 'grib_nearest']
@@ -67,7 +68,7 @@ class ExecutionContext:
                                                                          'addGeopotential=', 'test=', 'start=', 'end=',
                                                                          'fmap=', 'ext='])
         except getopt.GetoptError, err:
-            raise ApplicationException(err, str(err))
+            raise ApplicationException(err, None, str(err))
 
         self._params['input.two_resolution'] = False
         self._params['logger.level'] = 'INFO'
@@ -269,8 +270,10 @@ class ExecutionContext:
                     raise ApplicationException.get_programmatic_exc(1300)
                 if not fu.exists(self._params['outMaps.clone']):
                     raise ApplicationException.get_programmatic_exc(1310)
+            except ApplicationException, exc:
+                raise exc
             except Exception, exc:
-                raise ApplicationException(exc, str(exc))
+                raise ApplicationException(exc, None, str(exc))
 
 
             #create out dir if not existing
@@ -283,7 +286,7 @@ class ExecutionContext:
                         self._log('Non existing Output directory: ' + self._params['outMaps.outDir'] + ' - created.')
             except Exception, exc:
 
-                raise ApplicationException(exc, str(exc))
+                raise ApplicationException(exc, None, str(exc))
 
             if self._params['interpolation.dir'] is not None and not fu.exists(self._params['interpolation.dir'], isDir=True):
                 raise ApplicationException.get_programmatic_exc(1320, self._params['interpolation.dir'])
@@ -323,7 +326,7 @@ class ExecutionContext:
                 self._params['outMaps.ext'] = int(self._params['outMaps.ext'])
             except Exception, exc:
 
-                raise ApplicationException(exc, str(exc))
+                raise ApplicationException(exc, None, str(exc))
 
             #check inv dist additional params if exist
 
@@ -343,7 +346,7 @@ class ExecutionContext:
                         raise ApplicationException.get_programmatic_exc(1400, 'Interpolation param eps')
             except Exception, exc:
 
-                raise ApplicationException(exc, str(exc))
+                raise ApplicationException(exc, None, str(exc))
 
             try:
                 #check tstart<=tend
@@ -361,7 +364,7 @@ class ExecutionContext:
                 if self._params['execution.doCorrection'] and not fu.exists(self._params['correction.demMap']):
                     raise ApplicationException.get_programmatic_exc(4200, self._params['correction.demMap'])
             except Exception, exc:
-                raise ApplicationException(exc, str(exc))
+                raise ApplicationException(exc, None, str(exc))
 
     def __str__(self):
         mess = '\n\n\n============ grib-pcraster-pie: Execution parameters ' + dtu.getNowStr() + ' ================\n\n'

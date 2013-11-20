@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+        <!-- grib2pcraster -i /gpfs/r_lxab/efas/emos/efas/meteo/forecasted/ecmwf/2013/06/EpsN320-2013061800.grb
+        -o /gpfs/r_lxab/efas/emos/efas/europe5km/201306/EUE2013061800/p10/
+        -p 182.128 -n E24a -t 24 -fmap=1 -m 10
+        -->
+
+    <Execution name = "eue_e" id="eue_e" >
+        <Parameter shortName="e" applyConversion="tomm" tend="48"/>
+        <Aggregation type="accumulation" step="24" />
+
+        <OutMaps namePrefix="pE24" fmap="1"
+                 cloneMap="/dataset/maps/europe5km/dem.map" unitTime="24">
+
+            <Interpolation mode="nearest"
+                           latMap="/dataset/maps/europe5km/lat.map"
+                           lonMap="/dataset/maps/europe5km/long.map" />
+        </OutMaps>
+    </Execution>

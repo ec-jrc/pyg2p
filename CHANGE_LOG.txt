@@ -3,10 +3,15 @@ CHANGE LOG
 
 v 1.2.6
 -------
+037 Bug Fix (minor)
+    Configuration errors (like wrong paths to lat, lon, dem, clone maps) weren't properly logged
+        due a bug in constructing the application error message.
+
+036 Improvement (minor)
+    Added some few tests and comments to configuration/tests/commands.txt
 
 035 Improvement (minor)
-    Some refactoring (moving methods in utils modules)
-
+    Some move refactoring (moving methods in utils modules)
 
 
 v 1.2.5
