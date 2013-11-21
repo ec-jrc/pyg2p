@@ -2,7 +2,6 @@ import collections
 import bisect
 import numpy as np
 
-#from gribpcraster.application.domain.Messages import Values
 from gribpcraster.exc.ApplicationException import ApplicationException
 from util.logger.Logger import Logger
 import gribpcraster.application.ExecutionContext as ex
@@ -20,16 +19,18 @@ PARAM_AVG = 'avg'
 PARAM_CUM = 'accum'
 
 class Manipulator(object):
-    def __init__(self, aggr_step, aggr_type, input_step, step_type_, start_step, end_step, unit_time, mv_, sec_temp_res=False, lastFirstResMessage=None):
+
+    def __init__(self, aggr_step, aggr_type, input_step, step_type_, start_step, end_step, unit_time, mv_, force_zero_array=False, sec_temp_res=False, lastFirstResMessage=None):
 
         self._mvGrib = mv_
         self._unit_time=int(unit_time)
         self._aggregation_step = int(aggr_step)
         self._aggregation = aggr_type  # type of manipulation
+        self._force_zero = force_zero_array  # if true, accumulation will consider zero array as GRIB at step 0.
         self._step_type = step_type_  # stepType from grib
         self._input_step = int(input_step)  # timestep from grib. should be in hours
-        self._start=int(start_step)
-        self._end=int(end_step)
+        self._start = int(start_step)
+        self._end = int(end_step)
         self._second_t_res = sec_temp_res
         self._lastFirstResMess = lastFirstResMessage
         import gribpcraster.application.ExecutionContext as ex
@@ -49,7 +50,8 @@ class Manipulator(object):
 
     #input is dict of values[start-end-res]
     #out is values(end)
-    def _convert_key_to_endstep(self, values):
+    @staticmethod
+    def _convert_key_to_endstep(values):
         v_by_endstep={}
         #sets a new dict with different key (using only endstep)
         for k,v in values.iteritems():
@@ -63,7 +65,7 @@ class Manipulator(object):
         self._log('Changing end step to %d'%end_first_res)
         self._end = end_first_res
 
-    def doManipulation(self, values):
+    def do_manipulation(self, values):
         self._log('******** **** MANIPULATION **** *************')
         return self._functs[self._aggregation](values)
 
@@ -129,14 +131,13 @@ class Manipulator(object):
                 self._log('out[%s] = (grib:%d - grib:%d)  * (%d/%d))'%(key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
                 v_iter_ma = _mask_it(v[iter_], self._mvGrib)
 
-                #if iter_- self._aggregation_step == 0:
-                #    # forced ZERO array...
-                #    #raw_input('Creating zeros...')
-                #    v_iter_1_ma = _mask_it(np.zeros(v[0].shape), self._mvGrib)
-                #else:
-                #    v_iter_1_ma = _mask_it(v[iter_- self._aggregation_step], self._mvGrib)
+                if iter_- self._aggregation_step == 0 and self._force_zero:
+                    # forced ZERO array...
+                    v_iter_1_ma = _mask_it(np.zeros(v[0].shape), self._mvGrib)
+                else:
+                    v_iter_1_ma = _mask_it(v[iter_- self._aggregation_step], self._mvGrib)
 
-                v_iter_1_ma = _mask_it(v[iter_- self._aggregation_step], self._mvGrib)
+                #v_iter_1_ma = _mask_it(v[iter_- self._aggregation_step], self._mvGrib)
                 out_value = _mask_it((v_iter_ma-v_iter_1_ma)*(self._unit_time/self._aggregation_step), self._mvGrib)
                 out_values[key] = out_value
 
@@ -222,5 +223,5 @@ class Manipulator(object):
         ordered = collections.OrderedDict(sorted(out_values.items(), key = lambda (k,v) : (int(k.end_step), v)))
         return ordered
 
-    def getRealStartEndStep(self):
+    def get_real_start_end_steps(self):
         return self._usable_start, self._end

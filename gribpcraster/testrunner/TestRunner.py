@@ -33,6 +33,7 @@ def count_maps(param, out_dir):
 
 
 class TestRunner(object):
+
     def __init__(self, file_):
         self._ctx = TestContext(file_)
 

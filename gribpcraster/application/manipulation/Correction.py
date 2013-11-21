@@ -38,7 +38,7 @@ class Corrector(object):
         interpolator = Interpolator(executionContext)
         self._log('Reading geopotential values (with interpolation) %s)' % geo_file_)
 
-        self._gem_missing_value, self._gem_values = self._readGeopotential(geo_file_, interpolator, executionContext.interpolateWithGrib())
+        self._gem_missing_value, self._gem_values = self._readGeopotential(geo_file_, interpolator, executionContext.interpolate_with_grib())
 
     def correct(self, values):
 

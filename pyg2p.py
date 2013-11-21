@@ -28,13 +28,13 @@ def main(argv):
     try:
         #read configuration (commands.xml, parameters.xml, loggers, geopotentials.xml if there is correction)
         execCtx = ExecutionContext(argv)
-        if execCtx.userWantsToShowHelp():
+        if execCtx.user_wants_help():
             usage()
             return 0
-        elif execCtx.userWantsToAddGeopotential():
+        elif execCtx.user_wants_to_add_geopotential():
             addGeo(execCtx.get('geopotential'))
             return 0
-        elif execCtx.userWantsToRunTests():
+        elif execCtx.user_wants_to_test():
             runTests(execCtx.get('test.xml'))
             return 0
 

@@ -2,7 +2,7 @@
 
 <Execution name = "dwd_rain_gsp" id="4" >
     <Parameter shortName="rain_gsp" applyConversion="cut" tstart="12" tend="18"/>
-    <Aggregation type="accumulation" step="6" />
+    <Aggregation type="accumulation" step="6" forceZeroArray = "yes"/>
 
     <OutMaps namePrefix="pR06a" fmap="1"
              cloneMap="/dataset/maps/dwd/dem05.map" unitTime="24">

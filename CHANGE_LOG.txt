@@ -1,6 +1,14 @@
 CHANGE LOG
 ========================
 
+v 1.2.7
+-------
+038 Improvement (major)
+    In accumulation aggregation, the user can optionally force pyg2p to use a zero array as initial input GRIB,
+        even if a message at step 0 exists in the GRIB file for that variable.
+    To use this option, set the attribute forceZeroArray="y" for the Aggregation XML element.
+
+
 v 1.2.6
 -------
 037 Bug Fix (minor)
@@ -49,7 +57,7 @@ v 1.2.4
 v 1.2.3
 ------
 028 Bug fix (major):
-    Grid IS, as used in intertables filenames and in geopotentials IDs (in geopotentials.xml),
+    Grid ID, as used in intertables filenames and in geopotentials IDs (in geopotentials.xml),
         were erroneously constructed cutting away decimals.
         This could have lead to ambiguities when selecting intertables or geopotentials,
         in case some GRIB files have a grid with a difference in decimals in its bounding box longitudes.

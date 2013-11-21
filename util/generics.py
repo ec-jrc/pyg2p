@@ -1,5 +1,6 @@
 __author__ = 'dominik'
 
+FALSE_STRINGS = ['FALSE', 'F', 'False', 'false', 'NO', 'no', 'No', '0']
 
 def is_stringlike(a):
         if type(a) == str or type(a) == bytes or type(a) == unicode:

@@ -29,6 +29,7 @@ class PCRasterReader:
         self._band = self._dataset.GetRasterBand(1)
         self._min = self._band.GetMinimum()
         self._max = self._band.GetMaximum()
+
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 

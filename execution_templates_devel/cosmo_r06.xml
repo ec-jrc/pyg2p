@@ -2,7 +2,7 @@
 
     <Execution name = "cosmo_r06" id="3" >
         <Parameter shortName="tp" applyConversion="cut" />
-         <Aggregation type="accumulation" step="6" />
+         <Aggregation type="accumulation" step="6" forceZeroArray="true" />
 
         <OutMaps namePrefix="pR06" fmap="1" unitTime="24"
                  cloneMap="/dataset/maps/cosmo/dem05.map" >
