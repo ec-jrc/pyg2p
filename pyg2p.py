@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-__author__= "Nappo Domenico"
-__date__ = "$Jul 12, 2013 07:11:03 AM$"
-__version__ = "0.9x"
+__author__ = "Nappo Domenico"
+__date__ = "$Nov 21, 2013 23:32 AM$"
+__version__ = "1.2.x"
 
 from gribpcraster.exc import ApplicationException as appexcmodule
 from gribpcraster.application.ExecutionContext import ExecutionContext
@@ -66,7 +66,7 @@ def usage():
     # prints some lines describing how to use this program
     # accepted input arguments, etc
 
-    print '\n\ngrib-pcraster-pie - a program to convert from GRIB (1 & 2) to PCRaster \n'
+    print '\n\npyg2p - a program to convert from GRIB (1 & 2) to PCRaster \n'
     print 'Authors: ',  __author__
     print 'Version: ',  __version__
     print 'Date: ',     __date__
