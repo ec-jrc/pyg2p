@@ -2,10 +2,12 @@ __docformat__ = 'restructuredtext'
 PYG_P_OUT_LOG = 'pyg2p_out.log'  # file console log
 import logging
 import inspect
-import os, sys
+import os,sys
+import untangle
 from logging import handlers
 import util.file.FileManager as FileUtils
-import untangle
+from util.generics import FALSE_STRINGS
+
 
 DIR = './log/'
 _logging_level = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR,
@@ -37,7 +39,7 @@ class LoggerConfiguration:
         self._untangled = untangle.parse(configFile)
         self._loggers = {}
         self.file_logging_enabled = True
-        if self._untangled.Loggers['enabled'] and self._untangled.Loggers['enabled'] in ['false', 'False', 'no', 'NO', 'No']:
+        if self._untangled.Loggers['enabled'] and self._untangled.Loggers['enabled'] in FALSE_STRINGS:
             self.file_logging_enabled = False
 
         for loggerItem in self._untangled.Loggers.Logger:
