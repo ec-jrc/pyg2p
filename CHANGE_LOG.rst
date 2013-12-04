@@ -1,6 +1,16 @@
 CHANGE LOG
 ========================
 
+v 1.2.8
+-------
+* **040** Bug fix (major)
+    When ungribbing a multiresolution file, if the extended resolution intertable was not found,
+        the program was errouneously producing the intertable.
+
+* **039** Bug fix (major)
+    In manipulation of extended resolution messages in a multiresolution file,
+    the manipulator was instantiated with a wrong start_step and so the manipulated maps were wrong.
+
 v 1.2.7
 -------
 * **038** Improvement (major)

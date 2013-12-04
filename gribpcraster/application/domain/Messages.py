@@ -6,7 +6,7 @@ import gribpcraster.application.ExecutionContext as ex
 
 class Messages():
 
-    def __init__(self, values_, missing_, unit_, type_of_level_, type_of_step_, grid_details_, val_2nd=None, has_2_timestep_= False):
+    def __init__(self, values_, missing_, unit_, type_of_level_, type_of_step_, grid_details_, val_2nd=None, has_2_timestep=False):
         self._logger = Logger('Messages', loggingLevel=ex.global_logger_level)
         self._all_values = {}
         self.values_second_res = {}
@@ -14,7 +14,7 @@ class Messages():
         self.type_of_level=type_of_level_
         self.unit=unit_
         self.missing_value = missing_
-        self._has_2_timestep = has_2_timestep_
+        self._has_2_timestep = has_2_timestep
 
         od = collections.OrderedDict(sorted(values_.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
         self.values_first_or_single_res = od
@@ -24,17 +24,14 @@ class Messages():
             self.values_second_res = od
             self._all_values.update(od)
 
-        self.grid_details =grid_details_
-        # #order the key list and log the first element
-        self.first_step_range = sorted(self._all_values.keys(), key = lambda k : (int(k.end_step)))[0]
-        # self._log('First message has: '+str(self.first_step_range))
-        # for k in sorted(self._all_values.keys(), key = lambda k : (int(k.end_step))):
-        #     self._log(' message has: '+str(k))
+        self.grid_details = grid_details_
+        # #order the key list
+        self.first_step_range = sorted(self._all_values.keys(), key=lambda k: (int(k.end_step)))[0]
 
     def append_2nd_res_messages(self, messages):
         #messages is a Messages object
         self.grid_details.set_2nd_resolution(messages.grid_details, messages.first_step_range)
-        od =  collections.OrderedDict(sorted(messages.getValuesOfFirstOrSingleRes().items(), key = lambda (k,v) : (int(k.end_step),v)))
+        od = collections.OrderedDict(sorted(messages.getValuesOfFirstOrSingleRes().items(), key=lambda (k,v) : (int(k.end_step),v)))
         self.values_second_res = od
         self._all_values.update(self.values_second_res)
         #garbaged
@@ -44,11 +41,11 @@ class Messages():
         return self.unit
 
     def getValuesOfFirstOrSingleRes(self):
-        od =  collections.OrderedDict(sorted(self.values_first_or_single_res.items(), key = lambda (k,v) : (int(k.end_step),v)))
+        od = collections.OrderedDict(sorted(self.values_first_or_single_res.items(), key=lambda (k, v): (int(k.end_step), v)))
         return od
 
     def getValuesOfSecondRes(self):
-        od =  collections.OrderedDict(sorted(self.values_second_res.items(), key = lambda (k,v) : (int(k.end_step),v)))
+        od = collections.OrderedDict(sorted(self.values_second_res.items(), key=lambda (k, v): (int(k.end_step), v)))
         return od
 
     def getGridId(self):
@@ -95,7 +92,7 @@ class Messages():
         self._log('Filtering with %d'%input_step)
         dict_new = self._all_values.copy()
         dict_new = dict((key,value) for key, value in dict_new.iteritems() if key.input_step == str(input_step))
-        od = collections.OrderedDict(sorted(dict_new.items(), key = lambda (k,v): (int(k.end_step), v)))
+        od = collections.OrderedDict(sorted(dict_new.items(), key=lambda (k, v): (int(k.end_step), v)))
         return od
 
     def get_change_res_step(self):
@@ -117,7 +114,3 @@ class Messages():
         self._all_values = dict((key, converter.convert(values)) for (key, values) in self._all_values.iteritems())
         self.values_first_or_single_res = dict((key, converter.convert(values)) for (key, values) in self.values_first_or_single_res.iteritems())
         self.values_second_res = dict((key, converter.convert(values)) for (key, values) in self.values_second_res.iteritems())
-
-
-        # for key, value in self._all_values.iteritems():
-

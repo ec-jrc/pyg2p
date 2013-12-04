@@ -54,7 +54,7 @@ def _grib_invdist(gid, latEfas, lonEfas, mv, result):
     out=0
     for (x,y),valuesgg in np.ndenumerate(lonEfas):
         i+=1
-        if not lonEfas[x,y]==mv and not lonEfas[x,y]<-1.0e+10:
+        if not lonEfas[x,y] == mv and not lonEfas[x,y]<-1.0e+10:
             if i%500 == 0:
                 stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i,numCells,out,i*100./numCells))
                 stdout.flush()

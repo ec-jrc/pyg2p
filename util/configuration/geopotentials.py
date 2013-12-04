@@ -24,7 +24,7 @@ def add(geop_file, log):
     fu.copy(geop_file, DIR)
     #get id from geofile
     args = {'shortName':SHORT_NAMES}
-    id_ = GRIBReader.get_id(geop_file, readerArgs=args)
+    id_ = GRIBReader.get_id(geop_file, reader_args=args)
     params={'id': id_, 'name': fu.fileName(geop_file)}
     xml_string = (ADD_STRING%(params))
     log_string = '\n\n\nAdding geopotential file %s to configuration\n'%geop_file

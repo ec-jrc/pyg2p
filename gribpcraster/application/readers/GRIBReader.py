@@ -1,5 +1,5 @@
 import gribapi as GRIB
-
+from gribpcraster.exc.ApplicationException import NO_MESSAGES
 from gribpcraster.application.domain.GribGridDetails import GribGridDetails
 from gribpcraster.application.domain.Messages import Messages
 from util.logger.Logger import Logger
@@ -9,9 +9,10 @@ from gribpcraster.application.domain.Key import Key
 import util.generics as utils
 import gribpcraster.application.ExecutionContext as ex
 
-def get_id(grib_file, readerArgs):
+
+def get_id(grib_file, reader_args):
     reader = GRIBReader(grib_file)
-    gribs_for_id=reader.getGids(**readerArgs)
+    gribs_for_id = reader.getGids(**reader_args)
     grid = GribGridDetails(gribs_for_id[0])
     return grid.getGridId()
 
@@ -22,13 +23,15 @@ class GRIBReader(Reader):
         self._grib_file = grib_file
         self._logger = Logger('GRIBReader', loggingLevel=ex.global_logger_level)
         self._log("Opening the GRIBReader for "+self._grib_file)
-        self._grbindx=open(self._grib_file)
+        self._grbindx = open(self._grib_file)
         self._selected_grbs = []
         self._gribs_for_utils = []
-        self._mv=-1
+        self._mv = -1
         self._step_grib = -1
         self._step_grib2 = -1
         self._change_step_at = ''
+        self._gid_main_res = None
+        self._gid_ext_res = None
 
     @staticmethod
     def _find(gid, **kwargs):
@@ -41,7 +44,7 @@ class GRIBReader(Reader):
             iscallable = utils.is_callable(v)
             if not iscontainer and not iscallable and GRIB.grib_get(gid, k) == v:
                 continue
-            elif iscontainer and GRIB.grib_get(gid,k) in v: # v is a list.
+            elif iscontainer and GRIB.grib_get(gid, k) in v:  # v is a list.
                 continue
             elif iscallable and v(GRIB.grib_get(gid,k)): # v a boolean function
                 continue
@@ -75,9 +78,8 @@ class GRIBReader(Reader):
             #rewind file
             self._grbindx.seek(0)
 
-
             if (len(gribs) == 0) and ('startStep' in kwargs and hasattr(kwargs['startStep'], '__call__') and not kwargs['startStep'](0)):
-                kwargs['startStep']=lambda s:s>=0
+                kwargs['startStep'] = lambda s: s >= 0
                 while 1:
                     gid = GRIB.grib_new_from_file(self._grbindx)
                     if gid is None: break
@@ -92,7 +94,7 @@ class GRIBReader(Reader):
             return gribs
 
         except ValueError, noValsExc:
-            raise ApplicationException.get_programmatic_exc(3000, details="using "+str(kwargs))
+            raise ApplicationException.get_programmatic_exc(NO_MESSAGES, details="using "+str(kwargs))
 
     def getSelectedMessages(self, **kwargs):
         #concrete override
@@ -100,21 +102,28 @@ class GRIBReader(Reader):
         self._log("Selected "+str(len(self._selected_grbs))+" grib messages")
 
         if len(self._selected_grbs) > 0:
+            self._gid_main_res = self._selected_grbs[0]
             grid = GribGridDetails(self._selected_grbs[0])
-            unit = GRIB.grib_get(self._selected_grbs[0],'units')
-            type_of_step =GRIB.grib_get(self._selected_grbs[0],'stepType')
-            shortName = GRIB.grib_get(self._selected_grbs[0],'shortName')
-            type_of_level =GRIB.grib_get(self._selected_grbs[0],'levelType')
+
+            #some cumulated messages come with the message at step=0 as instant, to permit aggregation
+                #cumulated rainfall rates could have the step zero instant message as kg/m^2, instead of kg/(m^2*s)
+            if len(self._selected_grbs) > 1:
+                unit = GRIB.grib_get(self._selected_grbs[1], 'units')
+                type_of_step = GRIB.grib_get(self._selected_grbs[1], 'stepType')
+            else:
+                type_of_step = GRIB.grib_get(self._selected_grbs[0], 'stepType')
+                unit = GRIB.grib_get(self._selected_grbs[0], 'units')
+            shortName = GRIB.grib_get(self._selected_grbs[0], 'shortName')
+            type_of_level = GRIB.grib_get(self._selected_grbs[0], 'levelType')
 
             if len(self._selected_grbs) > 1:
-                #some cumulated messages come with the message at step=0 as instant, to permit aggregation
-                #cumulated rainfall rates could have the step zero instant message as kg/m^2, instead of kg/(m^2*s)
-                if unit != GRIB.grib_get(self._selected_grbs[1],'units'):
-                    unit = GRIB.grib_get(self._selected_grbs[1],'units')
-                if type_of_step != GRIB.grib_get(self._selected_grbs[1],'stepType'):
-                    type_of_step =GRIB.grib_get(self._selected_grbs[1],'stepType')
 
-            missing_value = GRIB.grib_get(self._selected_grbs[0],'missingValue')
+                if unit != GRIB.grib_get(self._selected_grbs[1], 'units'):
+                    unit = GRIB.grib_get(self._selected_grbs[1], 'units')
+                #if type_of_step != GRIB.grib_get(self._selected_grbs[1], 'stepType'):
+                #    type_of_step = GRIB.grib_get(self._selected_grbs[1], 'stepType')
+
+            missing_value = GRIB.grib_get(self._selected_grbs[0], 'missingValue')
             allValues = {}
             allValues2ndRes = {}
             grid2 = None
@@ -122,9 +131,9 @@ class GRIBReader(Reader):
             second_time_res = False
             for g in self._selected_grbs:
 
-                start_step =GRIB.grib_get(g,'startStep')
-                end_step = GRIB.grib_get(g,'endStep')
-                points_meridian = GRIB.grib_get(g,'Nj')
+                start_step =GRIB.grib_get(g, 'startStep')
+                end_step = GRIB.grib_get(g, 'endStep')
+                points_meridian = GRIB.grib_get(g, 'Nj')
 
                 if str(start_step)+'-'+str(end_step) == self._change_step_at:
                     #second time resolution
@@ -135,6 +144,7 @@ class GRIBReader(Reader):
                 if points_meridian != grid.getNumberOfPointsAlongMeridian() and grid.get_2nd_resolution() is None:
                     #found second resolution messages
                     grid2 = GribGridDetails(g)
+                    self._gid_ext_res = g
 
                 values = GRIB.grib_get_double_array(g, 'values')
                 if grid2 is None:
@@ -148,7 +158,7 @@ class GRIBReader(Reader):
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
             second_time_res = self._step_grib2 != -1
 
-            return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes, has_2_timestep_= second_time_res), shortName
+            return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes, has_2_timestep=second_time_res), shortName
         #no messages found
         else:
             raise ApplicationException.get_programmatic_exc(3000, details="using "+str(kwargs))
@@ -166,8 +176,6 @@ class GRIBReader(Reader):
         step = ord_end_steps[1]-ord_end_steps[0]
         step2 = -1
         change_step_at = ''
-        #         self._change_step_at = str(GRIB.grib_get(self._gribs_for_utils[i],'startStep'))+'-'+str(GRIB.grib_get(self._gribs_for_utils[i],'endStep'))
-            #         self._log('Changing time res at %s'%self._change_step_at)
         for i in range(2, len(ord_end_steps)):
             if step2 == -1 and ord_end_steps[i]-ord_end_steps[i-1] != step:
                 step2 = ord_end_steps[i]-ord_end_steps[i-1]
@@ -177,8 +185,8 @@ class GRIBReader(Reader):
     def getAggregationInfo(self, readerArgs):
         self._gribs_for_utils = self.getGids(**readerArgs)
         if len(self._gribs_for_utils) > 0:
-            type_of_step = GRIB.grib_get(self._gribs_for_utils[1],'stepType')  # instant,avg,cumul
-            self._mv = GRIB.grib_get_double(self._gribs_for_utils[0],'missingValue')
+            type_of_step = GRIB.grib_get(self._gribs_for_utils[1], 'stepType')  # instant,avg,cumul
+            self._mv = GRIB.grib_get_double(self._gribs_for_utils[0], 'missingValue')
             start_grib, end_grib,  self._step_grib, self._step_grib2, self._change_step_at = self.getStartEndAndSteps()
             self._log("Grib input step %d [type of step: %s]"%(self._step_grib,type_of_step))
             self._log('Gribs from %d to %d'%(start_grib,end_grib))
@@ -187,16 +195,23 @@ class GRIBReader(Reader):
         else:
             raise ApplicationException.get_programmatic_exc(3000, details="using "+str(readerArgs))
 
-    def getAux(self):
-        gid = self._gribs_for_utils[0]
-        val = GRIB.grib_get_double_array(gid,'values')
-        return gid, val
+    def get_gids_for_grib_intertable(self):
+        #returns gids of messages to use to create interpolation tables
+        val = GRIB.grib_get_double_array(self._gid_main_res, 'values')
+        if self._gid_ext_res:
+            val2 = GRIB.grib_get_double_array(self._gid_ext_res, 'values')
+        else:
+            val2 = None
+        return self._gid_main_res, val, self._gid_ext_res, val2
 
     def getMissingValue(self):
         if self._mv == -1 and len(self._gribs_for_utils) > 0:
             self._mv = GRIB.grib_get_double(self._gribs_for_utils[0], 'missingValue')
         return self._mv
 
+    def set_2nd_aux(self, aux_2nd_gid):
+        #injecting the second spatial resolution gid
+        self._gid_ext_res = aux_2nd_gid
 
-
-    
+    def get_main_aux(self):
+        return self._gid_main_res

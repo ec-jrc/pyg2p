@@ -18,6 +18,7 @@ class Controller:
         self._ctx = executionContext
         self._logger = Logger('controller', loggingLevel=executionContext.get('logger.level'))
         self._reader = None
+        #GRIB reader for second spatial resolution file
         self._reader2 = None
         self._firstMap = True
         self._interpolator = None
@@ -62,7 +63,8 @@ class Controller:
 
     def secondResManipulation(self, change_step, end_step, input_step, messages, mvGrib, type_of_param, values):
         #manipulation of second res messages
-        start_step2 = int(change_step.start_step) + input_step  # start step of the first message at 2nd resolution
+        #start_step2 = int(change_step.start_step) #+ input_step  # start step of the first message at 2nd resolution
+        start_step2 = int(change_step.end_step) + int(self._ctx.get('aggregation.step'))
         m2 = mnp(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
                  input_step, type_of_param, start_step2,
                  end_step, self._ctx.get('outMaps.unitTime'), mvGrib, force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
@@ -77,24 +79,18 @@ class Controller:
         values = od_final
         return change_step, values
 
-    def createOutMap(self, grid_id, i, lats, longs, timestep, v, log_intertable=False):
+    def createOutMap(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1, second_spatial_resolution=False):
 
         self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-        self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
+            self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
         self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep), 'DEBUG')
         if self._ctx.interpolate_with_grib():
-            v = self._interpolator.interpolate_grib(v, -1, grid_id, log_intertable=log_intertable)
+            v = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
         else:
             #interpolating swath data with scipy griddata or with an in house inverse distance code
             v = self._interpolator.interpolate_with_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
         self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-        self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(), v[v != self._mvEfas].max()))
-
-        #conversion now is applied at the very beginning of execution, directly:
-        #   passing the converter to a Messages method
-        # if self._ctx.mustDoConversion():
-        #     assert converter is not None
-        #     v = converter.convert(v, self._mvEfas)
+            self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(), v[v != self._mvEfas].max()))
 
         if self._ctx.must_do_correction():
             corrector = Corrector.getInstance(self._ctx, _findGeoFile(grid_id))
@@ -125,16 +121,16 @@ class Controller:
         if self._ctx.is_2_input_files():
             #two files as input
             self.read2ndResMessages(commandArgs, messages)
+            #inject aux attributes for interpolation into main reader, to use later
+            self._reader.set_2nd_aux(self._reader2.get_main_aux())
 
         if self._ctx.must_do_conversion():
                 converter = Converter(func=self._ctx.get('parameter.conversionFunction'),
-                              cut_off=self._ctx.get('parameter.cutoffnegative'))
+                                      cut_off=self._ctx.get('parameter.cutoffnegative'))
                 #convert values
                 messages.convertValues(converter)
 
         values = messages.getValuesOfFirstOrSingleRes()
-
-       # values = converter.convert(values, messages.getMissingValue())
 
         if self._ctx.must_do_manipulation():
             #messages.change_resolution() returns true if two input files with 2 res
@@ -152,7 +148,7 @@ class Controller:
             longs2 = None
             if not self._ctx.interpolate_with_grib():
                 #we need GRIB lats and lons for scipy interpolation
-                lats2, longs2=messages.getLatLons2()
+                lats2, longs2 = messages.getLatLons2()
             grid_id2 = messages.getGridId2()
             if self._ctx.must_do_manipulation():
                 change_res_step, values = self.secondResManipulation(change_res_step, end_step, input_step, messages,
@@ -165,10 +161,10 @@ class Controller:
         else:
             #these "aux" values are used by grib interpolation methods to create tables on disk
             #aux (gid and its values array) are read by GRIBReader which uses the first message selected
-            aux_g, aux_v = self._reader.getAux()
-            self._interpolator.setAuxToCreateLookup(aux_g, aux_v)
-            lats=None
-            longs=None
+            aux_g, aux_v, aux_g2, aux_v2 = self._reader.get_gids_for_grib_intertable()
+            self._interpolator.setAuxToCreateLookup(aux_g, aux_v, aux_g2, aux_v2)
+            lats = None
+            longs = None
 
         if self._ctx.must_do_conversion() and converter.mustDoCutOff():
             values = converter.cutOffNegative(values)
@@ -177,7 +173,7 @@ class Controller:
 
         i = 0
         changed_res = False
-
+        second_resolution = False
         for timestep in values.keys():
             log_it = False
             #writing map i
@@ -189,11 +185,13 @@ class Controller:
                 longs = longs2
                 grid_id = grid_id2
                 changed_res = True
+                second_resolution = True
             v = values[timestep]
             if i == 1 or changed_res:
+                #log the interpolation table name only on first map or at the first extended resolution map
                 log_it = True
-                changed_res = False
-            self.createOutMap(grid_id, i, lats, longs, timestep, v, log_intertable=log_it)
+            self.createOutMap(grid_id, i, lats, longs, timestep, v, log_intertable=log_it, gid=-1, second_spatial_resolution=second_resolution)
+            changed_res = False
         
     def close(self):
         self._logger.close()
