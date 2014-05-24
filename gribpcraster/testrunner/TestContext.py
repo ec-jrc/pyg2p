@@ -25,7 +25,7 @@ class Test(object):
         self.g2p_command = []
 
     def __str__(self):
-        return self.id + '\n\t\t- pyg2p comm' + self.pyg2p_command + '\n\t\t- g2p comms ' + str(self.g2p_command) + '\n\t\t- out dir' + self.out_dir
+        return self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- g2p comms ' + str(self.g2p_command) + '\n\t- out dir' + self.out_dir
 
 class TestContext(object):
 
