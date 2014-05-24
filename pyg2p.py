@@ -23,11 +23,12 @@ def runTests(test_xml_file):
     runner = TestRunner(test_xml_file)
     runner.run()
 
-def main(argv):
-
+def main(*args):
+    if __name__ == "__main__":
+        args = args[0]
     try:
         #read configuration (commands.xml, parameters.xml, loggers, geopotentials.xml if there is correction)
-        execCtx = ExecutionContext(argv)
+        execCtx = ExecutionContext(args)
         if execCtx.user_wants_help():
             usage()
             return 0

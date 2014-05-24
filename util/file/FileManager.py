@@ -23,8 +23,8 @@ def createDir(pathname, recreate=False, prefix_=''):
 def fileName(pathname):
     return path.basename(pathname)
 
-def copy(file, to_dir):
-    sh.copy(file, to_dir)
+def copy(file_, to_dir):
+    sh.copy(file_, to_dir)
 
 class FileManager:
     
@@ -89,7 +89,6 @@ class FileManager:
         elif type=='tuple':
             #write a string representations of an array of tuples (e.g. records from a database)
             linesOut = self.__writeTuples(lines)
-
 
         self.__fh.writelines(linesOut)
         self.__fh.flush()

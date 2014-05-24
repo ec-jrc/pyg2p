@@ -8,6 +8,7 @@ import util.date.Dates as Du
 from util.logger.Logger import Logger
 import util.file.FileManager as Fm
 import util.conversion.FromStringConversion as Fsc
+import time
 
 #global_out_log_dir = './logs/'
 PARAMETERS_XML = 'configuration/parameters.xml'
@@ -25,9 +26,7 @@ class ExecutionContext:
         self._inputArguments = {}
         self._showHelp = False
         self._addGeopotential = False
-        self._params = {}
-        self._params['outMaps.outDir'] = './'
-        self._params['aggregation.forceZeroArray'] = False
+        self._params = {'outMaps.outDir': './', 'aggregation.forceZeroArray': False}
 
         try:
             #read cli input args (commands file path, input files, output dir, or shows help and exit)
@@ -36,11 +35,14 @@ class ExecutionContext:
                 #read config files and define execuition parameters (set defaults also)
                 self._define_exec_params()
         except ApplicationException, err:
+            raw_input(str(err))
             raise err
         except ValueError, err:
+            raw_input(str(err))
             raise ApplicationException(err, None, str(err))
-        except Exception, exc:
-            raise ApplicationException(exc, None, str(exc))
+        except Exception, err:
+            raw_input(str(err))
+            raise ApplicationException(err, None, str(err))
 
         #check numbers, existing dirs and files, supported options, semantics etc.
         try:
@@ -62,6 +64,7 @@ class ExecutionContext:
         self._logger.log(message, level)
 
     def _define_input_args(self, argv):
+
         try:
             opts, argv = getopt.getopt(argv, "hc:o:i:I:m:T:l:d:g:t:s:e:f:x:", ['help', 'commandsFile=','outDir=','inputFile=',
                                                                          'inputFile2=','perturbationNumber=','dataTime='
@@ -70,6 +73,7 @@ class ExecutionContext:
                                                                          'fmap=', 'ext='])
         except getopt.GetoptError, err:
             raise ApplicationException(err, None, str(err))
+
 
         self._params['input.two_resolution'] = False
         self._params['logger.level'] = 'INFO'
@@ -137,12 +141,11 @@ class ExecutionContext:
         if self._inputArguments['commandsFile'].startswith('./') or self._inputArguments['commandsFile'].startswith('../'):
             self._inputArguments['commandsFile'] = os.path.join(os.getcwd(), self._inputArguments['commandsFile'])
         param_xml_path = os.path.join(dir_, '../../' + PARAMETERS_XML)
-        import time
         time.strftime('%l:%M%p %Z on %b %d, %Y')  # ' 1:36PM EDT on Oct 18, 2010'
          # ' 1:36PM EST on Oct 18, 2010'
-        self._log('\n\n\n\nFirst debug message. pyg2p execution started at (%s).\n %s loading...'%(time.strftime('%l:%M%p %z on %b %d, %Y'),self._inputArguments['commandsFile']))
+        self._log('\n\n\n\nFirst debug message. pyg2p execution started at (%s).\n %s loading...' %(time.strftime('%l:%M%p %z on %b %d, %Y'), self._inputArguments['commandsFile']))
         if not Fm.exists(self._inputArguments['commandsFile']):
-            raise ApplicationException.get_programmatic_exc(0,self._inputArguments['commandsFile'])
+            raise ApplicationException.get_programmatic_exc(0, self._inputArguments['commandsFile'])
         u = untangle.parse(self._inputArguments['commandsFile'])
         self._log(self._inputArguments['commandsFile'] + ' done!')
 
@@ -200,7 +203,6 @@ class ExecutionContext:
         self._params['parameter.level'] = u.Execution.Parameter['level'] #number
 
         if hasattr(u.Execution, 'Aggregation'):
-
             self._params['aggregation.step'] = u.Execution.Aggregation['step']
             self._params['aggregation.type'] = u.Execution.Aggregation['type']
             if self._params['aggregation.step'] and self._params['aggregation.type']:
@@ -209,6 +211,7 @@ class ExecutionContext:
                 from util.generics import FALSE_STRINGS
                 if self._params['aggregation.type'] == MANIPULATION_ACCUM and u.Execution.Aggregation['forceZeroArray'] and u.Execution.Aggregation['forceZeroArray'] not in FALSE_STRINGS:
                     self._params['aggregation.forceZeroArray'] = True
+
 
     def must_do_manipulation(self):
         return self._params['execution.doAggregation']
@@ -384,35 +387,34 @@ class ExecutionContext:
     def user_wants_to_add_geopotential(self):
         return self._addGeopotential
 
-
     def create_select_cmd_for_reader(self, start_, end_):
         self._log('\n\n**********Selecting gribs using:************ \n')
         ## 'var' suffix is for multiresolution 240 step message (global EUE files)
-        readerArguments = {'shortName': [self._params['parameter.shortName'], self._params['parameter.shortName']+'var']}
-        self._log('---variable short name = %s' % readerArguments['shortName'])
+        reader_args = {'shortName': [self._params['parameter.shortName'], self._params['parameter.shortName']+'var']}
+        self._log('---variable short name = %s' % reader_args['shortName'])
         if self._params['parameter.level'] is not None:
-            readerArguments['level'] = self._params['parameter.level']
+            reader_args['level'] = self._params['parameter.level']
             self._log('---level = %d'%self._params['parameter.level'])
         if self._params['parameter.dataTime'] is not None:
-            readerArguments['dataTime'] = self._params['parameter.dataTime']
+            reader_args['dataTime'] = self._params['parameter.dataTime']
             self._log('---dataTime = %s'%self._params['parameter.dataTime'])
 
         if 'parameter.perturbationNumber' in self._params and self._params['parameter.perturbationNumber'] is not None:
-            readerArguments['perturbationNumber'] = self._params['parameter.perturbationNumber']
+            reader_args['perturbationNumber'] = self._params['parameter.perturbationNumber']
             self._log('---eps Member (perturbationNumber) = %d' % self._params['parameter.perturbationNumber'])
 
         #start_step, end_step
         if start_ == end_:
-            readerArguments['endStep'] = end_
-            readerArguments['startStep'] = start_
+            reader_args['endStep'] = end_
+            reader_args['startStep'] = start_
             self._log('---startStep = %d'%start_)
             self._log('-----endStep = %d\n\n'%end_)
         else:
-            readerArguments['endStep'] = lambda s: s <= end_
-            readerArguments['startStep'] = lambda s: s >= start_
+            reader_args['endStep'] = lambda s: s <= end_
+            reader_args['startStep'] = lambda s: s >= start_
             self._log('---startStep >= %d'%start_)
             self._log('-----endStep <= %d\n\n'%end_)
-        return readerArguments
+        return reader_args
 
     def create_select_cmd_for_aggregation_attrs(self):
 

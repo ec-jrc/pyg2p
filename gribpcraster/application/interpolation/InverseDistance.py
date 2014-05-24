@@ -42,7 +42,7 @@ def interpolate_invdist(z, _mvEfas, _mvGrib, distances, ixs, nnear, p, weights):
                 if weights is not None:
                     w *= weights[ix]  # >= 0
                 w /= np.sum(w)
-                wz = np.dot(w, z[ix.astype(int)])  # weighted values (result)
+                wz = np.dot(w, z[ix.astype(int, copy=False)])  # weighted values (result)
                 result[jinterpol] = wz
             else:
                 wz = z[ix[0]]  # take exactly the point, weight = 1

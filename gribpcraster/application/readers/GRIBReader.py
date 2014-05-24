@@ -1,4 +1,7 @@
 import gribapi as GRIB
+# from memory_profiler import profile
+from memory_profiler import profile
+import numpy as np
 from gribpcraster.exc.ApplicationException import NO_MESSAGES
 from gribpcraster.application.domain.GribGridDetails import GribGridDetails
 from gribpcraster.application.domain.Messages import Messages
@@ -25,7 +28,6 @@ class GRIBReader(Reader):
         self._log("Opening the GRIBReader for "+self._grib_file)
         self._grbindx = open(self._grib_file)
         self._selected_grbs = []
-        self._gribs_for_utils = []
         self._mv = -1
         self._step_grib = -1
         self._step_grib2 = -1
@@ -37,7 +39,7 @@ class GRIBReader(Reader):
     def _find(gid, **kwargs):
 
         for k, v in kwargs.items():
-            if not GRIB.grib_is_defined(gid,k): return False
+            if not GRIB.grib_is_defined(gid, k):return False
             # is v a "container-like" non-string object?
             iscontainer = utils.is_container(v)
             # is v callable?
@@ -52,54 +54,47 @@ class GRIBReader(Reader):
                 return False
         return True
 
-    def close(self):
-        self._log("Closing "+self._grib_file)
-        self._grbindx.close()
+    def release_messages(self):
         for g in self._selected_grbs:
             GRIB.grib_release(g)
-        for g in self._gribs_for_utils:
+        self._selected_grbs = []
+
+    def close(self):
+        self._log("Closing " + self._grib_file)
+        self._grbindx.close()
+        for g in self._selected_grbs:
             GRIB.grib_release(g)
         self._logger.close()
 
     #returns an array of GRIB selected messages as gribmessage objects
 
-    def getGids(self, **kwargs):
+    def scan_grib(self, gribs, kwargs):
+        while 1:
+            gid = GRIB.grib_new_from_file(self._grbindx)
+            if gid is None: break
+            if GRIBReader._find(gid, **kwargs):
+                gribs.append(gid)
+            else:
+                #release the unused grib
+                GRIB.grib_release(gid)
+        #rewind file
+        self._grbindx.seek(0)
 
+    def getGids(self, **kwargs):
         gribs = []
         try:
-            while 1:
-                gid = GRIB.grib_new_from_file(self._grbindx)
-                if gid is None: break
-                if GRIBReader._find(gid, **kwargs):
-                    gribs.append(gid)
-                else:
-                    #release the unused grib
-                    GRIB.grib_release(gid)
-            #rewind file
-            self._grbindx.seek(0)
-
+            self.scan_grib(gribs, kwargs)
             if (len(gribs) == 0) and ('startStep' in kwargs and hasattr(kwargs['startStep'], '__call__') and not kwargs['startStep'](0)):
                 kwargs['startStep'] = lambda s: s >= 0
-                while 1:
-                    gid = GRIB.grib_new_from_file(self._grbindx)
-                    if gid is None: break
-                    if GRIBReader._find(gid, **kwargs):
-                        gribs.append(gid)
-                    else:
-                        #release the unused grib
-                        GRIB.grib_release(gid)
-                #rewind file
-                self._grbindx.seek(0)
-
+                self.scan_grib(gribs, kwargs)
             return gribs
-
         except ValueError, noValsExc:
             raise ApplicationException.get_programmatic_exc(NO_MESSAGES, details="using "+str(kwargs))
 
     def getSelectedMessages(self, **kwargs):
         #concrete override
         self._selected_grbs = self.getGids(**kwargs)
-        self._log("Selected "+str(len(self._selected_grbs))+" grib messages")
+        self._log("Selected " + str(len(self._selected_grbs)) + " grib messages")
 
         if len(self._selected_grbs) > 0:
             self._gid_main_res = self._selected_grbs[0]
@@ -120,25 +115,21 @@ class GRIBReader(Reader):
 
                 if unit != GRIB.grib_get(self._selected_grbs[1], 'units'):
                     unit = GRIB.grib_get(self._selected_grbs[1], 'units')
-                #if type_of_step != GRIB.grib_get(self._selected_grbs[1], 'stepType'):
-                #    type_of_step = GRIB.grib_get(self._selected_grbs[1], 'stepType')
 
             missing_value = GRIB.grib_get(self._selected_grbs[0], 'missingValue')
             allValues = {}
             allValues2ndRes = {}
             grid2 = None
             input_step = self._step_grib
-            second_time_res = False
             for g in self._selected_grbs:
 
-                start_step =GRIB.grib_get(g, 'startStep')
+                start_step = GRIB.grib_get(g, 'startStep')
                 end_step = GRIB.grib_get(g, 'endStep')
                 points_meridian = GRIB.grib_get(g, 'Nj')
 
-                if str(start_step)+'-'+str(end_step) == self._change_step_at:
+                if str(start_step) + '-' + str(end_step) == self._change_step_at:
                     #second time resolution
                     input_step = self._step_grib2
-                    second_time_res = True
 
                 key = Key(start_step, end_step, points_meridian, input_step)
                 if points_meridian != grid.getNumberOfPointsAlongMeridian() and grid.get_2nd_resolution() is None:
@@ -146,10 +137,9 @@ class GRIBReader(Reader):
                     grid2 = GribGridDetails(g)
                     self._gid_ext_res = g
 
-                values = GRIB.grib_get_double_array(g, 'values')
+                values = GRIB.grib_get_double_array(g, 'values')  # .astype(np.float32, copy=False)
                 if grid2 is None:
                     allValues[key] = values
-                #grid.getNumberOfPointsAlongMeridian() is first resolution
                 elif points_meridian != grid.getNumberOfPointsAlongMeridian():
                     allValues2ndRes[key] = values
 
@@ -157,57 +147,57 @@ class GRIBReader(Reader):
                 key_2nd_spatial_res = min(allValues2ndRes.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
             second_time_res = self._step_grib2 != -1
-
             return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes, has_2_timestep=second_time_res), shortName
         #no messages found
         else:
             raise ApplicationException.get_programmatic_exc(3000, details="using "+str(kwargs))
 
     #return input_step, type_of_step
-    def getStartEndAndSteps(self):
-        self._log('Getting start / end steps...')
-        start_steps = [GRIB.grib_get(self._gribs_for_utils[i], 'startStep') for i in range(len(self._gribs_for_utils))]
-        end_steps = [GRIB.grib_get(self._gribs_for_utils[i], 'endStep') for i in range(len(self._gribs_for_utils))]
+    @staticmethod
+    def _find_start_end_steps(gribs):
 
+        start_steps = [GRIB.grib_get(gribs[i], 'startStep') for i in xrange(len(gribs))]
+        end_steps = [GRIB.grib_get(gribs[i], 'endStep') for i in xrange(len(gribs))]
         start_grib = min(start_steps)
         end_grib = max(end_steps)
         ord_end_steps = sorted(end_steps)
         ord_start_steps = sorted(start_steps)
-        step = ord_end_steps[1]-ord_end_steps[0]
+        step = ord_end_steps[1] - ord_end_steps[0]
         step2 = -1
         change_step_at = ''
-        for i in range(2, len(ord_end_steps)):
-            if step2 == -1 and ord_end_steps[i]-ord_end_steps[i-1] != step:
-                step2 = ord_end_steps[i]-ord_end_steps[i-1]
-                change_step_at = str(ord_start_steps[i])+'-'+str(ord_end_steps[i])
+        for i in xrange(2, len(ord_end_steps)):
+            if step2 == -1 and ord_end_steps[i] - ord_end_steps[i - 1] != step:
+                step2 = ord_end_steps[i] - ord_end_steps[i - 1]
+                change_step_at = str(ord_start_steps[i]) + '-' + str(ord_end_steps[i])
         return start_grib, end_grib, step, step2, change_step_at
 
     def getAggregationInfo(self, readerArgs):
-        self._gribs_for_utils = self.getGids(**readerArgs)
-        if len(self._gribs_for_utils) > 0:
-            type_of_step = GRIB.grib_get(self._gribs_for_utils[1], 'stepType')  # instant,avg,cumul
-            self._mv = GRIB.grib_get_double(self._gribs_for_utils[0], 'missingValue')
-            start_grib, end_grib,  self._step_grib, self._step_grib2, self._change_step_at = self.getStartEndAndSteps()
-            self._log("Grib input step %d [type of step: %s]"%(self._step_grib,type_of_step))
-            self._log('Gribs from %d to %d'%(start_grib,end_grib))
+        _gribs_for_utils = self.getGids(**readerArgs)
+        if len(_gribs_for_utils) > 0:
+            type_of_step = GRIB.grib_get(_gribs_for_utils[1], 'stepType')  # instant,avg,cumul
+            self._mv = GRIB.grib_get_double(_gribs_for_utils[0], 'missingValue')
+            start_grib, end_grib, self._step_grib, self._step_grib2, self._change_step_at = self._find_start_end_steps(_gribs_for_utils)
+            self._log("Grib input step %d [type of step: %s]" % (self._step_grib, type_of_step))
+            self._log('Gribs from %d to %d'%(start_grib, end_grib))
+            for g in _gribs_for_utils:
+                GRIB.grib_release(g)
             return self._step_grib, self._step_grib2, self._change_step_at, type_of_step, start_grib, end_grib, self._mv
         #no messages found
         else:
-            raise ApplicationException.get_programmatic_exc(3000, details="using "+str(readerArgs))
+            raise ApplicationException.get_programmatic_exc(3000, details="using " + str(readerArgs))
 
     def get_gids_for_grib_intertable(self):
         #returns gids of messages to use to create interpolation tables
         val = GRIB.grib_get_double_array(self._gid_main_res, 'values')
+        val2 = None
         if self._gid_ext_res:
             val2 = GRIB.grib_get_double_array(self._gid_ext_res, 'values')
-        else:
-            val2 = None
         return self._gid_main_res, val, self._gid_ext_res, val2
 
-    def getMissingValue(self):
-        if self._mv == -1 and len(self._gribs_for_utils) > 0:
-            self._mv = GRIB.grib_get_double(self._gribs_for_utils[0], 'missingValue')
-        return self._mv
+    # def getMissingValue(self):
+    #     if self._mv == -1 and len(self._gribs_for_utils) > 0:
+    #         self._mv = GRIB.grib_get_double(self._gribs_for_utils[0], 'missingValue')
+    #     return self._mv
 
     def set_2nd_aux(self, aux_2nd_gid):
         #injecting the second spatial resolution gid

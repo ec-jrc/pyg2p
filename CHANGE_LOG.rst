@@ -1,5 +1,29 @@
 CHANGE LOG
-========================
+==========
+
+v 1.2.9
+-------
+* **044** Improvement (major)
+
+   Performances improvements:
+        - adoption of numexpr in  manipulation, correction, conversion
+          (instead of numpy vectorized functions from lambdas (correction, conversion))
+          Improvements are extremelly evident especially in large grids processing.
+
+* **043** Improvement (major)
+
+   Memory footprint is reduced of 30%/70% in average:
+        - removed an unused collection, using iteritems instead of items,
+        - set copy flag to False when masking values
+        - earlier release of resources when it's theyr are not needed any longer
+        - attempt calls to garbage collection in key points
+
+* **041** Improvement (minor)
+
+   Enriched information in test suite:
+        - using memory_profile module to display memory usage,
+        - compute time execution difference between pyg2p and grib2pcraster
+        - improved output for better readability
 
 v 1.2.8
 -------
@@ -33,7 +57,7 @@ v 1.2.6
 
 
 v 1.2.5
-------
+-------
 * **034** Improvement (major):
     Test functionality, activated with -t CLI argument, performs numerical checks of diff maps
         and logs red messages if values are too big.
@@ -55,7 +79,7 @@ v 1.2.5
 
 
 v 1.2.4
-------
+-------
 * **030** Bug Fix (minor):
     2nd Resolution Intertable wasn't logged.
 
@@ -65,7 +89,7 @@ v 1.2.4
 
 
 v 1.2.3
-------
+-------
 * **028** Bug fix (major):
     Grid ID, as used in intertables filenames and in geopotentials IDs (in geopotentials.xml),
         were erroneously constructed cutting away decimals.
@@ -76,13 +100,13 @@ v 1.2.3
     test_reqs.py was never able to check the existence of configuration directory due a bug in paths.
 
 v. 1.2.2
-------
+--------
 * **026** Bug fix (major):
     Single multiresolution gribs extraction was failing for a bug in reading second resolution values.
     Previous versions are working if using two input files (arguments -i and -I).
 
 v. 1.2.1
-------
+--------
 * **025** Improvement (minor):
     Improved output of test_reqs.py
 
@@ -96,7 +120,6 @@ v. 1.2.1
 * **022** Bug fix (major):
     Logger was closed when exception raised after the application startup so
         a criptic message "no handlers found" was shown.
-
 
 v. 1.2
 ------
@@ -123,7 +146,7 @@ v. 1.1
         and produces diff PCRaster maps for manual comparison.
 
 v. 1.06
-------
+-------
 * **017** Improvement (minor):
     File logging can be disabled in logger-configuration.xml using activated="False" in the root Loggers XML element.
     You can set to false,False,no,NO,No for deactivating.
@@ -133,7 +156,7 @@ v. 1.06
     Added -s and -e CLI arguments for grib start and end timestamps, overriding xml parameters.
 
 v. 1.05
-------
+-------
 * **015** Improvement (major):
     added "pyg2p -t test.xml" for running test suites all in once
     useful for fire tests, to spot severe bugs.
@@ -143,7 +166,7 @@ v. 1.05
     Fixed a number of bugs introduced in last release.
 
 v. 1.04
-------
+-------
 * **013** Improvement (minor):
     test_reqs.py now tests the content of the release (core packages and configuration files).
 
@@ -152,7 +175,7 @@ v. 1.04
 
 
 v. 1.03
-------
+-------
 * **011** Bug fix (minor):
     Fixed message's key after instananeous aggregation (was affecting only as wrong log messages).
 
@@ -164,7 +187,7 @@ v. 1.03
 
 
 v. 1.02
-------
+-------
 * **008** Improvement (minor):
     Now cutting of negative values is done before writing maps, after manipulation and interpolation.
     This speeds disk writing operations.
@@ -174,7 +197,7 @@ v. 1.02
 
 
 v. 1.01
-------
+-------
 * **006** Bug fix (minor):
     Fixed output directory path ending with double slashes when issued with a final slash.
 

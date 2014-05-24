@@ -48,7 +48,7 @@ class PCRasterWriter:
         out_ds = None
 
     def _produceMaskedValues(self, values, mv):
-        masked = ma.masked_where(self._mask == True, values)
+        masked = ma.masked_where(self._mask == True, values, copy=False)
         masked = ma.filled(masked, self._src_band.GetNoDataValue())
         return masked
 

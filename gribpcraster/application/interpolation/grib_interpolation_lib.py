@@ -10,27 +10,28 @@ def _grib_nearest(gid, latEfas, lonEfas, mv, result):
     ys = []
     idxs = []
     i = 0
-    numCells = result.size
+    num_cells = result.size
     from sys import stdout
-    stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0,numCells,0))
+    stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
     stdout.flush()
     outs=0
-    for (x,y),val in np.ndenumerate(lonEfas):
-        i+=1
-        if not lonEfas[x,y]==mv and not lonEfas[x,y]<=-1.0e+10:
-            if i%500 == 0:
-                stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i,numCells,outs,i*100./numCells))
+    for (x, y), val in np.ndenumerate(lonEfas):
+        i += 1
+        if not lonEfas[x, y] == mv and not lonEfas[x, y] <= -1.0e+10:
+            if i % 500 == 0:
+                stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i, num_cells,outs,i*100./num_cells))
                 stdout.flush()
             try:
                 #if lonEfas[x,y]<0: lonEfas[x,y]=lonEfas[x,y]+360
-                n_nearest = GRIB.grib_find_nearest(gid, np.asscalar(latEfas[x,y]),np.asscalar(lonEfas[x,y]))
+                n_nearest = GRIB.grib_find_nearest(gid, np.asscalar(latEfas[x, y]), np.asscalar(lonEfas[x, y]))
                 xs.append(x)
                 ys.append(y)
                 idxs.append(n_nearest[0]['index'])
-                result[x,y]=n_nearest[0]['value']
-            except GRIB.GribInternalError,err:
-                outs+=1
-                #stdout.write('\n\nout of grid!: lat: %.4f - lon: %.4f' % (latEfas[x,y],lonEfas[x,y]))
+                result[x, y] = n_nearest[0]['value']
+            except GRIB.GribInternalError, err:
+                outs += 1
+                # print str(err)
+                # stdout.write('\n\nout of grid!: lat: %.4f - lon: %.4f' % (latEfas[x,y],lonEfas[x,y]))
                 pass
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs), result
 
@@ -53,8 +54,8 @@ def _grib_invdist(gid, latEfas, lonEfas, mv, result):
     stdout.flush()
     out=0
     for (x,y),valuesgg in np.ndenumerate(lonEfas):
-        i+=1
-        if not lonEfas[x,y] == mv and not lonEfas[x,y]<-1.0e+10:
+        i += 1
+        if not lonEfas[x,y] == mv and not lonEfas[x, y] < -1.0e+10:
             if i%500 == 0:
                 stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i,numCells,out,i*100./numCells))
                 stdout.flush()
@@ -94,6 +95,6 @@ def _grib_invdist(gid, latEfas, lonEfas, mv, result):
 
             except GRIB.GribInternalError,err:
                 #tipically "out of grid" error
-                out+=1
+                out += 1
 
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs1),np.asarray(idxs2),np.asarray(idxs3),np.asarray(idxs4),np.asarray(coeffs1),np.asarray(coeffs2),np.asarray(coeffs3),np.asarray(coeffs4),result

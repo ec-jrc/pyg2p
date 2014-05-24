@@ -32,6 +32,5 @@ def is_empty_string(string_):
     return string_ is not ''
 
 def to_argv(string_):
-    s = csv.StringIO(string_)
-    c = csv.reader(s, delimiter=" ")
+    c = csv.reader(csv.StringIO(string_), delimiter=" ")
     return filter(is_empty_string, list(c)[0])

@@ -12,7 +12,7 @@ from util.generics import FALSE_STRINGS
 DIR = './log/'
 _logging_level = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR,
                   'INFO': logging.INFO, 'WARN': logging.WARN, 'CRITICAL': logging.CRITICAL}
-
+logging.raiseExceptions = False
 
 def _getCallerInfo():
         try:
@@ -56,8 +56,6 @@ class LoggerConfiguration:
             sys.stderr.write("[CONSOLE MESSAGE] NO LOGGER CONFIGURATION FOUND FOR " + name)
             sys.stderr.write("[CONSOLE MESSAGE] CHECK " + self._config_file)
             return None
-
-
 
 def _getIntLevel(level):
     if level not in ['DEBUG', 'WARN', 'INFO', 'ERROR', 'CRITICAL']:
@@ -122,16 +120,19 @@ class Logger:
             #if self._logger.name != 'console':
             message = _getCallerInfo() + " " + str(message)
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            if exc_type is not None and exc_obj.get_code()!=3000:  #no tracestack when no messages exception
+            if exc_type is not None and not hasattr(exc_obj, 'get_code'):
+                print str(exc_obj)
+                trace_it = 1
+            elif exc_type is not None and exc_obj.get_code() != 3000:  #no tracestack when no messages exception
                 trace_it = 1
             self._logger.log(_getIntLevel(level), self._logger.name + ' - ' + str(message), exc_info=trace_it)
-
 
     def close(self):
         if len(self._logger.handlers) > 0:
             hdlr = self._logger.handlers.pop()
             hdlr.flush()
             hdlr.close()
+
             self._logger.removeHandler(hdlr)
 
 

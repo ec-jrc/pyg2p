@@ -16,7 +16,7 @@ def read(grid_id):
     items = untangle.parse(CONFIG_FILE)
     for item in items.geopotentials.geopotential:
         if item['id'] == grid_id:
-            return DIR+item['name']
+            return DIR + item['name']
     raise ApplicationException.get_programmatic_exc(4000, details="using "+grid_id)
 
 
