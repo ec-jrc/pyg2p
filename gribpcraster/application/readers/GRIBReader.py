@@ -108,7 +108,7 @@ class GRIBReader(Reader):
             else:
                 type_of_step = GRIB.grib_get(self._selected_grbs[0], 'stepType')
                 unit = GRIB.grib_get(self._selected_grbs[0], 'units')
-            shortName = GRIB.grib_get(self._selected_grbs[0], 'shortName')
+            short_name = GRIB.grib_get(self._selected_grbs[0], 'shortName')
             type_of_level = GRIB.grib_get(self._selected_grbs[0], 'levelType')
 
             if len(self._selected_grbs) > 1:
@@ -147,7 +147,9 @@ class GRIBReader(Reader):
                 key_2nd_spatial_res = min(allValues2ndRes.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
             second_time_res = self._step_grib2 != -1
-            return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes, has_2_timestep=second_time_res), shortName
+            return Messages(allValues, missing_value, unit,
+                            type_of_level, type_of_step, grid, allValues2ndRes,
+                            has_2_timestep=second_time_res), short_name
         #no messages found
         else:
             raise ApplicationException.get_programmatic_exc(3000, details="using "+str(kwargs))

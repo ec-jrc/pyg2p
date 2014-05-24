@@ -62,7 +62,7 @@ class TestRunner(object):
 
     def run(self):
         diff_exec = self._ctx.get('pcrasterdiff.exec')
-        ordered_tests = collections.OrderedDict(sorted(self._ctx.get('tests').items(), key=lambda k: int(k[0])))
+        ordered_tests = collections.OrderedDict(sorted(self._ctx.get('tests').iteritems(), key=lambda k: int(k[0])))
         for key_, test_ in ordered_tests.iteritems():
             elapsed_g2p = elapsed_pyg2p = None
             print WARNING + BOLD + "\n\n =====================> Running Test " + str(test_) + ENDC
@@ -75,21 +75,20 @@ class TestRunner(object):
                 for g2p_comm in test_.g2p_command:
                     _run_job(to_argv(g2p_comm.strip()))
                 elapsed_g2p = time.time() - a
-                print BOLD + 'grib2pcraster test ' + test_.id + ' executed in ' + str(
-                    datetime.timedelta(seconds=elapsed_g2p)) + ENDC
+                #get grib2pcraster output maps
                 g_num_maps, g_maps = count_maps('g', test_.out_dir)
 
             print '\n\nCreating out pyg2p directory or deleting old pyg2p output'
             fm.createDir(test_.out_dir, recreate=True, prefix_='p')
             print 'Running pyg2p...'
             a = time.time()
-            # raw_input(to_argv(test_.pyg2p_command.strip()))
             t = (pyg2p.main, to_argv(test_.pyg2p_command.strip()))
             mem_usage = memory_usage(t)
             elapsed_pyg2p = time.time() - a
             avg_mem = sum(mem_usage) / len(mem_usage)
             max_mem = max(mem_usage)
 
+            #get pyg2p output maps
             p_num_maps, p_maps = count_maps('p', test_.out_dir)
 
             if test_.g2p_command:
@@ -103,15 +102,20 @@ class TestRunner(object):
                 for p_map in p_maps:
                     print 'aguila ' + test_.out_dir + p_map
 
+            print '\n\n' + WARNING + BOLD + '=========== SUMMARY ==============' + ENDC
             print '\n' + WARNING + BOLD + 'pyg2p test ' + test_.id + ' executed in ' + str(datetime.timedelta(seconds=elapsed_pyg2p)) + ENDC
-            print WARNING + BOLD + 'pyg2p memory usage: max {:10.2f}MB, avg {:10.2f}MB '.format(max_mem, avg_mem) + ENDC
+            print WARNING + BOLD + 'pyg2p memory usage: max {:6.2f}MB, avg {:6.2f}MB '.format(max_mem, avg_mem) + ENDC
             if elapsed_g2p:
+                print WARNING + BOLD + 'grib2pcraster test ' + test_.id + ' executed in ' + str(
+                    datetime.timedelta(seconds=elapsed_g2p)) + ENDC
                 differ_elaps = elapsed_pyg2p - elapsed_g2p
+
                 color_code = FAIL + BOLD
                 if differ_elaps <= 1:
                     color_code = OKGREEN + BOLD
                     if differ_elaps < 0: differ_elaps = - differ_elaps
                 print color_code + 'Difference: ' + str(datetime.timedelta(seconds=differ_elaps)) + ENDC
+            print '\n' + WARNING + BOLD + '============= END ================' + ENDC + '\n'
 
 
 
