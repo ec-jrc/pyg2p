@@ -7,15 +7,16 @@ v 1.2.9
 
    Performances improvements:
         - adoption of numexpr in  manipulation, correction, conversion
-          (instead of numpy vectorized functions from lambdas (correction, conversion))
+          (instead of numpy vectorized functions obtained from lambdas)
           Improvements are extremelly evident especially in large grids processing.
 
 * **043** Improvement (major)
 
-   Memory footprint is reduced of 30%/70% in average:
-        - removed an unused collection, using iteritems instead of items,
-        - set copy flag to False when masking values
-        - earlier release of resources when it's theyr are not needed any longer
+   Memory footprint is reduced of 30%/70%:
+        - removed two unused collections
+        - using iteritems instead of items
+        - set copy flag to False when masking numpy values
+        - earlier release of resources when it's sure they are not needed any longer
         - attempt calls to garbage collection in key points
 
 * **041** Improvement (minor)

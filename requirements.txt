@@ -2,3 +2,4 @@ untangle
 GDAL
 numpy
 scipy
+numexpr

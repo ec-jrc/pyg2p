@@ -36,12 +36,17 @@ def main(*args):
             addGeo(execCtx.get('geopotential'))
             return 0
         elif execCtx.user_wants_to_test():
-            runTests(execCtx.get('test.xml'))
-            return 0
-
+            try:
+                import memory_profiler
+                runTests(execCtx.get('test.xml'))
+                return 0
+            except ImportError, e:
+                print 'memory_profiler module is missing'
+                print 'try "pip install memory_profile" and re-execute'
+                return 0
 
     except appexcmodule.ApplicationException, err:
-        _log('\n\nError in reading configuration... >>>>>>>>>>>>>>> ' + str(err) + '\n\n','ERROR')
+        _log('\nError in reading configuration >>>>>>>> {}'.format(str(err)) + '\n\n', 'ERROR')
         ex.global_main_logger.close()
         return 1
 
