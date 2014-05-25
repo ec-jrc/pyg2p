@@ -8,7 +8,9 @@ v 1.2.9
    Performances improvements:
         - adoption of numexpr in  manipulation, correction, conversion
           (instead of numpy vectorized functions obtained from lambdas)
-          Improvements are extremelly evident especially in large grids processing.
+          Improvements are extremelly evident especially in large grids processing like T3999.
+        - using grib api indexes instead opened files. Boost performances in startup
+            for huge input grib files.
 
 * **043** Improvement (major)
 

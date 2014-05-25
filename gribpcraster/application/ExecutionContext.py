@@ -387,10 +387,13 @@ class ExecutionContext:
     def user_wants_to_add_geopotential(self):
         return self._addGeopotential
 
+    def has_perturbation_number(self):
+        return 'parameter.perturbationNumber' in self._params and self._params['parameter.perturbationNumber'] is not None
+
     def create_select_cmd_for_reader(self, start_, end_):
         self._log('\n\n**********Selecting gribs using:************ \n')
         ## 'var' suffix is for multiresolution 240 step message (global EUE files)
-        reader_args = {'shortName': [self._params['parameter.shortName'], self._params['parameter.shortName']+'var']}
+        reader_args = {'shortName': [str(self._params['parameter.shortName']), str(self._params['parameter.shortName'] + 'var')]}
         self._log('---variable short name = %s' % reader_args['shortName'])
         if self._params['parameter.level'] is not None:
             reader_args['level'] = self._params['parameter.level']
@@ -399,7 +402,7 @@ class ExecutionContext:
             reader_args['dataTime'] = self._params['parameter.dataTime']
             self._log('---dataTime = %s'%self._params['parameter.dataTime'])
 
-        if 'parameter.perturbationNumber' in self._params and self._params['parameter.perturbationNumber'] is not None:
+        if self.has_perturbation_number():
             reader_args['perturbationNumber'] = self._params['parameter.perturbationNumber']
             self._log('---eps Member (perturbationNumber) = %d' % self._params['parameter.perturbationNumber'])
 

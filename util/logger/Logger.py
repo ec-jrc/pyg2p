@@ -7,7 +7,7 @@ import untangle
 from logging import handlers
 import util.file.FileManager as FileUtils
 from util.generics import FALSE_STRINGS
-
+import gribapi as GRIB
 
 DIR = './log/'
 _logging_level = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR,
@@ -120,7 +120,9 @@ class Logger:
             #if self._logger.name != 'console':
             message = _getCallerInfo() + " " + str(message)
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            if exc_type is not None and not hasattr(exc_obj, 'get_code'):
+            if isinstance(exc_obj, GRIB.GribInternalError):
+                pass
+            elif exc_type is not None and not hasattr(exc_obj, 'get_code'):
                 print str(exc_obj)
                 trace_it = 1
             elif exc_type is not None and exc_obj.get_code() != 3000:  #no tracestack when no messages exception

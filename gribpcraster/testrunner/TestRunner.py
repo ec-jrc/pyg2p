@@ -38,7 +38,6 @@ class TestRunner(object):
     def __init__(self, file_):
         self._ctx = TestContext(file_)
 
-
     def do_pcdiffs(self, diff_exec, test_, g_maps):
         for g_map in g_maps:
             num_map = g_map[-3:]
@@ -68,9 +67,8 @@ class TestRunner(object):
             print WARNING + BOLD + "\n\n =====================> Running Test " + str(test_) + ENDC
 
             if test_.g2p_command:
+                fm.createDir(test_.out_dir, recreate=True)
                 a = time.time()
-                print '\n\nCreating out g2p directory or deleting old g2p output...'
-                fm.createDir(test_.out_dir, recreate=True, prefix_='g')
                 print 'Running grib2pcraster...'
                 for g2p_comm in test_.g2p_command:
                     _run_job(to_argv(g2p_comm.strip()))
@@ -78,12 +76,10 @@ class TestRunner(object):
                 #get grib2pcraster output maps
                 g_num_maps, g_maps = count_maps('g', test_.out_dir)
 
-            print '\n\nCreating out pyg2p directory or deleting old pyg2p output'
-            fm.createDir(test_.out_dir, recreate=True, prefix_='p')
             print 'Running pyg2p...'
             a = time.time()
             t = (pyg2p.main, to_argv(test_.pyg2p_command.strip()))
-            mem_usage = memory_usage(t)
+            mem_usage = memory_usage(t)  # here it runs
             elapsed_pyg2p = time.time() - a
             avg_mem = sum(mem_usage) / len(mem_usage)
             max_mem = max(mem_usage)
@@ -111,11 +107,9 @@ class TestRunner(object):
                 differ_elaps = elapsed_pyg2p - elapsed_g2p
 
                 color_code = FAIL + BOLD
-                if differ_elaps <= 1:
+                if differ_elaps <= 0:
                     color_code = OKGREEN + BOLD
-                    if differ_elaps < 0: differ_elaps = - differ_elaps
+                    differ_elaps = - differ_elaps
                 print color_code + 'Difference: ' + str(datetime.timedelta(seconds=differ_elaps)) + ENDC
             print '\n' + WARNING + BOLD + '============= END ================' + ENDC + '\n'
-
-
-
+            # raw_input('note!')

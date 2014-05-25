@@ -1,5 +1,3 @@
-# from memory_profiler import profile
-
 __author__ = 'dominik'
 
 import collections

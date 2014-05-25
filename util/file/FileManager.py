@@ -14,11 +14,13 @@ def exists(pathname, isDir=False):
     return path.exists(pathname) and (path.isdir(pathname) if isDir else path.isfile(pathname))
 
 
-def createDir(pathname, recreate=False, prefix_=''):
+def createDir(pathname, recreate=False):
     if not path.exists(pathname):
         os.makedirs(pathname)
     elif recreate:
-        delete_files_from_dir(pathname, prefix_)
+        delete_files_from_dir(pathname)
+        os.rmdir(pathname)
+        os.makedirs(pathname)
 
 def fileName(pathname):
     return path.basename(pathname)

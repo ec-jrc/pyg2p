@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+import time
+import datetime
 
 __author__ = "Nappo Domenico"
-__date__ = "$Nov 21, 2013 23:32 AM$"
-__version__ = "1.2.x"
+__date__ = "$May 25, 2014 15:00$"
+__version__ = "1.2.9"
 
 from gribpcraster.exc import ApplicationException as appexcmodule
 from gribpcraster.application.ExecutionContext import ExecutionContext
@@ -40,7 +42,7 @@ def main(*args):
                 import memory_profiler
                 runTests(execCtx.get('test.xml'))
                 return 0
-            except ImportError, e:
+            except ImportError:
                 print 'memory_profiler module is missing'
                 print 'try "pip install memory_profile" and re-execute'
                 return 0
@@ -51,9 +53,12 @@ def main(*args):
         return 1
 
     try:
+        start = time.time()
         _controller = Controller(execCtx)
-        _controller.logExecutionContext()
+        _controller.log_execution_context()
         _controller.execute()
+        elapsed = time.time() - start
+        _log('\n\nElapsed Time : ' + str(datetime.timedelta(seconds=elapsed)), 'INFO')
 
     except appexcmodule.ApplicationException, err:
         if err.get_code() == appexcmodule.NO_MESSAGES:

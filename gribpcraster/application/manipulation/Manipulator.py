@@ -1,7 +1,6 @@
 import collections
 import bisect
 import gc
-# from memory_profiler import profile
 import numpy as np
 import numexpr as ne
 from gribpcraster.exc.ApplicationException import ApplicationException
@@ -9,6 +8,7 @@ from util.logger.Logger import Logger
 import gribpcraster.application.ExecutionContext as ex
 from util.numeric.numeric import _mask_it
 from gribpcraster.application.domain.Key import Key
+
 #types of manipulation
 
 MANIPULATION_AVG = 'average'

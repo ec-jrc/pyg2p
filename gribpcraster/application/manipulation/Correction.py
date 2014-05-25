@@ -62,10 +62,11 @@ class Corrector(object):
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def _readGeopotential(self, gribFile, interpolator, is_grib_interpolation):
-        self._log('Reading %s for correction using one of %s)' % (gribFile, str(geop.SHORT_NAMES)))
-        reader = GRIBReader(gribFile)
-        kwargs = {'shortName':geop.SHORT_NAMES}
+    def _readGeopotential(self, grib_file, interpolator, is_grib_interpolation):
+
+        self._log('Reading %s for correction using one of %s)' % (grib_file, str(geop.SHORT_NAMES)))
+        reader = GRIBReader(grib_file)
+        kwargs = {'shortName': geop.SHORT_NAMES}
         messages, shortName = reader.getSelectedMessages(**kwargs)
         reader.close()
         missing = messages.getMissingValue()
