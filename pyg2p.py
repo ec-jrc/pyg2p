@@ -17,7 +17,7 @@ import sys
 
 def addGeo(geopotential_file):
     import util.configuration.geopotentials as geo
-    geo.add(geopotential_file,_log)
+    geo.add(geopotential_file, _log)
 
 
 def runTests(test_xml_file):
@@ -51,27 +51,26 @@ def main(*args):
         _log('\nError in reading configuration >>>>>>>> {}'.format(str(err)) + '\n\n', 'ERROR')
         ex.global_main_logger.close()
         return 1
-
+    _controller = None
     try:
-        start = time.time()
         _controller = Controller(execCtx)
         _controller.log_execution_context()
         _controller.execute()
-        elapsed = time.time() - start
-        _log('\n\nElapsed Time : ' + str(datetime.timedelta(seconds=elapsed)), 'INFO')
-
     except appexcmodule.ApplicationException, err:
         if err.get_code() == appexcmodule.NO_MESSAGES:
             _log('\n\nError: >>>>>>>>>>>>>>> '+  str(err), 'ERROR')
             return 0
         _log('\n\nError: >>>>>>>>>>>>>>> '+  str(err) + '\n\n', 'ERROR')
         return 1
-
+    finally:
+        _controller.close()
+        ex.global_main_logger.close()
     return 0
 
 
 def _log(message, level='DEBUG'):
         ex.global_main_logger.log(message, level)
+
 
 def usage():
     # prints some lines describing how to use this program

@@ -136,44 +136,8 @@ class Controller:
     def execute(self):
         converter = None
 
-        change_res_step, commandArgs, end_step, input_step, input_step2, m, manip_2nd_time_res, mvGrib, start_step2 = self.init_execution()
+        change_res_step, commandArgs, end_step, input_step, input_step2, manipulator, manip_2nd_time_res, mvGrib, start_step2 = self.init_execution()
         grid_id, messages, type_of_param = self._read_messages(commandArgs)
-
-        if self._ctx.is_2_input_files():
-            #two files as input
-            self.read_2nd_res_messages(commandArgs, messages)
-            #inject aux attributes for interpolation into main reader, to use later
-            self._reader.set_2nd_aux(self._reader2.get_main_aux())
-
-        if self._ctx.must_do_conversion():
-            converter = Converter(func=self._ctx.get('parameter.conversionFunction'),
-                                  cut_off=self._ctx.get('parameter.cutoffnegative'))
-            #convert values
-            messages.convertValues(converter)
-
-        values = messages.getValuesOfFirstOrSingleRes()
-
-        if self._ctx.must_do_manipulation():
-            #messages.change_resolution() returns true if two input files with 2 res
-            #                                          or single file multires
-            if messages.have_change_resolution():
-                change_res_step = messages.get_change_res_step()
-                #end_step1 is the start step of the first message at 2nd resolution
-                end_step1 = int(change_res_step.start_step)
-                m.change_end_step(end_step1)
-            values = m.do_manipulation(values)
-
-        if messages.have_change_resolution():
-            change_res_step = messages.get_change_res_step()
-            lats2 = None
-            longs2 = None
-            if not self._ctx.interpolate_with_grib():
-                #we need GRIB lats and lons for scipy interpolation
-                lats2, longs2 = messages.getLatLons2()
-            grid_id2 = messages.getGridId2()
-            if self._ctx.must_do_manipulation():
-                change_res_step, values = self.secondResManipulation(change_res_step, end_step, input_step, messages,
-                                                                     mvGrib, type_of_param, values)
 
         #Grib lats/lons are used for interpolation methods griddata, invdist.
         #Not for grib_nearest and grib_invdist
@@ -186,6 +150,37 @@ class Controller:
             self._interpolator.setAuxToCreateLookup(aux_g, aux_v, aux_g2, aux_v2)
             lats = None
             longs = None
+
+        if self._ctx.is_2_input_files():
+            #two files as input
+            self.read_2nd_res_messages(commandArgs, messages)
+            #inject aux attributes for interpolation into main reader, to use later
+            self._reader.set_2nd_aux(self._reader2.get_main_aux())
+
+        if self._ctx.must_do_conversion():
+            converter = Converter(func=self._ctx.get('parameter.conversionFunction'),
+                                  cut_off=self._ctx.get('parameter.cutoffnegative'))
+            messages.convertValues(converter)
+
+        values = messages.getValuesOfFirstOrSingleRes()
+        if self._ctx.must_do_manipulation():
+            if messages.have_change_resolution():
+                change_res_step = messages.get_change_res_step()  # Key object
+                #start step of the first message at 2nd resolution
+                manipulator.change_end_step(int(change_res_step.start_step))
+            values = manipulator.do_manipulation(values)
+
+        if messages.have_change_resolution():
+            change_res_step = messages.get_change_res_step()
+            lats2 = None
+            longs2 = None
+            if not self._ctx.interpolate_with_grib():
+                #we need GRIB lats and lons for scipy interpolation
+                lats2, longs2 = messages.getLatLons2()
+            grid_id2 = messages.getGridId2()
+            if self._ctx.must_do_manipulation():
+                change_res_step, values = self.secondResManipulation(change_res_step, end_step, input_step, messages,
+                                                                     mvGrib, type_of_param, values)
 
         if self._ctx.must_do_conversion() and converter.mustDoCutOff():
             values = converter.cutOffNegative(values)
@@ -225,8 +220,10 @@ class Controller:
         self._logger.close()
         if self._reader:
             self._reader.close()
+            self._reader = None
         if self._reader2:
             self._reader2.close()
+            self._reader2 = None
         self._pcraster_writer.close()
 
     def _log(self, message, level='DEBUG'):
@@ -244,5 +241,5 @@ class Controller:
         filename = self._ctx.get('outMaps.outDir') + filename
         return filename
 
-    def _getFirstNumber(self):
-        return int(self._ctx.get('outMaps.fmap')) if self._ctx.get('outMaps.fmap') else 0
+    # def _getFirstNumber(self):
+    #     return int(self._ctx.get('outMaps.fmap')) if self._ctx.get('outMaps.fmap') else 0

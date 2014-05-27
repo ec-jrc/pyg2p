@@ -4,7 +4,6 @@ from gribpcraster.exc.ApplicationException import NO_MESSAGES
 from gribpcraster.application.domain.GribGridDetails import GribGridDetails
 from gribpcraster.application.domain.Messages import Messages
 from util.logger.Logger import Logger
-from gribpcraster.application.readers.Reader import Reader
 from gribpcraster.exc.ApplicationException import ApplicationException
 from gribpcraster.application.domain.Key import Key
 import util.generics as utils
@@ -18,7 +17,7 @@ def get_id(grib_file, reader_args):
     return grid.getGridId()
 
 
-class GRIBReader(Reader):
+class GRIBReader(object):
 
     def __init__(self, grib_file, w_perturb=False):
         GRIB.grib_no_fail_on_wrong_length(True)
@@ -58,6 +57,11 @@ class GRIBReader(Reader):
             elif iscallable and v(GRIB.grib_get(gid, k)): continue  # v a boolean function
             else: return False
         return True
+
+
+    def _log(self, message, level='DEBUG'):
+        self._logger.log(message, level)
+
 
     def close(self):
         self._log("Closing " + self._grib_file)
@@ -133,10 +137,10 @@ class GRIBReader(Reader):
             short_name = GRIB.grib_get(self._selected_grbs[0], 'shortName')
             type_of_level = GRIB.grib_get(self._selected_grbs[0], 'levelType')
 
-            if len(self._selected_grbs) > 1:
-
-                if unit != GRIB.grib_get(self._selected_grbs[1], 'units'):
-                    unit = GRIB.grib_get(self._selected_grbs[1], 'units')
+            # if len(self._selected_grbs) > 1:
+            #
+            #     if unit != GRIB.grib_get(self._selected_grbs[1], 'units'):
+            #         unit = GRIB.grib_get(self._selected_grbs[1], 'units')
 
             missing_value = GRIB.grib_get(self._selected_grbs[0], 'missingValue')
             allValues = {}

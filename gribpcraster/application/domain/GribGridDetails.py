@@ -1,7 +1,6 @@
 import gribapi as GRIB
 import numpy as np
 from util.logger.Logger import Logger
-from gribpcraster.application.domain.GridDetails import GridDetails
 import gribpcraster.application.ExecutionContext as ex
 
 def _getShape(gid, grid_type_, numValues):
@@ -34,7 +33,7 @@ def _buildId(gid, grid_type):
     long_last = ('%.4f' % (GRIB.grib_get_double(gid, 'longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
     return long_first+'$'+long_last+'$'+str(ni)+'$'+str(nj)+'$'+str(num_of_values)+'$'+str(grid_type)
 
-class GribGridDetails(GridDetails):
+class GribGridDetails(object):
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
