@@ -1,0 +1,31 @@
+ ###SCIPY###
+ # EUE
+ g18@ -p 167.128 -n gT24 -t 24 --fmap=1 -m 10 --ext=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueT24
+ p18@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/eue_t24_scipy_nn.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueT24 -m 10
+
+ g19@ -p 182.128 -n gE24 -t 24 --fmap=1 -m 10 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueE24
+ p19@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/eue_e24_scipy_nn.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueE24 -m 10
+
+ g20@ -p 228.128 -n gR24 -t 24 --fmap=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueR24 -m 10
+ p20@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/eue_r24_scipy_inv.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueR24 -m 10
+
+
+# DWD
+ g21@  -p 102.201 -n gR06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdR06
+ p21@  -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_r06_scipy_inv.xml -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdR06
+
+ g22@ -p 121.2 -n gE06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdE06
+ p22@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_e06_scipy_nn.xml -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdE06
+
+ g23@ -p 11.2 -n gT24 -t 24 --fmap=1 -e 30 --ext=4 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdT24
+ p23@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/dwd_t24_scipy_nn.xml -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/dwdT24
+
+ #COSMO
+ g24@ -p 61.2 -n gR06 -t 06 --fmap=1 -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/cosmoR06 -m 10
+ p24@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/cosmo_r06_scipy_nn.xml -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/cosmoR06 -m 10
+
+ g25@ -p 121.2 -n gE06 -t 06 --fmap=1 -m 10 -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/cosmoE06
+ p25@ -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/cosmo_e06_scipy_nn.xml -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/cosmoE06 -m 10
+
+ g269@ -p 11.2 -n gT24 -t 24 --fmap=1 -m 10 --ext=4 -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/cosmoT24
+ p26@  -c /home/dominik/ECMWF_grib2pcraster/pyg2p_git/execution_templates_devel/cosmo_t24_scipy_inv.xml -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/cosmoT24 -m 10

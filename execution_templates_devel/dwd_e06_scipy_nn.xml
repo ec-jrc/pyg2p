@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Execution name = "dwd_E06a" id="5" >
+    <Parameter shortName="alhfl_s" tstart="12" tend="18" applyConversion="tommd"/>
+    <Aggregation type="average" step="6" />
+
+    <OutMaps namePrefix="pE06" fmap="1"
+             cloneMap="/dataset/maps/dwd/dem05.map" unitTime="24">
+
+        <Interpolation mode="nearest"
+                       latMap="/dataset/maps/dwd/dwdlme05_lat.map"
+                       lonMap="/dataset/maps/dwd/dwdlme05_lon.map" />
+    </OutMaps>
+</Execution>

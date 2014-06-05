@@ -7,42 +7,62 @@ import gribpcraster.application.ExecutionContext as ex
 
 __author__ = 'unknown'
 
-def interpolate_invdist(z, _mvEfas, _mvGrib, distances, ixs, nnear, p, weights):
-    result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mvEfas, 1)
+
+def interpolate_invdist(z, _mv_efas, distances, ixs, nnear, p, wsum=None, from_inter=False):
+    result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
     jinterpol = 0
     numCells = result.size
     from sys import stdout
     stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0, numCells, 0))
     stdout.flush()
     if nnear == 1:
-        for dist, ix in zip(distances, ixs):
-            if jinterpol % 1000 == 0:
-                stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, numCells, jinterpol * 100. / numCells))
-                stdout.flush()
-            if dist >= 1e+7:  # infinite distance, missing neighbour
-                wz = _mvEfas
-            elif dist > 1e-10:
-                wz = _mask_it(z[ix], _mvGrib)
-                result[jinterpol] = wz
-            else:   # distance almost zero, exact coordinates
-                wz = z[ix]  # take exactly the point, weight = 1
-                result[jinterpol] = wz
-            jinterpol += 1
+        result = z[ixs.astype(int, copy=False)]
+    elif from_inter:
+
+        # g = z[ixs.astype(int, copy=False)]
+        # print '\n\n'
+        #
+        # print str(ixs.shape)
+        # print str(len(zip(distances, ixs)))
+        # raw_input()
+        # print str(result.shape)
+        # print str(distances.shape)
+        # print str(g.shape)
+
+        # result = np.dot(distances, g.transpose())
+        result = np.einsum('ij,ij->i', distances, z[ixs.astype(int, copy=False)])
+        # print str(result.shape)
+        # raw_input()
+        # result = np.dot(distances, g)
+
+        # for w, ix in zip(distances, ixs):
+        #     if jinterpol % 1000 == 0:
+        #         stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, numCells, jinterpol * 100. / numCells))
+        #         stdout.flush()
+        #     wz = np.vdot(w, z[ix.astype(int, copy=False)])
+        #     result[jinterpol] = wz
+        #     raw_input('ahoo')
+        #     print str(w.shape)
+        #     print str(ix.shape)
+        #     print str(wz.shape)
+        #     raw_input()
+        #     jinterpol += 1
     else:
         for dist, ix in zip(distances, ixs):
-
             if jinterpol % 1000 == 0:
                 stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, numCells, jinterpol * 100. / numCells))
                 stdout.flush()
-            if (dist >= 1e+7).all():
-                wz = _mvEfas
-            #distances are ordered by the shortest first
-            elif dist[0] > 1e-10:
+            if dist[0] > 1e-10:
                 w = 1 / dist ** p
-                if weights is not None:
-                    w *= weights[ix]  # >= 0
-                w /= np.sum(w)
+                w /= np.sum(w)  # this must be saved into intertables..not distance!
+
                 wz = np.dot(w, z[ix.astype(int, copy=False)])  # weighted values (result)
+                # print str(z[ix.astype(int, copy=False)].shape)
+                # print str(w.shape)
+                # print str(wz.shape)
+                # raw_input()
+
+                wsum[jinterpol] = w
                 result[jinterpol] = wz
             else:
                 wz = z[ix[0]]  # take exactly the point, weight = 1
@@ -113,30 +133,30 @@ is exceedingly sensitive to distance and to h.
     # anykernel( dj / av dj ) is also scale-free
     # error analysis, |f(x) - idw(x)| ? todo: regular grid, nnear ndim+1, 2*ndim
 
-    def __init__( self, GRIB_locations, z, mvEfas, mvGrib, leafsize=10):
-        assert len(GRIB_locations) == len(z), "len(coordinates) %d != len(values) %d" % (len(GRIB_locations), len(z))
+    def __init__( self, grib_locations, z, mvEfas, mvGrib, leafsize=10):
+        assert len(grib_locations) == len(z), "len(coordinates) %d != len(values) %d" % (len(grib_locations), len(z))
         import gribpcraster.application.ExecutionContext as ex
         self._logger = Logger('Interpolator', loggingLevel=ex.global_logger_level)
-        self._mvEfas=mvEfas
-        self._mvGrib=mvGrib
-        self.tree = KDTree(GRIB_locations, leafsize=leafsize )  # build the tree
+        self._mvEfas = mvEfas
+        self._mvGrib = mvGrib
+        self.tree = KDTree(grib_locations, leafsize=leafsize)  # build the tree
         self.z = z
         self.wsum = None
+        self.ixs = None
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def _invdst(self, eps, p, efas_locations, weights, mode):
-        if mode=='nearest':
-            nnear=1
+    def _invdst(self, eps, p, efas_locations, mode):
+        if mode == 'nearest':
+            self._nnear = 1
         else:
-            nnear=8
-        if self.wsum is None:
-            self.wsum = np.zeros(nnear)
+            self._nnear = 8
         self._log('Querying tree of locations...')
         #efas_locations = _mask_it(efas_locations, self._mvEfas)
-        self.distances, self.ix = self.tree.query(efas_locations, k=nnear, eps=eps, p=p)
-        result = interpolate_invdist(self.z, self._mvEfas, self._mvGrib, self.distances, self.ix, nnear, p, weights)
+        self.distances, self.ixs = self.tree.query(efas_locations, k=self._nnear, eps=eps, p=p)
+        self.wsum = np.empty((len(self.distances),) +(self._nnear,))
+        result = interpolate_invdist(self.z, self._mvEfas, self.distances, self.ixs, self._nnear, p, self.wsum)
         return result
 
     def __call__(self, efas_locations, eps=0, p=1, mode='nearest', weights=None):
@@ -146,6 +166,9 @@ is exceedingly sensitive to distance and to h.
         efasefas_locations_ma = _mask_it(efas_locations, self._mvEfas)
         if qdim == 1:
             efas_locations = np.array([efasefas_locations_ma])
-        result = self._invdst(eps, p, efas_locations, weights, mode)
+        result = self._invdst(eps, p, efas_locations, mode)
         #we return dists and ix to save them
-        return result, self.distances, self.ix
+        if self._nnear == 1:
+            return result, self.distances, self.ixs
+        else:
+            return result, self.wsum, self.ixs

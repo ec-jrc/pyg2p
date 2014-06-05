@@ -6,7 +6,7 @@
 
         <OutMaps namePrefix="pR06" fmap="1" unitTime="24"
                  cloneMap="/dataset/maps/cosmo/dem05.map" >
-            <Interpolation mode="nearest"
+            <Interpolation mode="invdist"
                            latMap="/dataset/maps/cosmo/cosmo05_lat.map"
                            lonMap="/dataset/maps/cosmo/cosmo05_lon.map" />
         </OutMaps>

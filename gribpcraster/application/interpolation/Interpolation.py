@@ -46,10 +46,10 @@ class Interpolator:
         #setting additional interpolation parameters for some methods
         if self._mode == 'griddata':
             self._method = execCtx.get('griddata.method')
-        elif self._mode in ['invdist','nearest']:
-            self._leafsize=execCtx.get(self._mode+'.leafsize')
-            self._p=execCtx.get(self._mode+'.p')
-            self._eps=execCtx.get(self._mode+'.eps')
+        elif self._mode in ['invdist', 'nearest']:
+            self._leafsize=execCtx.get(self._mode + '.leafsize')
+            self._p = execCtx.get(self._mode + '.p')
+            self._eps = execCtx.get(self._mode + '.eps')
 
         _latMap = execCtx.get('interpolation.latMap')
         _lonMap = execCtx.get('interpolation.lonMap')
@@ -81,32 +81,29 @@ class Interpolator:
             return self.interpolate_kdtree(yp, xp, f, grid_id, log_intertable=log_intertable)
 
     def interpolate_kdtree(self, latgrib, longrib, f, grid_id, log_intertable=False):
-        table_dir = INTERTABLES_DIR
 
         lonefas = lonefas_w_mv = self._latLongBuffer.getLong()
         latefas = self._latLongBuffer.getLat()
-        origShape=lonefas_w_mv.shape
+        orig_shape = lonefas_w_mv.shape
          #parameters
         nnear = 1
         if self._mode == 'nearest':
             self._log('Interpolating with nearest neighbour ')
         elif self._mode == 'invdist':
-            nnear=8
+            nnear = 8
             self._log('Interpolating with inverse distance ')
-        intertable_name = os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME+grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+TAB_NAME_SCIPY+self._mode+'.npy')
+        intertable_name = os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME + grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+TAB_NAME_SCIPY+self._mode+'.npy')
         log = self._log if log_intertable else None
         if fm.exists(intertable_name):
             dists, indexes = _read_intertable(intertable_name, log=log)
-            weights=None
-            result = ID.interpolate_invdist(f, self._mvEfas, self._mvGrib, dists, indexes, nnear, self._p, weights)
-            grid_data=result.reshape(origShape)
-
+            result = ID.interpolate_invdist(f, self._mvEfas, dists, indexes, nnear, self._p, from_inter=True)
+            grid_data = result.reshape(orig_shape)
         else:
             if latgrib is None and longrib is None:
                 self._log('Trying to interpolate without grib lat/lons. Probably a geopotential grib!','ERROR')
                 raise ApplicationException.get_programmatic_exc(5000)
 
-            self._log('Interpolating table not found. Will create file: '+ intertable_name,'INFO')
+            self._log('Interpolating table not found. Will create file: ' + intertable_name, 'INFO')
             data_locations = np.vstack((longrib.ravel(), latgrib.ravel())).T
             efas_locations = np.vstack((lonefas.ravel(), latefas.ravel())).T
             invdisttree = InverseDistance(data_locations, f.ravel(), self._mvEfas, self._mvGrib, leafsize=self._leafsize)
@@ -116,7 +113,7 @@ class Interpolator:
             #saving interpolation lookup table
             np.save(intertable_name, intertable)
             #reshape to efas
-            grid_data=result.reshape(origShape)
+            grid_data = result.reshape(orig_shape)
 
         return grid_data
 

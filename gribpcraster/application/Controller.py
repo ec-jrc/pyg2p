@@ -224,7 +224,8 @@ class Controller:
         if self._reader2:
             self._reader2.close()
             self._reader2 = None
-        self._pcraster_writer.close()
+        if self._pcraster_writer:
+            self._pcraster_writer.close()
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)

@@ -84,7 +84,7 @@ class Corrector(object):
             #lat, lon = messages.getLatLons()
             #interpolation of geopotentials always with intertable!
             #lat and lons grib are None here and interpolation should find an intertable
-            values_resampled = interpolator.interpolate_with_scipy(None, None, values,messages.getGridId())
+            values_resampled = interpolator.interpolate_with_scipy(None, None, values, messages.getGridId())
 
         return missing, values_resampled
 
