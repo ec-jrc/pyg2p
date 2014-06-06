@@ -104,7 +104,7 @@ class Controller:
                     self._reader2 = None
         else:
             #interpolating swath data with scipy griddata or with an in house inverse distance code
-            v = self._interpolator.interpolate_with_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
+            v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
 
         if self._ctx.get('logging.level') == 'DEBUG':
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
@@ -139,7 +139,7 @@ class Controller:
         change_res_step, commandArgs, end_step, input_step, input_step2, manipulator, manip_2nd_time_res, mvGrib, start_step2 = self.init_execution()
         grid_id, messages, type_of_param = self._read_messages(commandArgs)
 
-        #Grib lats/lons are used for interpolation methods griddata, invdist.
+        #Grib lats/lons are used for interpolation methods griddata, nearest, invdist.
         #Not for grib_nearest and grib_invdist
         if not self._ctx.interpolate_with_grib():
             lats, longs = messages.getLatLons()

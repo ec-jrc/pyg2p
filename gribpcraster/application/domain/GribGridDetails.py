@@ -44,6 +44,7 @@ class GribGridDetails(object):
         #regular_gg, regular_ll, reduced_ll, reduced_gg, rotated_ll, rotated_gg
         import gribpcraster.application.ExecutionContext as ex
         #ex.global_logger_level
+        self._lats = self._longs = None
         self._logger = Logger('Messages', loggingLevel=ex.global_logger_level)
         self._gid = gid
         self._grid_type = GRIB.grib_get(gid, 'gridType')
@@ -99,7 +100,8 @@ class GribGridDetails(object):
         return latsf, lonsf
 
     def getLatLons(self):
-        self._lats, self._longs = self._computeLatLongs(self._gid)
+        if self._lats is None:
+            self._lats, self._longs = self._computeLatLongs(self._gid)
         return self._lats, self._longs
 
     def _extractWorkingKeys(self, gid):

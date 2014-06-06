@@ -9,67 +9,40 @@ __author__ = 'unknown'
 
 
 def interpolate_invdist(z, _mv_efas, distances, ixs, nnear, p, wsum=None, from_inter=False):
+
     result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
-    jinterpol = 0
-    numCells = result.size
-    from sys import stdout
-    stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0, numCells, 0))
-    stdout.flush()
+
     if nnear == 1:
+        #for nnear=1 it doesn't care at this point if indexes come from intertable
+        #                                     # or were just queried from the tree
         result = z[ixs.astype(int, copy=False)]
     elif from_inter:
-
-        # g = z[ixs.astype(int, copy=False)]
-        # print '\n\n'
-        #
-        # print str(ixs.shape)
-        # print str(len(zip(distances, ixs)))
-        # raw_input()
-        # print str(result.shape)
-        # print str(distances.shape)
-        # print str(g.shape)
-
-        # result = np.dot(distances, g.transpose())
         result = np.einsum('ij,ij->i', distances, z[ixs.astype(int, copy=False)])
-        # print str(result.shape)
-        # raw_input()
-        # result = np.dot(distances, g)
-
-        # for w, ix in zip(distances, ixs):
-        #     if jinterpol % 1000 == 0:
-        #         stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, numCells, jinterpol * 100. / numCells))
-        #         stdout.flush()
-        #     wz = np.vdot(w, z[ix.astype(int, copy=False)])
-        #     result[jinterpol] = wz
-        #     raw_input('ahoo')
-        #     print str(w.shape)
-        #     print str(ix.shape)
-        #     print str(wz.shape)
-        #     raw_input()
-        #     jinterpol += 1
     else:
+        #nnear is 8
+        from sys import stdout
+        jinterpol = 0
+        num_cells = result.size
+        stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
+        stdout.flush()
         for dist, ix in zip(distances, ixs):
             if jinterpol % 1000 == 0:
-                stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, numCells, jinterpol * 100. / numCells))
+                stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
                 stdout.flush()
             if dist[0] > 1e-10:
                 w = 1 / dist ** p
                 w /= np.sum(w)  # this must be saved into intertables..not distance!
-
                 wz = np.dot(w, z[ix.astype(int, copy=False)])  # weighted values (result)
-                # print str(z[ix.astype(int, copy=False)].shape)
-                # print str(w.shape)
-                # print str(wz.shape)
-                # raw_input()
-
                 wsum[jinterpol] = w
                 result[jinterpol] = wz
             else:
                 wz = z[ix[0]]  # take exactly the point, weight = 1
                 result[jinterpol] = wz
             jinterpol += 1
+        stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, 100))
+        stdout.write('\n')
+        stdout.flush()
     return result
-
 
 
 """
@@ -130,10 +103,8 @@ In contrast, the commonly-used Gaussian kernel exp( - (distance/h)**2 )
 is exceedingly sensitive to distance and to h.
 
     """
-    # anykernel( dj / av dj ) is also scale-free
-    # error analysis, |f(x) - idw(x)| ? todo: regular grid, nnear ndim+1, 2*ndim
 
-    def __init__( self, grib_locations, z, mvEfas, mvGrib, leafsize=10):
+    def __init__(self, grib_locations, z, mvEfas, mvGrib, leafsize=10):
         assert len(grib_locations) == len(z), "len(coordinates) %d != len(values) %d" % (len(grib_locations), len(z))
         import gribpcraster.application.ExecutionContext as ex
         self._logger = Logger('Interpolator', loggingLevel=ex.global_logger_level)
@@ -153,15 +124,13 @@ is exceedingly sensitive to distance and to h.
         else:
             self._nnear = 8
         self._log('Querying tree of locations...')
-        #efas_locations = _mask_it(efas_locations, self._mvEfas)
         self.distances, self.ixs = self.tree.query(efas_locations, k=self._nnear, eps=eps, p=p)
         self.wsum = np.empty((len(self.distances),) +(self._nnear,))
         result = interpolate_invdist(self.z, self._mvEfas, self.distances, self.ixs, self._nnear, p, self.wsum)
         return result
 
-    def __call__(self, efas_locations, eps=0, p=1, mode='nearest', weights=None):
-    # nnear nearest neighbours of each query point --
-        #q = np.asarray(q)
+    def __call__(self, efas_locations, eps=0, p=1, mode='nearest'):
+
         qdim = efas_locations.ndim
         efasefas_locations_ma = _mask_it(efas_locations, self._mvEfas)
         if qdim == 1:

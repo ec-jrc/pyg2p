@@ -68,7 +68,7 @@ class Corrector(object):
         reader = GRIBReader(grib_file)
         kwargs = {'shortName': geop.SHORT_NAMES}
         messages, shortName = reader.getSelectedMessages(**kwargs)
-        reader.close()
+
         missing = messages.getMissingValue()
         values = messages.getValuesOfFirstOrSingleRes()[messages.first_step_range]
         #get temp from geopotential. will be gem in the formula
@@ -76,6 +76,7 @@ class Corrector(object):
         mv = missing
         z = values
         values_corrected = ne.evaluate(self._numexpr_eval_gem)
+        # print str(values_corrected)
 
         if is_grib_interpolation:
             values_resampled, intertable_was_used = interpolator.interpolate_grib(values_corrected, -1, messages.getGridId())
@@ -84,8 +85,9 @@ class Corrector(object):
             #lat, lon = messages.getLatLons()
             #interpolation of geopotentials always with intertable!
             #lat and lons grib are None here and interpolation should find an intertable
-            values_resampled = interpolator.interpolate_with_scipy(None, None, values, messages.getGridId())
-
+            lats, lons = messages.getLatLons()
+            values_resampled = interpolator.interpolate_scipy(lats, lons, values_corrected, messages.getGridId())
+        reader.close()
         return missing, values_resampled
 
 

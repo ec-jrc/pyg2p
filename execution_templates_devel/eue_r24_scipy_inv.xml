@@ -12,7 +12,7 @@
 
         <OutMaps namePrefix="pR24" fmap="1"
                  cloneMap="/dataset/maps/europe5km/lat.map" unitTime="24">
-            <Interpolation mode="nearest"
+            <Interpolation mode="invdist"
                            latMap="/dataset/maps/europe5km/lat.map"
                            lonMap="/dataset/maps/europe5km/long.map" />
         </OutMaps>

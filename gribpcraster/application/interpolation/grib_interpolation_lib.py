@@ -1,6 +1,6 @@
 import gribapi as GRIB
 import numpy as np
-
+from sys import stdout
 __author__ = 'dominik'
 
 
@@ -11,10 +11,10 @@ def _grib_nearest(gid, latEfas, lonEfas, mv, result):
     idxs = []
     i = 0
     num_cells = result.size
-    from sys import stdout
+
     stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
     stdout.flush()
-    outs=0
+    outs = 0
     for (x, y), val in np.ndenumerate(lonEfas):
         i += 1
         if not lonEfas[x, y] == mv and not lonEfas[x, y] <= -1.0e+10:
@@ -28,11 +28,14 @@ def _grib_nearest(gid, latEfas, lonEfas, mv, result):
                 ys.append(y)
                 idxs.append(n_nearest[0]['index'])
                 result[x, y] = n_nearest[0]['value']
-            except GRIB.GribInternalError, err:
+            except GRIB.GribInternalError:
                 outs += 1
                 # print str(err)
                 # stdout.write('\n\nout of grid!: lat: %.4f - lon: %.4f' % (latEfas[x,y],lonEfas[x,y]))
                 pass
+    stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
+    stdout.write('\n')
+    stdout.flush()
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs), result
 
 
@@ -48,16 +51,15 @@ def _grib_invdist(gid, latEfas, lonEfas, mv, result):
     coeffs3 = []
     coeffs4 = []
     i = 0
-    numCells = result.size
-    from sys import stdout
-    stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0,numCells,0))
+    num_cells = result.size
+    stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0,num_cells,0))
     stdout.flush()
-    out=0
+    out = 0
     for (x,y),valuesgg in np.ndenumerate(lonEfas):
         i += 1
         if not lonEfas[x,y] == mv and not lonEfas[x, y] < -1.0e+10:
             if i%500 == 0:
-                stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i,numCells,out,i*100./numCells))
+                stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i,num_cells,out,i*100./num_cells))
                 stdout.flush()
             try:
                 notExactPosition = True
@@ -93,8 +95,10 @@ def _grib_invdist(gid, latEfas, lonEfas, mv, result):
                 else:
                     result[x,y]=n_nearest[exactPositionIdx]['value']
 
-            except GRIB.GribInternalError,err:
+            except GRIB.GribInternalError:
                 #tipically "out of grid" error
                 out += 1
-
+    stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
+    stdout.write('\n')
+    stdout.flush()
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs1),np.asarray(idxs2),np.asarray(idxs3),np.asarray(idxs4),np.asarray(coeffs1),np.asarray(coeffs2),np.asarray(coeffs3),np.asarray(coeffs4),result

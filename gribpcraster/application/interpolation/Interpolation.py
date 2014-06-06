@@ -2,7 +2,7 @@ from gribpcraster.application.interpolation.grib_interpolation_lib import _grib_
 from util.numeric.numeric import _mask_it
 
 __author__ = "nappodo"
-__date__ = "$Feb 17, 2013 10:46:41 AM$"
+__date__ = "$Jun 06, 2014 01:53 AM$"
 
 import scipy.interpolate
 import os
@@ -32,22 +32,23 @@ def _read_intertable(intertable_name, log=None):
     elif intertable_name.endswith('_inv.npy'):
         return intertable[0], intertable[1], intertable[2], intertable[3], intertable[4], intertable[5],intertable[6], intertable[7], intertable[8], intertable[9]
     elif TAB_NAME_SCIPY in intertable_name:
-        #return distances, indexes
+        #return w/distances, indexes
         return intertable[0], intertable[1]
 
 
 #returning numpy arrays: x, y of efas arrays and idx of grib values array and value
 
 class Interpolator:
+    modes_nnear = {'nearest': 1, 'invdist': 8}
     def __init__(self, execCtx):
         self._mode = execCtx.get('interpolation.mode')
         self._logger = Logger('Interpolator', loggingLevel=execCtx.get('logger.level'))
         self._intertable_dir = INTERTABLES_DIR if execCtx.get('interpolation.dir') is None else execCtx.get('interpolation.dir')
         #setting additional interpolation parameters for some methods
-        if self._mode == 'griddata':
-            self._method = execCtx.get('griddata.method')
-        elif self._mode in ['invdist', 'nearest']:
-            self._leafsize=execCtx.get(self._mode + '.leafsize')
+        # if self._mode == 'griddata':
+        #     self._method = execCtx.get('griddata.method')
+        if self._mode in ['invdist', 'nearest']:
+            self._leafsize = execCtx.get(self._mode + '.leafsize')
             self._p = execCtx.get(self._mode + '.p')
             self._eps = execCtx.get(self._mode + '.eps')
 
@@ -74,24 +75,19 @@ class Interpolator:
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def interpolate_with_scipy(self, yp, xp, f, grid_id, log_intertable=False):
-        if self._mode == 'griddata':
-            return self.interpolateGriddata(yp, xp, f)
-        elif self._mode in ['invdist', 'nearest']:
-            return self.interpolate_kdtree(yp, xp, f, grid_id, log_intertable=log_intertable)
+    # def interpolate_with_scipy(self, yp, xp, f, grid_id, log_intertable=False):
+    #     # if self._mode == 'griddata':
+    #     #     return self.interpolateGriddata(yp, xp, f)
+    #     # elif self._mode in ['invdist', 'nearest']:
+    #         return self.interpolate_kdtree(yp, xp, f, grid_id, log_intertable=log_intertable)
 
-    def interpolate_kdtree(self, latgrib, longrib, f, grid_id, log_intertable=False):
+    def interpolate_scipy(self, latgrib, longrib, f, grid_id, log_intertable=False):
 
         lonefas = lonefas_w_mv = self._latLongBuffer.getLong()
         latefas = self._latLongBuffer.getLat()
         orig_shape = lonefas_w_mv.shape
          #parameters
-        nnear = 1
-        if self._mode == 'nearest':
-            self._log('Interpolating with nearest neighbour ')
-        elif self._mode == 'invdist':
-            nnear = 8
-            self._log('Interpolating with inverse distance ')
+        nnear = Interpolator.modes_nnear[self._mode]
         intertable_name = os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME + grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+TAB_NAME_SCIPY+self._mode+'.npy')
         log = self._log if log_intertable else None
         if fm.exists(intertable_name):
@@ -108,7 +104,6 @@ class Interpolator:
             efas_locations = np.vstack((lonefas.ravel(), latefas.ravel())).T
             invdisttree = InverseDistance(data_locations, f.ravel(), self._mvEfas, self._mvGrib, leafsize=self._leafsize)
             result, dists, indexes = invdisttree(efas_locations, eps=self._eps, p=self._p, mode=self._mode)
-            self._log('interpolation done')
             intertable = np.array([dists, indexes], dtype=np.float64)
             #saving interpolation lookup table
             np.save(intertable_name, intertable)
@@ -118,28 +113,28 @@ class Interpolator:
         return grid_data
 
 
-    def interpolateGriddata(self, yp, xp, f):
-
-        latgrib = yp
-        longrib = xp
-
-        xi = self._latLongBuffer.getLong()
-        yi = self._latLongBuffer.getLat()
-        origShape = xi.shape
-
-        latefas=yi
-        lonefas=xi
-
-        data_locations = np.vstack((longrib.ravel(),latgrib.ravel())).T
-        grid_locations = np.vstack((lonefas.ravel(),latefas.ravel())).T
-        self._log('interpolating with griddata: '+self._method)
-        grid_data      = scipy.interpolate.griddata(data_locations, f.ravel(),
-                                                    grid_locations,
-                                                    method=self._method)
-        self._log('interpolation done')
-
-        grid_data=grid_data.reshape(origShape)
-        return grid_data
+    # def interpolateGriddata(self, yp, xp, f):
+    #
+    #     latgrib = yp
+    #     longrib = xp
+    #
+    #     xi = self._latLongBuffer.getLong()
+    #     yi = self._latLongBuffer.getLat()
+    #     origShape = xi.shape
+    #
+    #     latefas=yi
+    #     lonefas=xi
+    #
+    #     data_locations = np.vstack((longrib.ravel(), latgrib.ravel())).T
+    #     grid_locations = np.vstack((lonefas.ravel(), latefas.ravel())).T
+    #     self._log('interpolating with griddata: %s' % self._method)
+    #     grid_data = scipy.interpolate.griddata(data_locations, f.ravel(),
+    #                                            grid_locations,
+    #                                            method=self._method)
+    #     self._log('interpolation done')
+    #
+    #     grid_data=grid_data.reshape(origShape)
+    #     return grid_data
 
     ##### GRIB API INTERPOLATION ####################
 

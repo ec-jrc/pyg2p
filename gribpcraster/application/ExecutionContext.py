@@ -12,9 +12,11 @@ import time
 
 #global_out_log_dir = './logs/'
 PARAMETERS_XML = 'configuration/parameters.xml'
-KNOWN_INTERP_MODES = {'griddata': ['method'], 'nearest': ['leafsize', 'eps', 'p'],
-                      'invdist': ['leafsize', 'eps', 'p'], 'grib_invdist': [], 'grib_nearest': []}
-DEFAULT_VALUES = {'interpolation.mode': 'invdist', 'griddata.method': 'nearest',
+KNOWN_INTERP_MODES = {'nearest': ['leafsize', 'eps', 'p'],
+                      'invdist': ['leafsize', 'eps', 'p'],
+                      'grib_invdist': [],
+                      'grib_nearest': []}
+DEFAULT_VALUES = {'interpolation.mode': 'grib_nearest',
                   'invdist.leafsize': '10', 'invdist.p': '1', 'invdist.eps': '0.1',
                   'nearest.leafsize': '10', 'nearest.p': '1', 'nearest.eps': '0.1',
                   'outMaps.unitTime': '24'}
@@ -178,7 +180,7 @@ class ExecutionContext:
         #self._params['outMaps.outDir'] = u.Execution.OutMaps['outDir']
         self._params['outMaps.clone'] = u.Execution.OutMaps['cloneMap']
 
-        self._params['interpolation.mode'] = u.Execution.OutMaps.Interpolation['mode'] if u.Execution.OutMaps.Interpolation['mode'] else  DEFAULT_VALUES['interpolation.mode'] #must be recognised
+        self._params['interpolation.mode'] = u.Execution.OutMaps.Interpolation['mode'] if u.Execution.OutMaps.Interpolation['mode'] else DEFAULT_VALUES['interpolation.mode'] #must be recognised
         self._params['interpolation.dir'] = u.Execution.OutMaps.Interpolation['intertableDir'] if u.Execution.OutMaps.Interpolation['intertableDir'] else None
         self._set_additional_interp_attrs(u.Execution.OutMaps.Interpolation)
         self._params['interpolation.latMap'] = u.Execution.OutMaps.Interpolation['latMap']
@@ -200,7 +202,7 @@ class ExecutionContext:
         if self._params['parameter.dataTime'] is None:
             self._params['parameter.dataTime'] = u.Execution.Parameter['dataTime']  #number
 
-        self._params['parameter.level'] = u.Execution.Parameter['level'] #number
+        self._params['parameter.level'] = u.Execution.Parameter['level']  #number
 
         if hasattr(u.Execution, 'Aggregation'):
             self._params['aggregation.step'] = u.Execution.Aggregation['step']
@@ -340,7 +342,7 @@ class ExecutionContext:
 
             try:
 
-                if self._params['interpolation.mode'] in ['invdist','nearest']:
+                if self._params['interpolation.mode'] in ['invdist', 'nearest']:
                     if self._params[self._params['interpolation.mode']+'.p'] is not None and not self._params[self._params['interpolation.mode']+'.p'].isdigit():
                         raise ApplicationException.get_programmatic_exc(1400, 'Interpolation param p')
                     self._params[self._params['interpolation.mode']+'.p'] = int(self._params[self._params['interpolation.mode']+'.p']) if self._params[self._params['interpolation.mode']+'.p'] is not None else None
@@ -350,7 +352,7 @@ class ExecutionContext:
                     #for float numbers is best to do:
                     try:
                         self._params[self._params['interpolation.mode']+'.eps'] = float(self._params[self._params['interpolation.mode']+'.eps']) if self._params[self._params['interpolation.mode']+'.eps'] is not None else None
-                    except ValueError, err:
+                    except ValueError:
                         raise ApplicationException.get_programmatic_exc(1400, 'Interpolation param eps')
             except Exception, exc:
 
@@ -364,7 +366,6 @@ class ExecutionContext:
                 #check interpolation.mode is supported
                 if not KNOWN_INTERP_MODES.has_key(self._params['interpolation.mode']):
                     raise ApplicationException.get_programmatic_exc(1600, self._params['interpolation.mode'])
-
 
                 #check both correction params are present
                 if self._params['execution.doCorrection'] and not ('correction.gemFormula' in self._params and 'correction.formula' in self._params and  'correction.demMap' in self._params):

@@ -25,7 +25,7 @@ class Manipulator(object):
     def __init__(self, aggr_step, aggr_type, input_step, step_type_, start_step, end_step, unit_time, mv_, force_zero_array=False, sec_temp_res=False, lastFirstResMessage=None):
 
         self._mvGrib = mv_
-        self._unit_time=int(unit_time)
+        self._unit_time = int(unit_time)
         self._aggregation_step = int(aggr_step)
         self._aggregation = aggr_type  # type of manipulation
         self._force_zero = force_zero_array  # if true, accumulation will consider zero array as GRIB at step 0.
@@ -35,20 +35,21 @@ class Manipulator(object):
         self._end = int(end_step)
         self._second_t_res = sec_temp_res
         self._lastFirstResMess = lastFirstResMessage
-        import gribpcraster.application.ExecutionContext as ex
         self._logger = Logger('Manipulator', loggingLevel=ex.global_logger_level)
 
         if self._input_step != 0:
-            self._usable_start = (self._start -self._aggregation_step)
+            self._usable_start = (self._start - self._aggregation_step)
             if self._usable_start < 0:
                 self._usable_start = 0
         else:
             self._usable_start = self._start
         self._log('Aggregation %s with step %s for %s values from %d to %d [considering from ts=%d]'
-                  %(self._aggregation,self._aggregation_step,self._step_type, self._start, self._end, self._usable_start))
+                  %(self._aggregation, self._aggregation_step, self._step_type, self._start, self._end, self._usable_start))
 
         #dict of functions. Substitutes "if then else" pattern in doManipulation
-        self._functs = {MANIPULATION_ACCUM: self._cumulation, MANIPULATION_AVG: self._average, MANIPULATION_INSTANT: self._instantaneous}
+        self._functs = {MANIPULATION_ACCUM: self._cumulation,
+                        MANIPULATION_AVG: self._average,
+                        MANIPULATION_INSTANT: self._instantaneous}
 
     #input is dict of values[start-end-res]
     #out is values(end)
@@ -64,10 +65,9 @@ class Manipulator(object):
         self._logger.log(message, level)
 
     def change_end_step(self,end_first_res):
-        self._log('Changing end step to %d'%end_first_res)
+        self._log('Changing end step to %d' % end_first_res)
         self._end = end_first_res
 
-    # @profile
     def do_manipulation(self, values):
         self._log('******** **** MANIPULATION **** *************')
         res = self._functs[self._aggregation](values)
@@ -109,22 +109,24 @@ class Manipulator(object):
                 v_ord[iter_] = _mask_it(v_out, self._mvGrib)
 
             if iter_ - self._aggregation_step >= 0 and iter_ - self._aggregation_step not in v_ord.keys() and not created_zero_array:
-                ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_-self._aggregation_step)
+                ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_ - self._aggregation_step)
                 next_ts = v_ord.keys()[ind_next_ts]
+                #variables needed for numexpr evaluator namespace
                 v_nts_ma = _mask_it(v_ord[next_ts], self._mvGrib)
 
                 if iter_ - self._aggregation_step == 0:
                     self._log('Message %d not in dataset. Creating it as zero values array'%(iter_- self._aggregation_step))
-                    v_ord[iter_-self._aggregation_step] = _mask_it(np.zeros(v_ord[next_ts].shape), self._mvGrib)
+                    v_ord[iter_ - self._aggregation_step] = _mask_it(np.zeros(v_ord[next_ts].shape), self._mvGrib)
                     originalts = 0
                     created_zero_array = True
                 else:
                     self._log('Message %d not in dataset. Creating it. Masking with %.2f'%(iter_-self._aggregation_step, self._mvGrib))
 
-                    ind_originalts = bisect.bisect_right(v_ord.keys(), iter_-self._aggregation_step)
+                    ind_originalts = bisect.bisect_right(v_ord.keys(), iter_ - self._aggregation_step)
                     if ind_originalts == ind_next_ts:
                         ind_originalts -= 1
-                    originalts=v_ord.keys()[ind_originalts]
+                    originalts = v_ord.keys()[ind_originalts]
+                    #variables needed for numexpr evaluator namespace
                     v_ots_ma = _mask_it(v_ord[originalts], self._mvGrib)
 
                     self._log('Trying to create message grib:%d as grib:%d+(grib:%d-grib:%d)*((%d-%d)/(%d-%d))'
@@ -135,7 +137,7 @@ class Manipulator(object):
             key = Key(iter_ - self._aggregation_step, iter_, res, self._aggregation_step)
             self._log('out[%s] = (grib:%d - grib:%d)  * (%d/%d))' % (key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
             v_iter_ma = _mask_it(v_ord[iter_], self._mvGrib)
-            if iter_- self._aggregation_step == 0 and self._force_zero:
+            if iter_ - self._aggregation_step == 0 and self._force_zero:
                 # forced ZERO array...
                 v_iter_1_ma = _mask_it(np.zeros(v_ord[0].shape), self._mvGrib)
             else:

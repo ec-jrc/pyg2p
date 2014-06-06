@@ -1,6 +1,20 @@
 CHANGE LOG
 ==========
 
+v 1.3
+-----
+
+* **046** Improvement (major)
+
+   Performances improvements in scipy based interpolation methods (nearest, invdist):
+        - Very fast interlookup table creation (seconds, not hours) in invdist.
+        - Results are similar to GRIB_API based interpolation.
+
+
+* **045** Bug fix (major)
+
+   Corrected bug in scipy interpolation of geopotentials, affecting temperature correction.
+
 v 1.2.9
 -------
 * **044** Improvement (major)
