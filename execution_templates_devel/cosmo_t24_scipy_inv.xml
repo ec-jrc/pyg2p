@@ -11,8 +11,8 @@
 
     <OutMaps namePrefix="pT24" fmap="1" ext="4" unitTime="24"
              cloneMap="/dataset/maps/cosmo/dem05.map">
-        <Interpolation mode="invdist"
+        <Interpolation mode="nearest"
                        latMap="/dataset/maps/cosmo/lat_cosmo5km_new.map"
-                       lonMap="/dataset/maps/cosmo/lon_cosmo5km_new.map"/>
+                           lonMap="/dataset/maps/cosmo/lon_cosmo5km_new.map" />
     </OutMaps>
 </Execution>

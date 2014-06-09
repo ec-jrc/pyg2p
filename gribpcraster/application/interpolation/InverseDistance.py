@@ -1,26 +1,31 @@
 from __future__ import division
 from scipy.spatial import cKDTree as KDTree
+# from sklearn.neighbors import KDTree
 from util.logger.Logger import Logger
 import numpy as np
+import numexpr as ne
 from util.numeric.numeric import _mask_it
 import gribpcraster.application.ExecutionContext as ex
 
 __author__ = 'unknown'
 
 
-def interpolate_invdist(z, _mv_efas, distances, ixs, nnear, p, wsum=None, from_inter=False):
-
-    result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
-
+def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None, from_inter=False):
+    p = 2
+    z = _mask_it(z, _mv_grib)
     if nnear == 1:
         #for nnear=1 it doesn't care at this point if indexes come from intertable
         #                                     # or were just queried from the tree
         result = z[ixs.astype(int, copy=False)]
     elif from_inter:
+        # if nnear > 1:
         result = np.einsum('ij,ij->i', distances, z[ixs.astype(int, copy=False)])
+        # else:
+        #     result = distances * z[ixs.astype(int, copy=False)]
     else:
-        #nnear is 8
+        #no intertable found for inverse distance nnear = 8
         from sys import stdout
+        result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
         jinterpol = 0
         num_cells = result.size
         stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
@@ -29,15 +34,17 @@ def interpolate_invdist(z, _mv_efas, distances, ixs, nnear, p, wsum=None, from_i
             if jinterpol % 1000 == 0:
                 stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
                 stdout.flush()
+
             if dist[0] > 1e-10:
                 w = 1 / dist ** p
                 w /= np.sum(w)  # this must be saved into intertables..not distance!
-                wz = np.dot(w, z[ix.astype(int, copy=False)])  # weighted values (result)
+                wz = np.dot(w, z[ix.astype(int)])  # weighted values (result)
                 wsum[jinterpol] = w
-                result[jinterpol] = wz
             else:
                 wz = z[ix[0]]  # take exactly the point, weight = 1
-                result[jinterpol] = wz
+            # print (str(wz))
+            # print (str(z[ix[0]]))
+            result[jinterpol] = wz
             jinterpol += 1
         stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, 100))
         stdout.write('\n')
@@ -54,6 +61,16 @@ invdisttree.py: inverse-distance-weighted interpolation using KDTree
 __date__ = "2010-11-09 Nov"  # weights, doc
 
 #...............................................................................
+
+def to_3d(lons, lats, r):
+    lats = np.radians(lats)
+    lons = np.radians(lons)
+    z = ne.evaluate('r * sin(lats)')
+    x = ne.evaluate('r * cos(lons) * cos(lats)')
+    y = ne.evaluate('r * sin(lons) * cos(lats)')
+    return x, y, z
+
+
 class InverseDistance:
     """ inverse-distance-weighted interpolation using KDTree:
 invdisttree = Invdisttree( X, z )  -- data points, values
@@ -104,40 +121,36 @@ is exceedingly sensitive to distance and to h.
 
     """
 
-    def __init__(self, grib_locations, z, mvEfas, mvGrib, leafsize=10):
-        assert len(grib_locations) == len(z), "len(coordinates) %d != len(values) %d" % (len(grib_locations), len(z))
-        import gribpcraster.application.ExecutionContext as ex
+    def __init__(self, longrib, latgrib, radius, source_values, mvEfas, mvGrib):
+        self._radius = radius
+        x, y, zz = to_3d(longrib, latgrib, self._radius)
+        grib_locations = np.vstack((x.ravel(), y.ravel(), zz.ravel())).T
+        assert len(grib_locations) == len(source_values), "len(coordinates) %d != len(values) %d" % (len(grib_locations), len(source_values))
         self._logger = Logger('Interpolator', loggingLevel=ex.global_logger_level)
         self._mvEfas = mvEfas
         self._mvGrib = mvGrib
-        self.tree = KDTree(grib_locations, leafsize=leafsize)  # build the tree
-        self.z = z
+        self.tree = KDTree(grib_locations)  # build the tree
+        # self.tree = KDTree(grib_locations, leaf_size=10, p=2)
+        self.z = source_values
         self.wsum = None
         self.ixs = None
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def _invdst(self, eps, p, efas_locations, mode):
-        if mode == 'nearest':
-            self._nnear = 1
-        else:
-            self._nnear = 8
-        self._log('Querying tree of locations...')
-        self.distances, self.ixs = self.tree.query(efas_locations, k=self._nnear, eps=eps, p=p)
-        self.wsum = np.empty((len(self.distances),) +(self._nnear,))
-        result = interpolate_invdist(self.z, self._mvEfas, self.distances, self.ixs, self._nnear, p, self.wsum)
+    def _invdst(self, efas_locations, nnear):
+        self._log('Querying tree of locations...', 'INFO')
+        self.distances, self.ixs = self.tree.query(efas_locations, k=nnear)
+        self.wsum = np.empty((len(self.distances),) + (nnear,))
+        result = interpolate_invdist(self.z, self._mvGrib, self._mvEfas, self.distances, self.ixs, nnear, self.wsum)
         return result
 
-    def __call__(self, efas_locations, eps=0, p=1, mode='nearest'):
-
+    def __call__(self, lonefas, latefas, nnear=1):
+        x, y, z = to_3d(lonefas, latefas, self._radius)
+        efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
         qdim = efas_locations.ndim
         efasefas_locations_ma = _mask_it(efas_locations, self._mvEfas)
         if qdim == 1:
             efas_locations = np.array([efasefas_locations_ma])
-        result = self._invdst(eps, p, efas_locations, mode)
-        #we return dists and ix to save them
-        if self._nnear == 1:
-            return result, self.distances, self.ixs
-        else:
-            return result, self.wsum, self.ixs
+        result = self._invdst(efas_locations, nnear)
+        return result, self.wsum, self.ixs

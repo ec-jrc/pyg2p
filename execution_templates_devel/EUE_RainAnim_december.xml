@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    <Execution name = "eue_r06_RA" id="eue_r06_RA" >
+        <Parameter shortName="tp" applyConversion="tomm"/>
+        <!--Aggregation type="instantaneous" step="6" /-->
+		
+        <OutMaps namePrefix="pR06a" fmap="1"
+                 cloneMap="/dataset/maps/provaUngribDecember/dem0.map" unitTime="24">
+            <Interpolation mode="grib_invdist"
+                           latMap="/dataset/maps/provaUngribDecember/lat.map"
+                           lonMap="/dataset/maps/provaUngribDecember/lon.map" />
+        </OutMaps>
+    </Execution>
+ 

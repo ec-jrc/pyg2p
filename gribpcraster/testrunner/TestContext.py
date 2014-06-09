@@ -22,10 +22,18 @@ class Test(object):
         self.id = ''
         self.out_dir = ''
         self.pyg2p_command = ''
+        self.pyg2p_scipy_command = ''
         self.g2p_command = []  # can be two consecutive executions for multiresolution
 
     def __str__(self):
-        return self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- g2p comms ' + str(self.g2p_command) + '\n\t- out dir' + self.out_dir
+        if len(self.g2p_command)>0:
+
+            self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- g2p comms ' + str(self.g2p_command) + '\n\t- out dir' + self.out_dir
+        elif self.pyg2p_scipy_command:
+            self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- pyg2p scipy interpol ' + str(self.pyg2p_scipy_command) + '\n\t- out dir' + self.out_dir
+        else:
+            self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- out dir' + self.out_dir
+        return self_str
 
 class TestContext(object):
 
@@ -63,9 +71,12 @@ class TestContext(object):
             if type_ == 'g':
                 # grib2pcraster command
                 test_.g2p_command.append(self._params['g2p.exec'] + ' ' + splitted[1])
-            else:
+            elif type_ == 'p':
                 # pyg2p command
                 test_.pyg2p_command = splitted[1]
+            elif type_ == 'z':
+                # pyg2p command
+                test_.pyg2p_scipy_command = splitted[1]
 
     def get(self, param):
         return self._params[param] if param in self._params else None

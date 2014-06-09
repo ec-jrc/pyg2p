@@ -38,20 +38,17 @@ def _read_intertable(intertable_name, log=None):
 
 #returning numpy arrays: x, y of efas arrays and idx of grib values array and value
 
+def is_global_extent(lons, lats):
+    return np.max(lons) - np.min(lons) > 300 and np.max(lats) - np.min(lats) > 80
+
 class Interpolator:
     modes_nnear = {'nearest': 1, 'invdist': 8}
-    def __init__(self, execCtx):
+    def __init__(self, execCtx, radius=6367470.0):
         self._mode = execCtx.get('interpolation.mode')
         self._logger = Logger('Interpolator', loggingLevel=execCtx.get('logger.level'))
         self._intertable_dir = INTERTABLES_DIR if execCtx.get('interpolation.dir') is None else execCtx.get('interpolation.dir')
-        #setting additional interpolation parameters for some methods
-        # if self._mode == 'griddata':
-        #     self._method = execCtx.get('griddata.method')
         if self._mode in ['invdist', 'nearest']:
-            self._leafsize = execCtx.get(self._mode + '.leafsize')
-            self._p = execCtx.get(self._mode + '.p')
-            self._eps = execCtx.get(self._mode + '.eps')
-
+            self._radius = radius
         _latMap = execCtx.get('interpolation.latMap')
         _lonMap = execCtx.get('interpolation.lonMap')
         self._latLongBuffer = LatLongBuffer(_latMap, _lonMap)
@@ -62,6 +59,9 @@ class Interpolator:
         self._aux_gid = -1
         self._aux_2nd_res_gid = None
         self._aux_2nd_res_val = -1
+
+    def set_radius(self, r):
+        self._radius = r
 
     def setMissingValueGrib(self, mv):
         self._mvGrib = mv
@@ -75,24 +75,19 @@ class Interpolator:
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    # def interpolate_with_scipy(self, yp, xp, f, grid_id, log_intertable=False):
-    #     # if self._mode == 'griddata':
-    #     #     return self.interpolateGriddata(yp, xp, f)
-    #     # elif self._mode in ['invdist', 'nearest']:
-    #         return self.interpolate_kdtree(yp, xp, f, grid_id, log_intertable=log_intertable)
-
     def interpolate_scipy(self, latgrib, longrib, f, grid_id, log_intertable=False):
 
-        lonefas = lonefas_w_mv = self._latLongBuffer.getLong()
+        lonefas = self._latLongBuffer.getLong()
         latefas = self._latLongBuffer.getLat()
-        orig_shape = lonefas_w_mv.shape
-         #parameters
-        nnear = Interpolator.modes_nnear[self._mode]
+
         intertable_name = os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME + grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+TAB_NAME_SCIPY+self._mode+'.npy')
         log = self._log if log_intertable else None
+        orig_shape = lonefas.shape
+        #parameters
+        nnear = Interpolator.modes_nnear[self._mode]
         if fm.exists(intertable_name):
             dists, indexes = _read_intertable(intertable_name, log=log)
-            result = ID.interpolate_invdist(f, self._mvEfas, dists, indexes, nnear, self._p, from_inter=True)
+            result = ID.interpolate_invdist(f, self._mvGrib, self._mvEfas, dists, indexes, nnear, from_inter=True)
             grid_data = result.reshape(orig_shape)
         else:
             if latgrib is None and longrib is None:
@@ -100,13 +95,10 @@ class Interpolator:
                 raise ApplicationException.get_programmatic_exc(5000)
 
             self._log('Interpolating table not found. Will create file: ' + intertable_name, 'INFO')
-            data_locations = np.vstack((longrib.ravel(), latgrib.ravel())).T
-            efas_locations = np.vstack((lonefas.ravel(), latefas.ravel())).T
-            invdisttree = InverseDistance(data_locations, f.ravel(), self._mvEfas, self._mvGrib, leafsize=self._leafsize)
-            result, dists, indexes = invdisttree(efas_locations, eps=self._eps, p=self._p, mode=self._mode)
-            intertable = np.array([dists, indexes], dtype=np.float64)
+            invdisttree = InverseDistance(longrib, latgrib, self._radius, f.ravel(), self._mvEfas, self._mvGrib)
+            result, dists, indexes = invdisttree(lonefas, latefas, nnear)
             #saving interpolation lookup table
-            np.save(intertable_name, intertable)
+            np.save(intertable_name, np.array([dists, indexes], dtype=np.float64))
             #reshape to efas
             grid_data = result.reshape(orig_shape)
 
@@ -187,7 +179,7 @@ class Interpolator:
         result.fill(self._mvEfas)
         result = np.ma.masked_array(data=result, fill_value=self._mvEfas, copy=False)
         v = _mask_it(v, self._mvGrib)
-
+        existing_intertable = False
         log = self._log if log_intertable else None
         #check of gid is due to the recursive call
         if gid == -1 and (not os.path.exists(intertable_name) or not os.path.isfile(intertable_name)):
@@ -199,13 +191,12 @@ class Interpolator:
             else:
                 self.interpolateGribInvDist(self._aux_val, self._aux_gid, grid_id)
 
-        if os.path.exists(intertable_name) and os.path.isfile(intertable_name):
+        if fm.exists(intertable_name):
+            existing_intertable = True
             self._log('Interpolating with table ' + intertable_name)
             xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = _read_intertable(intertable_name, log=log)
             result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs1.astype(int, copy=False)] * coeffs1 + v[idxs2.astype(int, copy=False)] * coeffs2 + \
                                                      v[idxs3.astype(int, copy=False)] * coeffs3 + v[idxs4.astype(int, copy=False)] * coeffs4
-
-            return result
 
         else:
             #assert...
@@ -220,7 +211,7 @@ class Interpolator:
             #saving interpolation lookup table
             np.save(intertable_name, intertable)
 
-        return result
+        return result, existing_intertable
 
     #aux gid for grib interlookup creation
     def setAuxToCreateLookup(self, aux_g, aux_v, aux_g2, aux_v2):

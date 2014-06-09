@@ -31,9 +31,7 @@ class Corrector(object):
         self._dem_missing_value, self._dem_values = _readDem(demMap)
         self._formula = executionContext.get('correction.formula')
         self._gem_formula = executionContext.get('correction.gemFormula')
-        # self._f = np.vectorize(eval('lambda p,dem,gem,mv:' + self._formula + ' if dem!=mv and p!=mv and gem!=mv else mv'))
         self._numexpr_eval = 'where((dem!=mv)&(p!=mv)&(gem!=mv),' + self._formula + ', mv)'
-        # self._fgem = np.vectorize(eval('lambda z,mv:'+self._gem_formula+' if z!=mv else mv'))
         self._numexpr_eval_gem = 'where(z!=mv,' + self._gem_formula + ', mv)'
         self._log('Reading dem:%s, geopotential:%s for correction (using: %s)'% (demMap,geo_file_,self._formula))
         self._log('Reading dem values %s)' % geo_file_)
@@ -46,9 +44,8 @@ class Corrector(object):
     def correct(self, values):
 
         self._log('Correcting using %s, ignoring mv = %.2e)' % (self._formula, self._dem_missing_value))
-        mvarray = np.empty(self._dem_values.shape)
-        # mvarray[:] = self._dem_missing_value
-        mvarray.fill(self._dem_missing_value)
+        # mvarray = np.empty(self._dem_values.shape)
+        # mvarray.fill(self._dem_missing_value)
         with np.errstate(over='ignore'):
             # variables below are used by numexpr evaluation namespace
             dem = self._dem_values
@@ -76,7 +73,6 @@ class Corrector(object):
         mv = missing
         z = values
         values_corrected = ne.evaluate(self._numexpr_eval_gem)
-        # print str(values_corrected)
 
         if is_grib_interpolation:
             values_resampled, intertable_was_used = interpolator.interpolate_grib(values_corrected, -1, messages.getGridId())

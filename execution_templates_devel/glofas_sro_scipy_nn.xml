@@ -20,7 +20,7 @@ grib2pcraster
 
         <OutMaps namePrefix="psro" fmap="1"
                  cloneMap="/dataset/maps/global/dem.map" unitTime="24">
-            <Interpolation mode="griddata"
+            <Interpolation mode="nearest"
                            latMap="/dataset/maps/global/lat.map"
                            lonMap="/dataset/maps/global/lon.map" />
         </OutMaps>

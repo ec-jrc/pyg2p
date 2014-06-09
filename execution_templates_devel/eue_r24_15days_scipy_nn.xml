@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    <Execution name = "eue_r24_15d" id="xx" >
+        <Parameter shortName="tp" applyConversion="tomm" tstart="0" tend="360"/>
+        <Aggregation type="accumulation" step="24" />
+
+        <OutMaps namePrefix="pR24a" fmap="1"
+                 cloneMap="/dataset/15dayUngrib/dem05.map" unitTime="24">
+            <Interpolation mode="nearest"
+                           latMap="/dataset/15dayUngrib/latitude_5km_resampled.map"
+                           lonMap="/dataset/15dayUngrib/longitude_5km_resampled.map" />
+        </OutMaps>
+    </Execution>

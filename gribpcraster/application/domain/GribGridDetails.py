@@ -5,15 +5,13 @@ import gribpcraster.application.ExecutionContext as ex
 
 def _getShape(gid, grid_type_, numValues):
     nx = ny = 0
-    if grid_type_ in ['regular_gg','regular_ll','rotated_ll','rotated_gg']:  # regular lat/lon grid
+    if grid_type_ in ('regular_gg','regular_ll','rotated_ll','rotated_gg'):  # regular lat/lon grid
         nx = GRIB.grib_get(gid, 'Ni')
         ny = GRIB.grib_get(gid, 'Nj')
-    elif grid_type_ in ['reduced_gg']:  # reduced global gaussian grid
+    elif grid_type_ in ('reduced_gg', 'reduced_ll'):  # reduced global gaussian grid
         ny = GRIB.grib_get(gid, 'Nj')
         nx = numValues/ny
-    elif grid_type_ in ['reduced_ll']:  # reduced global gaussian grid
-        ny = GRIB.grib_get(gid, 'Nj')
-        nx = numValues/ny
+
     shape = (nx, ny)
     return shape
 
@@ -25,10 +23,9 @@ def _buildId(gid, grid_type):
         ni=GRIB.grib_get(gid, 'Ni')
     if GRIB.grib_is_missing(gid,'Nj'):
         nj='MISSING'
-    else :
-        nj=GRIB.grib_get(gid, 'Nj')
+    else:
+        nj = GRIB.grib_get(gid, 'Nj')
     num_of_values = GRIB.grib_get(gid, 'numberOfValues')
-    #('%.2f' % (value,)).rstrip('0').rstrip('.')
     long_first = ('%.4f' % (GRIB.grib_get_double(gid, 'longitudeOfFirstGridPointInDegrees'),)).rstrip('0').rstrip('.')
     long_last = ('%.4f' % (GRIB.grib_get_double(gid, 'longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
     return long_first+'$'+long_last+'$'+str(ni)+'$'+str(nj)+'$'+str(num_of_values)+'$'+str(grid_type)
@@ -52,13 +49,14 @@ class GribGridDetails(object):
         self._missing_value = GRIB.grib_get(gid, 'missingValue')
         self._shape = _getShape(gid, self._grid_type, GRIB.grib_get(gid, 'numberOfValues'))
         #lazy computation
-        self._lats=None
+        self._lats = None
         self._longs = None
 
         self._grid_id = _buildId(gid,self._grid_type)
         self._points_meridian = GRIB.grib_get(gid,'Nj')
 
         self._grid_details_2nd = None
+        self._change_resolution_step = None
 
     def set_2nd_resolution(self, grid2nd, step_range_):
         self._log('Grib resolution changes at key '+str(step_range_))
@@ -79,8 +77,95 @@ class GribGridDetails(object):
 #method to use with interpolation methods different from grib_nearest and grib_invdist
 #in this case, lats/lons of reduced grids will be expanded to regular ones.
 #  Values will be expanded to regular grids as well (not implemented yet)
+
+    # def _latlons(self, gid):
+    #     if self._grid_type in ('regular_gg','regular_ll'): # regular lat/lon grid
+    #         nx = GRIB.grib_get(gid,'Ni')
+    #         ny = GRIB.grib_get(gid,'Nj')
+    #         lon1 = GRIB.grib_get(gid,'longitudeOfFirstGridPointInDegrees')
+    #         lon2 = GRIB.grib_get(gid,'longitudeOfLastGridPointInDegrees')
+    #
+    #         if lon1 >= 0 and lon2 < 0 and self.iDirectionIncrement > 0:
+    #             lon2 = 360+lon2
+    #         if lon1 >= 0 and lon2 < lon1 and self.iDirectionIncrement > 0:
+    #             lon1 = lon1-360
+    #         lat1 = self['latitudeOfFirstGridPointInDegrees']
+    #         lat2 = self['latitudeOfLastGridPointInDegrees']
+    #     # workaround for grib_api bug with complex packing.
+    #     # (distinctLongitudes, distinctLatitudes throws error,
+    #     #  so use np.linspace to define values)
+        #     if self.packingType.startswith('grid_complex'):
+        #         # this is not strictly correct for gaussian grids,
+        #         # but the error is very small.
+        #         lats = np.linspace(lat1,lat2,ny)
+        #         lons = np.linspace(lon1,lon2,nx)
+        #     else:
+        #         lats = self['distinctLatitudes']
+        #         if lat2 < lat1 and lats[-1] > lats[0]: lats = lats[::-1]
+        #         lons = self['distinctLongitudes']
+        #         # don't trust distinctLongitudes
+        #         # when longitudeOfLastGridPointInDegrees < 0
+        #         # (bug in grib_api 1.9.16)
+        #         if lon2 < 0:
+        #             lons = np.linspace(lon1,lon2,nx)
+        #             lons,lats = np.meshgrid(lons,lats)
+    #
+    #     elif self._grid_type == 'reduced_gg': # reduced global gaussian grid
+    #
+    #         lat1 = self['latitudeOfFirstGridPointInDegrees']
+    #         lat2 = self['latitudeOfLastGridPointInDegrees']
+    #         lats = self['distinctLatitudes']
+    #         if lat2 < lat1 and lats[-1] > lats[0]: lats = lats[::-1]
+    #         ny = self['Nj']
+    #         nx = 2*ny
+    #         lon1 = self['longitudeOfFirstGridPointInDegrees']
+    #         lon2 = self['longitudeOfLastGridPointInDegrees']
+    #         lons = np.linspace(lon1,lon2,nx)
+    #         lons,lats = np.meshgrid(lons,lats)
+    #
+    #     elif self._grid_type == 'reduced_ll': # reduced lat/lon grid
+    #
+    #         ny = self['Nj']
+    #         nx = 2*ny
+    #         lat1 = self['latitudeOfFirstGridPointInDegrees']
+    #         lat2 = self['latitudeOfLastGridPointInDegrees']
+    #         lon1 = self['longitudeOfFirstGridPointInDegrees']
+    #         lon2 = self['longitudeOfLastGridPointInDegrees']
+    #         lons = np.linspace(lon1,lon2,nx)
+    #         lats = np.linspace(lat1,lat2,ny)
+    #         lons,lats = np.meshgrid(lons,lats)
+
+
+
     def _computeLatLongs(self, gid):
 
+        # if self._grid_type == 'reduced_gg': # reduced global gaussian grid
+        #
+        #     lat1 = GRIB.grib_get(gid, 'latitudeOfFirstGridPointInDegrees')
+        #     lat2 = GRIB.grib_get(gid, 'latitudeOfLastGridPointInDegrees')
+        #     lon1 = GRIB.grib_get(gid, 'longitudeOfFirstGridPointInDegrees')
+        #     lon2 = GRIB.grib_get(gid,'longitudeOfLastGridPointInDegrees')
+        #     ny = GRIB.grib_get(gid, 'Nj')
+        #     nx = 2*ny
+        #     lats = GRIB.grib_get_double_array(gid,'latitudes')
+        #     lons = GRIB.grib_get_double_array(gid,'longitudes')
+        #     if lat2 < 0:
+        #         # raw_input('l1 '+str(lat1))
+        #         # raw_input('l2 '+str(lat2))
+        #         # raw_input('l1 '+str(lats[0]))
+        #         # raw_input('l2 '+str(lats[-1]))
+        #         # lats = lats[::-1]
+        #         # raw_input('l1 '+str(lats[0]))
+        #         # raw_input('l2 '+str(lats[-1]))
+        #         lats = lats + lats[-1]
+        #         # raw_input('l1 '+str(lats[0]))
+        #         # raw_input('l2 '+str(lats[-1]))
+        #     # lonsf = np.linspace(lon1, lon2, nx)
+        #     latsf = lats
+        #     lonsf = lons
+        #     # lonsf,latsf = np.meshgrid(lonsf,latsf)
+        #
+        # else:
         iterid = GRIB.grib_iterator_new(gid, 0)
         lats = []
         lons = []
@@ -89,16 +174,22 @@ class GribGridDetails(object):
             result = GRIB.grib_iterator_next(iterid)
             if not result:
                 break
-            [lat, lon, value] = result
+            (lat, lon, value) = result
             lats.append(lat)
             lons.append(lon)
         GRIB.grib_iterator_delete(iterid)
+
+        # latsd = GRIB.grib_get_double_array(gid, 'distinctLatitudes')
+        # if l2 < l1:
+        #     raw_input(str(latsd[-1])+ ' - ' +str(latsd[0])+ '-'+str(latsd[-1] > latsd[0]))
+        #     lats = lats[::-1]
+
         latsf = np.asarray(lats)
         lonsf = np.asarray(lons)
-
-        lats=lons=None
+        lats = lons = None
         return latsf, lonsf
 
+    #this method is called only when interpolation is a scipy method
     def getLatLons(self):
         if self._lats is None:
             self._lats, self._longs = self._computeLatLongs(self._gid)

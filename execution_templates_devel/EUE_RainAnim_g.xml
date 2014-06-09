@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    <Execution name = "eue_r06_RA" id="eue_r06_RA" >
+        <Parameter shortName="tp" applyConversion="tomm" />
+        <!--Aggregation type="average" step="6" /-->
+        <OutMaps namePrefix="gR06" fmap="6"
+                 cloneMap="/dataset/maps/UKMO/dem0.map" unitTime="24" ext="6">
+            <Interpolation mode="grib_invdist"
+                           latMap="/dataset/maps/UKMO/lat.map"
+                           lonMap="/dataset/maps/UKMO/lon.map" />
+        </OutMaps>
+    </Execution>
+ 

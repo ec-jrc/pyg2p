@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <!--
+    
+        -->
+<!--correctionFormula="p+(gem/9.81-dem)*0.0065"-->
+    <Execution name = "ukmo_t24" id="ukmo_t24" >
+        <Parameter shortName="2t" applyConversion="k2c"
+                gem="(z/9.81)*0.0065"
+                correctionFormula="p+gem-dem*0.0065"
+                demMap="/dataset/maps/europe5km/dem.map"
+                dataTime="1200"
+/>
+        <Aggregation type="average" step="24" />
+
+        <OutMaps namePrefix="gT24a" fmap="1" ext="1"
+                 cloneMap="/dataset/maps/europe5km/dem.map" unitTime="24">
+            <Interpolation mode="grib_nearest"
+                           latMap="/dataset/maps/europe5km/lat.map"
+                           lonMap="/dataset/maps/europe5km/long.map" />
+        </OutMaps>
+    </Execution>

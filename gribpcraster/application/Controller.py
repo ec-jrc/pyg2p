@@ -39,9 +39,9 @@ class Controller:
 
         self._reader = GRIBReader(self._ctx.get('input.file'),
                                   w_perturb=self._ctx.has_perturbation_number())
-        input_step, input_step2, change_in_step_at, type_of_param, grib_start, grib_end, mvGrib = self._reader.getAggregationInfo(
+        radius, input_step, input_step2, change_in_step_at, type_of_param, grib_start, grib_end, mvGrib = self._reader.get_grib_info(
             self._ctx.create_select_cmd_for_aggregation_attrs())
-        self._interpolator = Interpolator(self._ctx)
+        self._interpolator = Interpolator(self._ctx, radius=radius)
         self._mvEfas = self._interpolator.getMissingValueEfas()
         self._interpolator.setMissingValueGrib(mvGrib)
         self._pcraster_writer = PCRasterWriter(self._ctx.get('outMaps.clone'))
@@ -92,8 +92,7 @@ class Controller:
                 self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()), 'DEBUG')
             self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep), 'DEBUG')
         if self._ctx.interpolate_with_grib():
-            v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable,
-                                                                         second_spatial_resolution=second_spatial_resolution)
+            v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
             if (self._reader is not None or self._reader2 is not None) and intertable_was_used:
                 # we don't need GRIB messages in memory any longer, at this point
                 if self._reader is not None and not second_spatial_resolution:
@@ -105,7 +104,6 @@ class Controller:
         else:
             #interpolating swath data with scipy griddata or with an in house inverse distance code
             v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
-
         if self._ctx.get('logging.level') == 'DEBUG':
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(),
