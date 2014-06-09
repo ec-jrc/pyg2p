@@ -166,7 +166,7 @@ class TestRunner(object):
         print YELLOW + BOLD + '{} tests  executed in {}'.format(
             str(num_tests), str(datetime.timedelta(seconds=elapsed_test))) + ENDC
         print YELLOW + BOLD + 'successful {}, problematic: {}, failed: {}'.format(len(results[0]), len(results[2]), len(results[1]))
-        print FAIL + BOLD + 'Failed tests: {}' + ENDC.format(str(results[1])) + ENDC
+        print FAIL + BOLD + 'Failed tests: {}'.format(str(results[1])) + ENDC
         print WARNING + BOLD + 'Problematic tests: {}'.format(str(results[2])) + ENDC
         print OKGREEN + BOLD + 'Successful tests: {}'.format(str(results[0])) + ENDC
         print '\n' + YELLOW + BOLD + '=================== END ======================' + ENDC + '\n'
