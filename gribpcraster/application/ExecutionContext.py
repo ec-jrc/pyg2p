@@ -35,13 +35,10 @@ class ExecutionContext:
                 #read config files and define execuition parameters (set defaults also)
                 self._define_exec_params()
         except ApplicationException, err:
-            raw_input(str(err))
             raise err
         except ValueError, err:
-            raw_input(str(err))
             raise ApplicationException(err, None, str(err))
         except Exception, err:
-            raw_input(str(err))
             raise ApplicationException(err, None, str(err))
 
         #check numbers, existing dirs and files, supported options, semantics etc.
@@ -73,7 +70,6 @@ class ExecutionContext:
                                                                          'fmap=', 'ext='])
         except getopt.GetoptError, err:
             raise ApplicationException(err, None, str(err))
-
 
         self._params['input.two_resolution'] = False
         self._params['logger.level'] = 'INFO'
@@ -167,7 +163,7 @@ class ExecutionContext:
             conversion_from_xml = self._read_conversion(parameter_from_xml, self._params['parameter.conversionId'])
             self._params['parameter.conversionUnit'] = conversion_from_xml['unit']
             self._params['parameter.conversionFunction'] = conversion_from_xml['function']
-            self._params['parameter.cutoffnegative'] = Fsc.toBoolean(conversion_from_xml['cutOffNegative'])
+            self._params['parameter.cutoffnegative'] = Fsc.to_boolean(conversion_from_xml['cutOffNegative'])
 
         if u.Execution.Parameter['correctionFormula'] and u.Execution.Parameter['gem'] and u.Execution.Parameter['demMap']:
             self._params['execution.doCorrection'] = True

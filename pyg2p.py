@@ -1,18 +1,74 @@
 #!/usr/bin/env python
-import time
-import datetime
 
 __author__ = "Nappo Domenico"
-__date__ = "$May 25, 2014 15:00$"
-__version__ = "1.2.9"
+__date__ = "$Jun 10, 2014 19:00$"
+__version__ = "1.3-dev"
 
+import sys
+import collections
 from gribpcraster.exc import ApplicationException as appexcmodule
 from gribpcraster.application.ExecutionContext import ExecutionContext
 import gribpcraster.application.ExecutionContext as ex
-from util.logger.Logger import Logger
 from gribpcraster.application.Controller import Controller
+from util.conversion.FromStringConversion import to_argv, to_argdict
 
-import sys
+
+
+def command(*args):
+    return Command(*args)
+
+
+def run_command(cmd):
+    argv = to_argv(str(cmd))
+    return main(argv[1:])
+
+
+class Command(object):
+
+    def __init__(self, cmd_string=None):
+        self._d = {} if not cmd_string else to_argdict(cmd_string)
+
+    def with_cmdpath(self, param):
+        self._d['-c'] = str(param)
+        return self
+
+    def with_inputfile(self, param):
+        self._d['-i'] = str(param)
+        return self
+
+    def with_ext(self, param):
+        self._d['-x'] = str(param)
+        return self
+
+    def with_log_level(self, param):
+        self._d['-l'] = str(param)
+        return self
+
+    def with_eps(self, param):
+        self._d['-m'] = str(param)
+        return self
+
+    def with_tend(self, param):
+        self._d['-e'] = str(param)
+        return self
+
+    def with_tstart(self, param):
+        self._d['-s'] = str(param)
+        return self
+
+    def with_fmap(self, param):
+        self._d['-f'] = str(param)
+        return self
+
+    def with_outdir(self, param):
+        self._d['-o'] = str(param)
+        return self
+
+    def __str__(self):
+        cmd = 'pyg2p.py '
+        self._d = collections.OrderedDict(sorted(self._d.items(), key=lambda k: k[0]))
+        args = ''.join(['%s %s ' % (key, value) for (key, value) in self._d.items()]).strip()
+        return cmd + args
 
 
 def addGeo(geopotential_file):
@@ -26,11 +82,12 @@ def runTests(test_xml_file):
     runner.run()
 
 def main(*args):
-    if __name__ == "__main__":
+    if __name__ in ("__main__", "pyg2p"):
         args = args[0]
     try:
         #read configuration (commands.xml, parameters.xml, loggers, geopotentials.xml if there is correction)
         execCtx = ExecutionContext(args)
+
         if execCtx.user_wants_help():
             usage()
             return 0
@@ -69,7 +126,7 @@ def main(*args):
 
 
 def _log(message, level='DEBUG'):
-        ex.global_main_logger.log(message, level)
+    ex.global_main_logger.log(message, level)
 
 
 def usage():
@@ -77,9 +134,9 @@ def usage():
     # accepted input arguments, etc
 
     print '\n\npyg2p - a program to convert from GRIB (1 & 2) to PCRaster \n'
-    print 'Authors: ',  __author__
-    print 'Version: ',  __version__
-    print 'Date: ',     __date__
+    print 'Authors: {}'.format(__author__)
+    print 'Version: {}'.format(__version__)
+    print 'Date: {}'.format(__date__)
 
     print """
     Execute the grib to pcraster conversion using parameters from the input xml configuration
@@ -137,3 +194,4 @@ def usage():
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
+

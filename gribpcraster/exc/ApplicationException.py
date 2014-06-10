@@ -1,5 +1,6 @@
 NO_MESSAGES = 3000
 
+
 class ApplicationException(Exception):
 
     #TODO: convert key from number to explicative string (e.g. 1000 --> 'file.notfound')
@@ -46,7 +47,7 @@ class ApplicationException(Exception):
         self.__innerException = inner
         self._code = code
         if type(error).__name__ == 'str':
-            self.message = 'Application Error: '+error
+            self.message = 'Application Error: ' + error
 
     def __str__(self):
         return self.message
