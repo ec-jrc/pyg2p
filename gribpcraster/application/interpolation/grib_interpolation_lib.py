@@ -21,8 +21,8 @@ def _grib_nearest(gid, latEfas, lonEfas, mv, result):
             if i % 500 == 0:
                 stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i, num_cells,outs,i*100./num_cells))
                 stdout.flush()
+
             try:
-                #if lonEfas[x,y]<0: lonEfas[x,y]=lonEfas[x,y]+360
                 n_nearest = GRIB.grib_find_nearest(gid, np.asscalar(latEfas[x, y]), np.asscalar(lonEfas[x, y]))
                 xs.append(x)
                 ys.append(y)
@@ -30,9 +30,7 @@ def _grib_nearest(gid, latEfas, lonEfas, mv, result):
                 result[x, y] = n_nearest[0]['value']
             except GRIB.GribInternalError:
                 outs += 1
-                # print str(err)
-                # stdout.write('\n\nout of grid!: lat: %.4f - lon: %.4f' % (latEfas[x,y],lonEfas[x,y]))
-                pass
+
     stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
     stdout.write('\n')
     stdout.flush()

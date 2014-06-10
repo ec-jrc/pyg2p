@@ -137,11 +137,6 @@ class GRIBReader(object):
             short_name = GRIB.grib_get(self._selected_grbs[0], 'shortName')
             type_of_level = GRIB.grib_get(self._selected_grbs[0], 'levelType')
 
-            # if len(self._selected_grbs) > 1:
-            #
-            #     if unit != GRIB.grib_get(self._selected_grbs[1], 'units'):
-            #         unit = GRIB.grib_get(self._selected_grbs[1], 'units')
-
             missing_value = GRIB.grib_get(self._selected_grbs[0], 'missingValue')
             allValues = {}
             allValues2ndRes = {}
