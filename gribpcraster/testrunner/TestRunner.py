@@ -112,6 +112,7 @@ class TestRunner(object):
             if test_.pyg2p_scipy_command:
                 print 'Running pyg2p with scipy interpolation...'
                 a = time.time()
+
                 t = (pyg2p.main, to_argv(test_.pyg2p_scipy_command.strip()))
                 mem_usage = memory_usage(t)  # here it runs
                 elapsed_pyg2p_scipy = time.time() - a

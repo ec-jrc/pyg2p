@@ -80,11 +80,12 @@ class Logger:
             logConfigItem = self._config.getLoggerConfiguration(name)
             if logConfigItem and len(self._logger.handlers) == 0:
 
-                import gribpcraster.application.ExecutionContext as execCtx
+
                 logger_level_console = loggingLevel if loggingLevel is not None else logConfigItem.level
 
                 formatting = logConfigItem.formatting
                 if self._config.file_logging_enabled:
+                    import gribpcraster.application.ExecutionContext as execCtx
                     loggerFileName = os.path.join(execCtx.global_out_log_dir, logConfigItem.filename)
                     loggerFileNameConsole = os.path.join(execCtx.global_out_log_dir, PYG_P_OUT_LOG)
                     loggerDir = os.path.dirname(loggerFileName)

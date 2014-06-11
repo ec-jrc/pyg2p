@@ -137,6 +137,12 @@ class Controller:
         change_res_step, commandArgs, end_step, input_step, input_step2, manipulator, manip_2nd_time_res, mvGrib, start_step2 = self.init_execution()
         grid_id, messages, type_of_param = self._read_messages(commandArgs)
 
+        if self._ctx.is_2_input_files():
+            #two files as input
+            self.read_2nd_res_messages(commandArgs, messages)
+            #inject aux attributes for interpolation into main reader, to use later
+            self._reader.set_2nd_aux(self._reader2.get_main_aux())
+
         #Grib lats/lons are used for interpolation methods griddata, nearest, invdist.
         #Not for grib_nearest and grib_invdist
         if not self._ctx.interpolate_with_grib():
@@ -148,12 +154,6 @@ class Controller:
             self._interpolator.setAuxToCreateLookup(aux_g, aux_v, aux_g2, aux_v2)
             lats = None
             longs = None
-
-        if self._ctx.is_2_input_files():
-            #two files as input
-            self.read_2nd_res_messages(commandArgs, messages)
-            #inject aux attributes for interpolation into main reader, to use later
-            self._reader.set_2nd_aux(self._reader2.get_main_aux())
 
         if self._ctx.must_do_conversion():
             converter = Converter(func=self._ctx.get('parameter.conversionFunction'),
@@ -239,6 +239,3 @@ class Controller:
         filename = filename[0:8] + '.' + filename[8:11]
         filename = self._ctx.get('outMaps.outDir') + filename
         return filename
-
-    # def _getFirstNumber(self):
-    #     return int(self._ctx.get('outMaps.fmap')) if self._ctx.get('outMaps.fmap') else 0

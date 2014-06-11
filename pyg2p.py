@@ -27,6 +27,8 @@ class Command(object):
 
     def __init__(self, cmd_string=None):
         self._d = {} if not cmd_string else to_argdict(cmd_string)
+        if not '-l' in self._d.keys():
+            self._d['-l'] = 'INFO'
 
     def with_cmdpath(self, param):
         self._d['-c'] = str(param)
@@ -82,22 +84,22 @@ def runTests(test_xml_file):
     runner.run()
 
 def main(*args):
-    if __name__ in ("__main__", "pyg2p"):
+    if __name__ in ("__main__", "pyg2p") and isinstance(args[0], list):
         args = args[0]
     try:
         #read configuration (commands.xml, parameters.xml, loggers, geopotentials.xml if there is correction)
-        execCtx = ExecutionContext(args)
+        exc_ctx = ExecutionContext(args)
 
-        if execCtx.user_wants_help():
+        if exc_ctx.user_wants_help():
             usage()
             return 0
-        elif execCtx.user_wants_to_add_geopotential():
-            addGeo(execCtx.get('geopotential'))
+        elif exc_ctx.user_wants_to_add_geopotential():
+            addGeo(exc_ctx.get('geopotential'))
             return 0
-        elif execCtx.user_wants_to_test():
+        elif exc_ctx.user_wants_to_test():
             try:
                 import memory_profiler
-                runTests(execCtx.get('test.xml'))
+                runTests(exc_ctx.get('test.xml'))
                 return 0
             except ImportError:
                 print 'memory_profiler module is missing'
@@ -105,19 +107,18 @@ def main(*args):
                 return 0
 
     except appexcmodule.ApplicationException, err:
-        _log('\nError in reading configuration >>>>>>>> {}'.format(str(err)) + '\n\n', 'ERROR')
+        _log('\nConfiguration Error: {}'.format(str(err)) + '\n\n', 'ERROR')
         ex.global_main_logger.close()
         return 1
     _controller = None
     try:
-        _controller = Controller(execCtx)
+        _controller = Controller(exc_ctx)
         _controller.log_execution_context()
         _controller.execute()
     except appexcmodule.ApplicationException, err:
+        _log('\n\nError: {}'.format(str(err)), 'ERROR')
         if err.get_code() == appexcmodule.NO_MESSAGES:
-            _log('\n\nError: >>>>>>>>>>>>>>> '+  str(err), 'ERROR')
             return 0
-        _log('\n\nError: >>>>>>>>>>>>>>> '+  str(err) + '\n\n', 'ERROR')
         return 1
     finally:
         _controller.close()

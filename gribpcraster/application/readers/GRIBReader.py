@@ -125,7 +125,6 @@ class GRIBReader(object):
         if len(self._selected_grbs) > 0:
             self._gid_main_res = self._selected_grbs[0]
             grid = GribGridDetails(self._selected_grbs[0])
-
             #some cumulated messages come with the message at step=0 as instant, to permit aggregation
                 #cumulated rainfall rates could have the step zero instant message as kg/m^2, instead of kg/(m^2*s)
             if len(self._selected_grbs) > 1:
@@ -147,12 +146,12 @@ class GRIBReader(object):
                 start_step = GRIB.grib_get(g, 'startStep')
                 end_step = GRIB.grib_get(g, 'endStep')
                 points_meridian = GRIB.grib_get(g, 'Nj')
-
                 if str(start_step) + '-' + str(end_step) == self._change_step_at:
                     #second time resolution
                     input_step = self._step_grib2
 
                 key = Key(start_step, end_step, points_meridian, input_step)
+
                 if points_meridian != grid.getNumberOfPointsAlongMeridian() and grid.get_2nd_resolution() is None:
                     #found second resolution messages
                     grid2 = GribGridDetails(g)

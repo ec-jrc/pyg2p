@@ -3,6 +3,11 @@ import os.path as path
 import gzip
 import shutil as sh
 
+
+def delete_file(param):
+    if exists(param):
+        os.unlink(param)
+
 def delete_files_from_dir(dir_path, prefix_=''):
 # Gather directory contents
     contents = [os.path.join(dir_path, i) for i in os.listdir(dir_path)]
@@ -175,3 +180,5 @@ class FileManager:
             line+=str(t[lengthOfTuple-1])+endLine
             linesOut+=line
         return linesOut
+
+

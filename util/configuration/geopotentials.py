@@ -4,8 +4,8 @@ import os
 
 __author__ = 'dominik'
 dir_ = os.path.dirname(__file__)
-CONFIG_FILE = os.path.join(dir_, '../../configuration/geopotentials.xml')
-DIR = os.path.join(dir_, '../../configuration/geopotentials/')
+CONFIG_FILE = os.path.normpath(os.path.join(dir_, '../../configuration/geopotentials.xml'))
+DIR = os.path.normpath(os.path.join(dir_, '../../configuration/geopotentials')) + os.sep
 SHORT_NAMES = ['fis', 'z']
 ADD_STRING = '<geopotential id=\"%(id)s\" name=\"%(name)s\"/>'
 
@@ -35,7 +35,22 @@ def add(geop_file, log):
     import xml.etree.ElementTree as ET
     tree = ET.parse(CONFIG_FILE)
     root = tree.getroot()
-    ET.SubElement(root,'geopotential', params)
+    ET.SubElement(root, 'geopotential', params)
+    ET.ElementTree(root).write(CONFIG_FILE, encoding='utf-8')
+    #pretty print...
+    from xml.dom import minidom
+    pretty = '\n'.join([line for line in minidom.parse(open(CONFIG_FILE)).toprettyxml(indent=' '*2).split('\n') if line.strip()])
+    el = ET.fromstring(pretty)
+    ET.ElementTree(el).write(CONFIG_FILE, encoding='utf-8')
+
+
+def delete_conf(param):
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(CONFIG_FILE)
+    root = tree.getroot()
+    elems = tree.findall('.//geopotential[@name="' + param + '"]')
+    for el in elems:
+        root.remove(el)
     ET.ElementTree(root).write(CONFIG_FILE, encoding='utf-8')
     #pretty print...
     from xml.dom import minidom

@@ -1,28 +1,31 @@
+
 __author__ = 'dominik'
+import os
 import unittest
+import untangle
 import pyg2p
+import util.file.FileManager as fm
+from util.configuration import geopotentials as gp
 
 
 class TestAPI(unittest.TestCase):
 
     def setUp(self):
         self._command = pyg2p.command()
-        self._command2 = pyg2p.command('-l ERROR -c /pyg2p_git/execution_templates_devel/eue_t24.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueT24 -m 10')
+        args_string = '-l ERROR -c /pyg2p_git/execution_templates_devel/eue_t24.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/eueT24 -m 10'
+        self._command2 = pyg2p.command(args_string)
+        gp.delete_conf('T3999.gph.grb')
+        fm.delete_file(os.path.join(gp.DIR, 'T3999.gph.grb'))
 
     def test_API_init(self):
 
         self.assertIsInstance(self._command, pyg2p.Command)
         command = self._command.with_cmdpath('a.xml')
-        self.assertDictEqual(command._d, {'-c': 'a.xml'})
-        command = command.with_inputfile('0.grb')
-        self.assertDictEqual(command._d, {'-c': 'a.xml', '-i': '0.grb'})
-        command = command.with_outdir('/dataout/test')
-        command = command.with_tstart('6')
-        command = command.with_tend('240')
-        command = command.with_eps('10')
-        command = command.with_fmap('1')
-        command = command.with_ext('4')
-        command = command.with_log_level('ERROR')
+        self.assertDictEqual(command._d, {'-c': 'a.xml', '-l': 'INFO'})
+        command.with_inputfile('0.grb')
+        self.assertDictEqual(command._d, {'-c': 'a.xml', '-i': '0.grb', '-l': 'INFO'})
+        command.with_outdir('/dataout/test').with_tstart('6').with_tend('240').with_eps('10').with_fmap('1').with_ext('4')
+        command.with_log_level('ERROR')
         self.assertDictEqual(command._d,
                              {'-c': 'a.xml', '-i': '0.grb', '-o': '/dataout/test',
                               '-s': '6', '-e': '240', '-m': '10', '-f': '1', '-x': '4', '-l': 'ERROR'})
@@ -42,8 +45,15 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(ret, 0)
 
     def test_add_geopotential(self):
-        #pyg2p.addGeo()
-        #TODO
-        raise NotImplementedError()
+
+        u1 = untangle.parse(gp.CONFIG_FILE)
+        g_xml_element = [x for x in u1.geopotentials.geopotential if x['name'] == 'T3999.gph.grb']
+        self.assertListEqual(g_xml_element, [])
+
+        pyg2p.addGeo('/dataset/maps/fredrik/T3999.gph.grb')
+
+        u2 = untangle.parse(gp.CONFIG_FILE)
+        g_xml_element = [x for x in u2.geopotentials.geopotential if x['name'] == 'T3999.gph.grb']
+        self.assertEqual(len(g_xml_element), 1)
 
 

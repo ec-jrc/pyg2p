@@ -3,6 +3,10 @@ CHANGE LOG
 
 v 1.3
 -----
+* **048** Improvement (major)
+
+   Added a small API to import and use pyg2p from python scripts instead of command line
+
 
 * **047** Improvement (major)
 

@@ -10,12 +10,12 @@ import util.file.FileManager as Fm
 import util.conversion.FromStringConversion as Fsc
 import time
 
-#global_out_log_dir = './logs/'
+# global global_main_logger
+global_main_logger = Logger('application', loggingLevel='INFO')
+global_out_log_dir = './'
+global_logger_level = 'INFO'
+
 PARAMETERS_XML = 'configuration/parameters.xml'
-# KNOWN_INTERP_MODES = {'nearest': [],
-#                       'invdist': [],
-#                       'grib_invdist': [],
-#                       'grib_nearest': []}
 DEFAULT_VALUES = {'interpolation.mode': 'grib_nearest',
                   'outMaps.unitTime': '24'}
 
@@ -116,7 +116,6 @@ class ExecutionContext:
 
         global global_out_log_dir
         global_out_log_dir = self._params['logger.dir']
-
         global global_main_logger
         global_main_logger = Logger('application', loggingLevel=self.get('logger.level'))
         self._logger = Logger('ExecutionContext', loggingLevel=self.get('logger.level'))
@@ -149,9 +148,7 @@ class ExecutionContext:
         self._params['execution.id'] = u.Execution['id']
 
         self._params['parameter.shortName'] = u.Execution.Parameter['shortName']
-        self._log(param_xml_path + ' loading...')
         p = untangle.parse(param_xml_path)
-        self._log(param_xml_path + ' done!')
 
         parameter_from_xml = self._read_parameter_from(p, self._params['parameter.shortName'])
         self._params['parameter.description'] = parameter_from_xml['description']
