@@ -126,15 +126,15 @@ class Interpolator:
             if second_spatial_resolution:
                 self.interpolateGribNearest(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
             else:
-                raw_input(str(self._aux_gid))
                 self.interpolateGribNearest(self._aux_val, self._aux_gid, grid_id)
 
         if fm.exists(intertable_name):
+            #interpolation using intertables
             existing_intertable = True
             log = self._log if log_intertable else None
             xs, ys, idxs = _read_intertable(intertable_name, log=log)
             v = _mask_it(v, self._mvGrib)
-            result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
+            # result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
         else:
             #assert...
             if gid == -1:
@@ -143,11 +143,13 @@ class Interpolator:
             lonefas = self._latLongBuffer.getLong()
             latefas = self._latLongBuffer.getLat()
             mv = self._latLongBuffer.getMissingValue()
-            xs, ys, idxs, result = _grib_nearest(gid, latefas, lonefas, mv, result)
+            # xs, ys, idxs, result = _grib_nearest(gid, latefas, lonefas, mv, result)
+            xs, ys, idxs = _grib_nearest(gid, latefas, lonefas, mv, result)
             intertable = np.array([xs, ys, idxs])
             #saving interpolation lookup table
             np.save(intertable_name, intertable)
 
+        result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
         return result, existing_intertable
 
     def interpolateGribInvDist(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
@@ -169,11 +171,10 @@ class Interpolator:
                 self.interpolateGribInvDist(self._aux_val, self._aux_gid, grid_id)
 
         if fm.exists(intertable_name):
+            #interpolation using intertables
             existing_intertable = True
             self._log('Interpolating with table ' + intertable_name)
             xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = _read_intertable(intertable_name, log=log)
-            result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs1.astype(int, copy=False)] * coeffs1 + v[idxs2.astype(int, copy=False)] * coeffs2 + \
-                                                     v[idxs3.astype(int, copy=False)] * coeffs3 + v[idxs4.astype(int, copy=False)] * coeffs4
 
         else:
             #assert...
@@ -183,11 +184,14 @@ class Interpolator:
             lonefas = self._latLongBuffer.getLong()
             latefas = self._latLongBuffer.getLat()
             mv = self._latLongBuffer.getMissingValue()
-            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4, result = _grib_invdist(gid, latefas, lonefas, mv, result)
+            # xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4, result = _grib_invdist(gid, latefas, lonefas, mv, result)
+            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = _grib_invdist(gid, latefas, lonefas, mv, result)
             intertable = np.array([xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4])
             #saving interpolation lookup table
             np.save(intertable_name, intertable)
 
+        result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs1.astype(int, copy=False)] * coeffs1 + v[idxs2.astype(int, copy=False)] * coeffs2 + \
+            v[idxs3.astype(int, copy=False)] * coeffs3 + v[idxs4.astype(int, copy=False)] * coeffs4
         return result, existing_intertable
 
     #aux gid for grib interlookup creation

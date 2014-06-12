@@ -174,7 +174,7 @@ class GRIBReader(object):
         else:
             raise ApplicationException.get_programmatic_exc(3000, details="using "+str(kwargs))
 
-    #return input_step, type_of_step
+    #return input_steps, change step if a second time resolution is found, start and end, steps
     @staticmethod
     def _find_start_end_steps(gribs):
 

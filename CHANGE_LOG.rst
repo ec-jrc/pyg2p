@@ -3,19 +3,22 @@ CHANGE LOG
 
 v 1.3
 -----
+* **049** Improvement (major)
+
+   Added a small API to import and use pyg2p from python scripts.
+
+
 * **048** Improvement (major)
-
-   Added a small API to import and use pyg2p from python scripts instead of command line
-
-
-* **047** Improvement (major)
 
    Performances improvements in scipy based interpolation methods (nearest, invdist):
         - Very fast interlookup table creation (seconds or minutes, not hours or days)
             in invdist method.
         - Interlookup table created in no time in nearest method.
         - Results are close to GRIB_API based interpolation so they are validated.
-        - It handles correctly reduced and regular grids.
+
+* **047** Bug fix (major)
+
+   Corrected bug in interpolation from intertables, introduced with 1.2.8
 
 * **046** Bug fix (major)
 

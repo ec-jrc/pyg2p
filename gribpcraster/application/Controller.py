@@ -77,11 +77,9 @@ class Controller:
         values.update(values2)
         import collections
         #overwrite change_step resolution because of manipulation
-        od = collections.OrderedDict(sorted(values2.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
-        change_step = od.keys()[0]
-        del od
+        # od = collections.OrderedDict(sorted(values2.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
+        change_step = sorted(values2.iterkeys(), key=lambda k: int(k.end_step))[0]
         values = collections.OrderedDict(sorted(values.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
-        gc.collect()
         return change_step, values
 
     def createOutMap(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
@@ -102,7 +100,7 @@ class Controller:
                     self._reader2.close()
                     self._reader2 = None
         else:
-            #interpolating swath data with scipy griddata or with an in house inverse distance code
+            #interpolating gridded data with scipy kdtree
             v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
         if self._ctx.get('logging.level') == 'DEBUG':
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (

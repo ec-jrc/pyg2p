@@ -161,7 +161,6 @@ class TestRunner(object):
                     max_mem_scipy, avg_mem_scipy) + ENDC
             print '\n' + YELLOW + BOLD + '============= END ================' + ENDC + '\n'
 
-            # raw_input('note!')
         elapsed_test = time.time() - elapsed_test
         print '\n\n' + YELLOW + BOLD + '=========== TEST SUITE SUMMARY ==============' + ENDC
         print YELLOW + BOLD + '{} tests  executed in {}'.format(

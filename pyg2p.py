@@ -13,7 +13,9 @@ from gribpcraster.application.Controller import Controller
 from util.conversion.FromStringConversion import to_argv, to_argdict
 
 
+# API
 
+#Command factory
 def command(*args):
     return Command(*args)
 
@@ -22,49 +24,60 @@ def run_command(cmd):
     argv = to_argv(str(cmd))
     return main(argv[1:])
 
+def addGeo(geopotential_file):
+    import util.configuration.geopotentials as geo
+    geo.add(geopotential_file, _log)
+
+
+def run_tests(test_xml_file):
+    from gribpcraster.testrunner.TestRunner import TestRunner
+    runner = TestRunner(test_xml_file)
+    runner.run()
+
 
 class Command(object):
 
     def __init__(self, cmd_string=None):
         self._d = {} if not cmd_string else to_argdict(cmd_string)
         if not '-l' in self._d.keys():
-            self._d['-l'] = 'INFO'
+            self._a('-l', 'ERROR')
+
+    def _a(self, opt, param):
+        self._d[opt] = param
+        return self
 
     def with_cmdpath(self, param):
-        self._d['-c'] = str(param)
-        return self
+        return self._a('-c', param)
 
     def with_inputfile(self, param):
-        self._d['-i'] = str(param)
-        return self
+        return self._a('-i', param)
 
     def with_ext(self, param):
-        self._d['-x'] = str(param)
-        return self
+        return self._a('-x', param)
 
     def with_log_level(self, param):
-        self._d['-l'] = str(param)
-        return self
+        return self._a('-l', param)
+
+    def with_log_dir(self, param):
+        return self._a('-d', param)
 
     def with_eps(self, param):
-        self._d['-m'] = str(param)
-        return self
+        return self._a('-m', param)
 
     def with_tend(self, param):
-        self._d['-e'] = str(param)
-        return self
+        return self._a('-e', param)
 
     def with_tstart(self, param):
-        self._d['-s'] = str(param)
-        return self
+        return self._a('-s', param)
+
+    def with_second_input_file(self, param):
+        return self._a('-I', param)
 
     def with_fmap(self, param):
-        self._d['-f'] = str(param)
-        return self
+        return self._a('-f', param)
 
     def with_outdir(self, param):
-        self._d['-o'] = str(param)
-        return self
+        return self._a('-o', param)
 
     def __str__(self):
         cmd = 'pyg2p.py '
@@ -73,15 +86,7 @@ class Command(object):
         return cmd + args
 
 
-def addGeo(geopotential_file):
-    import util.configuration.geopotentials as geo
-    geo.add(geopotential_file, _log)
-
-
-def runTests(test_xml_file):
-    from gribpcraster.testrunner.TestRunner import TestRunner
-    runner = TestRunner(test_xml_file)
-    runner.run()
+# END API
 
 def main(*args):
     if __name__ in ("__main__", "pyg2p") and isinstance(args[0], list):
@@ -99,11 +104,11 @@ def main(*args):
         elif exc_ctx.user_wants_to_test():
             try:
                 import memory_profiler
-                runTests(exc_ctx.get('test.xml'))
+                run_tests(exc_ctx.get('test.xml'))
                 return 0
             except ImportError:
                 print 'memory_profiler module is missing'
-                print 'try "pip install memory_profile" and re-execute'
+                print 'try "pip install memory_profiler" and re-execute'
                 return 0
 
     except appexcmodule.ApplicationException, err:
@@ -170,6 +175,12 @@ def usage():
 
     -o --outDir output maps dir
          (optional, default: ./)
+
+    -f --fmap first map number
+         (optional, default: 1)
+
+    -x --ext extension number step
+        (optional, default: 1)
 
     -l --loggerLevel: <console logging level>
          (optional, default: level of CONSOLE logger as configured in logger-configuration.xml)
