@@ -4,38 +4,43 @@ from sys import stdout
 __author__ = 'dominik'
 
 
+def _progress_step(num_cells):
+    progress_step = num_cells / 1000
+    back_char = '\r'
+    if not stdout.isatty():
+        # out is being redirected
+        progress_step = num_cells / 100
+        back_char = '\n'
+    return back_char, progress_step
+
+
 def _grib_nearest(gid, target_lats, target_lons, mv, result):
 
     xs = []
     ys = []
     idxs = []
     i = 0
-    progress_step = 500
     num_cells = result.size
-    if num_cells > 1000000:
-        progress_step = 2500
+    back_char, progress_step = _progress_step(num_cells)
 
-    stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
+    stdout.write(back_char + 'Interpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
     stdout.flush()
     outs = 0
     for (x, y), val in np.ndenumerate(target_lons):
         i += 1
         if not target_lons[x, y] == mv and not target_lons[x, y] <= -1.0e+10:
             if i % progress_step == 0:
-                stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i, num_cells, outs,i*100./num_cells))
+                stdout.write(back_char + 'Interpolation progress: %d/%d [out:%d] (%.2f%%)' % (i, num_cells, outs,i*100./num_cells))
                 stdout.flush()
-
             try:
                 n_nearest = GRIB.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]))
                 xs.append(x)
                 ys.append(y)
                 idxs.append(n_nearest[0]['index'])
-                # result[x, y] = n_nearest[0]['value']
             except GRIB.GribInternalError:
                 outs += 1
-    stdout.write('\r' + ' ' * 100)
-    stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
-    stdout.write('\n')
+    stdout.write(back_char + ' ' * 100)
+    stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
     stdout.flush()
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs)
 
@@ -52,18 +57,16 @@ def _grib_invdist(gid, target_lats, target_lons, mv, result):
     coeffs3 = []
     coeffs4 = []
     i = 0
-    progress_step = 500
     num_cells = result.size
-    if num_cells > 1000000:
-        progress_step = 2500
-    stdout.write('\rInterpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
+    back_char, progress_step = _progress_step(num_cells)
+    stdout.write(back_char + 'Interpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
     stdout.flush()
     out = 0
     for (x, y), valuesgg in np.ndenumerate(target_lons):
         i += 1
         if not target_lons[x, y] == mv and not target_lons[x, y] < -1.0e+10:
             if i % progress_step == 0:
-                stdout.write('\rInterpolation progress: %d/%d [out:%d] (%.2f%%)' % (i, num_cells, out, i * 100. / num_cells))
+                stdout.write(back_char + 'Interpolation progress: %d/%d [out:%d] (%.2f%%)' % (i, num_cells, out, i * 100. / num_cells))
                 stdout.flush()
             try:
                 notExactPosition = True
@@ -94,16 +97,11 @@ def _grib_invdist(gid, target_lats, target_lons, mv, result):
                 coeffs2.append(coeff2)
                 coeffs3.append(coeff3)
                 coeffs4.append(coeff4)
-                # if notExactPosition:
-                #     result[x, y] = n_nearest[0]['value'] * coeff1 + n_nearest[1]['value']*coeff2+n_nearest[2]['value']*coeff3+n_nearest[3]['value']*coeff4
-                # else:
-                #     result[x, y] = n_nearest[exactPositionIdx]['value']
 
             except GRIB.GribInternalError:
                 #tipically "out of grid" error
                 out += 1
-    stdout.write('\r' + ' ' * 100)
-    stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
-    stdout.write('\n')
+    stdout.write(back_char + ' ' * 100)
+    stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
     stdout.flush()
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs1),np.asarray(idxs2),np.asarray(idxs3),np.asarray(idxs4),np.asarray(coeffs1),np.asarray(coeffs2),np.asarray(coeffs3),np.asarray(coeffs4)

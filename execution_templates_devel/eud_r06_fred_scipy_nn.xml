@@ -7,12 +7,12 @@
         -->
 
     <Execution name = "eud_r06" id="99" >
-        <Parameter shortName="tp" applyConversion="tomm" tstart="6" tend="240"/>
+        <Parameter shortName="tp" applyConversion="tomm" tstart="6" tend="24"/>
         <Aggregation type="accumulation" step="6" />
 
         <OutMaps namePrefix="pR06" fmap="1"
                  cloneMap="/dataset/maps/europe5km/dem.map" unitTime="24">
-            <Interpolation mode="nearest"
+            <Interpolation mode="invdist"
                            latMap="/dataset/maps/fredrik/latitude_5km_resampled.map"
                            lonMap="/dataset/maps/fredrik/longitude_5km_resampled.map" />
         </OutMaps>

@@ -7,7 +7,7 @@
         -->
 
     <Execution name = "eud_r06" id="99" >
-        <Parameter shortName="tp" applyConversion="tomm" tstart="6" tend="12"/>
+        <Parameter shortName="tp" applyConversion="tomm" tstart="6" tend="240"/>
         <Aggregation type="accumulation" step="6" />
 
         <OutMaps namePrefix="gR06" fmap="1"

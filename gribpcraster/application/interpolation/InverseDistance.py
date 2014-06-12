@@ -1,6 +1,6 @@
 from __future__ import division
 from scipy.spatial import cKDTree as KDTree
-# from sklearn.neighbors import KDTree
+from sys import stdout
 from util.logger.Logger import Logger
 import numpy as np
 import numexpr as ne
@@ -8,6 +8,16 @@ from util.numeric.numeric import _mask_it
 import gribpcraster.application.ExecutionContext as ex
 
 __author__ = 'unknown'
+
+
+def _progress_step(num_cells):
+    progress_step = num_cells / 1000
+    back_char = '\r'
+    if not stdout.isatty():
+        # out is being redirected
+        progress_step = num_cells / 100
+        back_char = '\n'
+    return back_char, progress_step
 
 
 def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None, from_inter=False):
@@ -18,21 +28,20 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
         #                                     # or were just queried from the tree
         result = z[ixs.astype(int, copy=False)]
     elif from_inter:
-        # if nnear > 1:
         result = np.einsum('ij,ij->i', distances, z[ixs.astype(int, copy=False)])
-        # else:
-        #     result = distances * z[ixs.astype(int, copy=False)]
     else:
         #no intertable found for inverse distance nnear = 8
-        from sys import stdout
+
         result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
         jinterpol = 0
         num_cells = result.size
-        stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
+        back_char, progress_step = _progress_step(num_cells)
+
+        stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
         stdout.flush()
         for dist, ix in zip(distances, ixs):
-            if jinterpol % 1000 == 0:
-                stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
+            if jinterpol % progress_step == 0:
+                stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
                 stdout.flush()
 
             if dist[0] > 1e-10:
@@ -42,12 +51,10 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
                 wsum[jinterpol] = w
             else:
                 wz = z[ix[0]]  # take exactly the point, weight = 1
-            # print (str(wz))
-            # print (str(z[ix[0]]))
             result[jinterpol] = wz
             jinterpol += 1
-        stdout.write('\rInterpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, 100))
-        stdout.write('\n')
+        stdout.write(back_char + ' ' * 100)
+        stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, 100))
         stdout.flush()
     return result
 
