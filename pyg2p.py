@@ -2,7 +2,7 @@
 
 __author__ = "Nappo Domenico"
 __date__ = "$Jun 10, 2014 19:00$"
-__version__ = "1.3-dev"
+__version__ = "1.3"
 
 import sys
 import collections
