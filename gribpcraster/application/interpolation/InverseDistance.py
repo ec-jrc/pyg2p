@@ -6,18 +6,9 @@ import numpy as np
 import numexpr as ne
 from util.numeric.numeric import _mask_it
 import gribpcraster.application.ExecutionContext as ex
-
+from gribpcraster.application.interpolation import progress_step_and_backchar
 __author__ = 'unknown'
 
-
-def _progress_step(num_cells):
-    progress_step = num_cells / 1000
-    back_char = '\r'
-    if not stdout.isatty():
-        # out is being redirected
-        progress_step = num_cells / 100
-        back_char = '\n'
-    return back_char, progress_step
 
 
 def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None, from_inter=False):
@@ -35,7 +26,7 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
         result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
         jinterpol = 0
         num_cells = result.size
-        back_char, progress_step = _progress_step(num_cells)
+        back_char, progress_step = progress_step_and_backchar(num_cells)
 
         stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
         stdout.flush()

@@ -1,17 +1,11 @@
+from sys import stdout
+
 import gribapi as GRIB
 import numpy as np
-from sys import stdout
-__author__ = 'dominik'
 
+from gribpcraster.application.interpolation import progress_step_and_backchar
 
-def _progress_step(num_cells):
-    progress_step = num_cells / 1000
-    back_char = '\r'
-    if not stdout.isatty():
-        # out is being redirected
-        progress_step = num_cells / 100
-        back_char = '\n'
-    return back_char, progress_step
+__author__ = 'domenico nappo'
 
 
 def _grib_nearest(gid, target_lats, target_lons, mv, result):
@@ -21,7 +15,7 @@ def _grib_nearest(gid, target_lats, target_lons, mv, result):
     idxs = []
     i = 0
     num_cells = result.size
-    back_char, progress_step = _progress_step(num_cells)
+    back_char, progress_step = progress_step_and_backchar(num_cells)
 
     stdout.write(back_char + 'Interpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
     stdout.flush()
@@ -58,7 +52,7 @@ def _grib_invdist(gid, target_lats, target_lons, mv, result):
     coeffs4 = []
     i = 0
     num_cells = result.size
-    back_char, progress_step = _progress_step(num_cells)
+    back_char, progress_step = progress_step_and_backchar(num_cells)
     stdout.write(back_char + 'Interpolation progress: %d/%d (%d%%)' % (0, num_cells, 0))
     stdout.flush()
     out = 0

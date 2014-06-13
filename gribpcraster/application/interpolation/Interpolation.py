@@ -1,13 +1,7 @@
+import os
+import numpy as np
 from gribpcraster.application.interpolation.grib_interpolation_lib import _grib_nearest, _grib_invdist
 from util.numeric.numeric import _mask_it
-
-__author__ = "nappodo"
-__date__ = "$Jun 06, 2014 01:53 AM$"
-
-import scipy.interpolate
-import os
-
-import numpy as np
 from util.logger.Logger import Logger
 import util.file.FileManager as fm
 from gribpcraster.application.interpolation.LatLongDem import LatLongBuffer
@@ -15,6 +9,11 @@ import InverseDistance as ID
 from InverseDistance import InverseDistance
 from gribpcraster.exc.ApplicationException import ApplicationException
 import gribpcraster
+
+__author__ = "domenico nappo"
+__date__ = "$Jun 13, 2014 12:22 AM$"
+
+
 dir_ = os.path.dirname(gribpcraster.__file__)
 #default intertable dir. Can be overwritten with intertableDir xml/CLI parameter
 INTERTABLES_DIR = os.path.join(dir_, '../', 'configuration/intertables/')
@@ -54,9 +53,9 @@ class Interpolator:
         self._mvGrib = -1
 
         self._aux_val = None
-        self._aux_gid = -1
+        self._aux_gid = None
         self._aux_2nd_res_gid = None
-        self._aux_2nd_res_val = -1
+        self._aux_2nd_res_val = None
 
     def set_radius(self, r):
         self._radius = r
@@ -102,17 +101,15 @@ class Interpolator:
 
         return grid_data
 
-
     ##### GRIB API INTERPOLATION ####################
-
     def interpolate_grib(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
 
         if self._mode == 'grib_nearest':
-            return self.interpolateGribNearest(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
+            return self.grib_nearest(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
         elif self._mode == 'grib_invdist':
-            return self.interpolateGribInvDist(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
+            return self.grib_inverse_distance(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
 
-    def interpolateGribNearest(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
+    def grib_nearest(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
 
         intertable_name = os.path.normpath(os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME+grid_id.replace('$', '_')+'_'+self._latLongBuffer.getId()+'_nn.npy'))
         existing_intertable = False
@@ -124,9 +121,9 @@ class Interpolator:
             #aux_gid and aux_values are only used to create the interlookuptable
             self._log('Creating lookup table using aux message')
             if second_spatial_resolution:
-                self.interpolateGribNearest(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
+                self.grib_nearest(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
             else:
-                self.interpolateGribNearest(self._aux_val, self._aux_gid, grid_id)
+                self.grib_nearest(self._aux_val, self._aux_gid, grid_id)
 
         if fm.exists(intertable_name):
             #interpolation using intertables
@@ -151,7 +148,7 @@ class Interpolator:
         result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
         return result, existing_intertable
 
-    def interpolateGribInvDist(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
+    def grib_inverse_distance(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
 
         intertable_name = os.path.normpath(os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME + grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+'_inv.npy'))
         result = np.empty(self._latLongBuffer.getLong().shape)
@@ -166,9 +163,9 @@ class Interpolator:
             #since manipulated values messages don't have gid reference to grib file any longer
             self._log('Creating lookup table using aux message')
             if second_spatial_resolution:
-                self.interpolateGribInvDist(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
+                self.grib_inverse_distance(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
             else:
-                self.interpolateGribInvDist(self._aux_val, self._aux_gid, grid_id)
+                self.grib_inverse_distance(self._aux_val, self._aux_gid, grid_id)
 
         if fm.exists(intertable_name):
             #interpolation using intertables
