@@ -40,7 +40,7 @@ def _grib_nearest(gid, target_lats, target_lons, mv, result):
             except GRIB.GribInternalError:
                 outs += 1
     stdout.write(back_char + ' ' * 100)
-    stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
+    stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)\n' % (i, num_cells, 100))
     stdout.flush()
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs)
 
@@ -102,6 +102,6 @@ def _grib_invdist(gid, target_lats, target_lons, mv, result):
                 #tipically "out of grid" error
                 out += 1
     stdout.write(back_char + ' ' * 100)
-    stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (i, num_cells, 100))
+    stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)\n' % (i, num_cells, 100))
     stdout.flush()
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs1),np.asarray(idxs2),np.asarray(idxs3),np.asarray(idxs4),np.asarray(coeffs1),np.asarray(coeffs2),np.asarray(coeffs3),np.asarray(coeffs4)

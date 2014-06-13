@@ -65,6 +65,8 @@ class Corrector(object):
         reader = GRIBReader(grib_file)
         kwargs = {'shortName': geop.SHORT_NAMES}
         messages, shortName = reader.getSelectedMessages(**kwargs)
+        aux_g, aux_v, aux_g2, aux_v2 = reader.get_gids_for_grib_intertable()
+        interpolator.setAuxToCreateLookup(aux_g, aux_v, aux_g2, aux_v2)
 
         missing = messages.getMissingValue()
         values = messages.getValuesOfFirstOrSingleRes()[messages.first_step_range]

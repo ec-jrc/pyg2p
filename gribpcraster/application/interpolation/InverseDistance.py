@@ -54,7 +54,7 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
             result[jinterpol] = wz
             jinterpol += 1
         stdout.write(back_char + ' ' * 100)
-        stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, 100))
+        stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)\n' % (jinterpol, num_cells, 100))
         stdout.flush()
     return result
 

@@ -134,7 +134,6 @@ class Interpolator:
             log = self._log if log_intertable else None
             xs, ys, idxs = _read_intertable(intertable_name, log=log)
             v = _mask_it(v, self._mvGrib)
-            # result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
         else:
             #assert...
             if gid == -1:
@@ -153,6 +152,7 @@ class Interpolator:
         return result, existing_intertable
 
     def interpolateGribInvDist(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
+
         intertable_name = os.path.normpath(os.path.join(self._intertable_dir, SAFE_PREFIX_INTTAB_NAME + grid_id.replace('$','_')+'_'+self._latLongBuffer.getId()+'_inv.npy'))
         result = np.empty(self._latLongBuffer.getLong().shape)
         result.fill(self._mvEfas)
@@ -184,7 +184,6 @@ class Interpolator:
             lonefas = self._latLongBuffer.getLong()
             latefas = self._latLongBuffer.getLat()
             mv = self._latLongBuffer.getMissingValue()
-            # xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4, result = _grib_invdist(gid, latefas, lonefas, mv, result)
             xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = _grib_invdist(gid, latefas, lonefas, mv, result)
             intertable = np.array([xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4])
             #saving interpolation lookup table

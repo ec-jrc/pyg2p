@@ -115,6 +115,7 @@ def main(*args):
         _log('\nConfiguration Error: {}'.format(str(err)) + '\n\n', 'ERROR')
         ex.global_main_logger.close()
         return 1
+
     _controller = None
     try:
         _controller = Controller(exc_ctx)
