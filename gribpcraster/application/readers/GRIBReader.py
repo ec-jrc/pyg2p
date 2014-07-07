@@ -90,7 +90,8 @@ class GRIBReader(object):
                     GRIB.grib_index_select(self._grbindx, 'perturbationNumber', int(v_pert))
                 while 1:
                     gid = GRIB.grib_new_from_index(self._grbindx)
-                    if gid is None: break
+                    if gid is None:
+                        break
                     if GRIBReader._find(gid, **kwargs):
                         gribs.append(gid)
                     else:

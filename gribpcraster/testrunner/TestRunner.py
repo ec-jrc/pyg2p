@@ -118,8 +118,6 @@ class TestRunner(object):
         print '\n' + print_colored(Y, '=================== END ======================') + '\n'
 
     def run(self):
-        import sys
-        raw_input(sys.stdin.isatty())
 
         num_tests = g_num_maps = z_num_maps = avg_mem_scipy = max_mem_scipy = 0
         g_maps = z_maps = []

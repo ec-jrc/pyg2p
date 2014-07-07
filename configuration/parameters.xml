@@ -15,6 +15,9 @@
     <Parameter shortName="e" description="Evaporation" unit="m">
         <Conversion id="tomm" unit="mm" function="x=-x*1000" cutOffNegative="True"/>
     </Parameter>
+    <Parameter shortName="2T" description="2 meters Temperature" unit="K">
+        <Conversion id="k2c" unit="C" function="x=x-273.15" cutOffNegative="False"/>
+    </Parameter>
     <Parameter shortName="2t" description="2 meters Temperature" unit="K">
         <Conversion id="k2c" unit="C" function="x=x-273.15" cutOffNegative="False"/>
     </Parameter>
@@ -25,11 +28,14 @@
         <Conversion id="k2c" unit="C" function="x=x-273.15" cutOffNegative="False"/>
     </Parameter>
 
-    <Parameter shortName="alhfl_s" description="latent heat flux" unit="W/(m^2)">
+    <Parameter shortName="ALHFL_S" description="latent heat flux" unit="W/(m^2)">
         <Conversion id="tommd" unit="mm/d" function="x=x*(-0.0353)" cutOffNegative="True"/>
         <Conversion id="tommh" unit="mm/h" function="x=x*(-0.00147)" cutOffNegative="True"/>
     </Parameter>
-
+<Parameter shortName="alhfl_s" description="latent heat flux" unit="W/(m^2)">
+        <Conversion id="tommd" unit="mm/d" function="x=x*(-0.0353)" cutOffNegative="True"/>
+        <Conversion id="tommh" unit="mm/h" function="x=x*(-0.00147)" cutOffNegative="True"/>
+    </Parameter>
     <Parameter shortName="slhf" description="surface latent heat flux" unit="W/(m^2)">
         <Conversion id="tommd" unit="mm/d" function="x=x*(-0.0353)" cutOffNegative="True"/>
         <Conversion id="tommh" unit="mm/h" function="x=x*(-0.00147)" cutOffNegative="True"/>
@@ -47,14 +53,15 @@
 
     <Parameter shortName="z" description="Geopotential" unit="m**2 s**-2"/>
     <Parameter shortName="fis" description="Geopotential cosmo" unit="m**2 s**-2"/>
-
+    <Parameter shortName="Z" description="Geopotential" unit="m**2 s**-2"/>
+    <Parameter shortName="FIS" description="Geopotential cosmo" unit="m**2 s**-2"/>
     <Parameter shortName="10u" description="10 meters u wind component" unit="m/s"/>
     <Parameter shortName="10v" description="10 meters v wind component" unit="m/s"/>
 
-    <Parameter shortName="rain_gsp" description="surface precipitation amount, rain, grid scale" unit="kg/m^2">
+    <Parameter shortName="RAIN_GSP" description="surface precipitation amount, rain, grid scale" unit="kg/m^2">
         <Conversion id="cut" unit="kg m**-2 s**-1" function="x=x" cutOffNegative="True"/>
     </Parameter>
-    <Parameter shortName="rain_con" description="surface precipitation amount, rain, convective" unit="kg/m^2">
+    <Parameter shortName="RAIN_CON" description="surface precipitation amount, rain, convective" unit="kg/m^2">
         <Conversion id="cut" unit="kg m**-2 s**-1" function="x=x" cutOffNegative="True"/>
     </Parameter>
 

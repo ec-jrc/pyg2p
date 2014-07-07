@@ -146,4 +146,7 @@
  p94@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
  z94@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
 
+ #p95@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_g.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+ #z95@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_scipy_nn.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+
 

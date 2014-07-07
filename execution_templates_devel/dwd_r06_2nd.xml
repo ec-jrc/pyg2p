@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <Execution name = "dwd_rain_gsp" id="4" >
-    <Parameter shortName="rain_gsp" applyConversion="cut"/>
+    <Parameter shortName="RAIN_GSP" applyConversion="cut"/>
     <Aggregation type="accumulation" step="6" />
 
     <OutMaps namePrefix="R06a"

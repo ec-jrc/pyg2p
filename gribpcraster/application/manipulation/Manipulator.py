@@ -51,7 +51,7 @@ class Manipulator(object):
                         MANIPULATION_AVG: self._average,
                         MANIPULATION_INSTANT: self._instantaneous}
 
-    #input is dict of values[start-end-res]
+    #input is dict of values[start-end-res-input_step]
     #out is values(end)
     @staticmethod
     def _convert_key_to_endstep(values):
@@ -60,6 +60,8 @@ class Manipulator(object):
         for k, v in values.iteritems():
             v_by_endstep[int(k.end_step)] = v
         return v_by_endstep
+
+
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
@@ -78,11 +80,10 @@ class Manipulator(object):
     def _cumulation(self, values):
 
         out_values = {}
-        res = values.keys()[0].resolution
-        # v = self._convert_key_to_endstep(values)  # original key is 'start-end-resolution'
-        # v = collections.OrderedDict(sorted(values.iteritems(), key=lambda k: k[1]))
+        resolution = values.keys()[0].resolution
+        shape_iter = values[values.keys()[0]].shape
         v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
-        self._log('Cumulation at resolution: %s' % res)
+        self._log('Accumulation at resolution: %s' % resolution)
 
         if self._start == 0:
             self._log('start 0: change to the first aggregation_timestep %d' % self._aggregation_step)
@@ -95,7 +96,7 @@ class Manipulator(object):
                 next_ts = v_ord.keys()[ind_next_ts]
 
                 v_nts_ma = _mask_it(v_ord[next_ts], self._mvGrib)
-                self._log('Message %d not in dataset. Creating it. Masking with %.2f'%(iter_, self._mvGrib))
+                self._log('Message %d not in dataset. Creating it. Masking with %.2f' % (iter_, self._mvGrib))
 
                 ind_originalts = bisect.bisect_right(v_ord.keys(), iter_)
                 if ind_originalts == ind_next_ts:
@@ -111,17 +112,16 @@ class Manipulator(object):
             if iter_ - self._aggregation_step >= 0 and iter_ - self._aggregation_step not in v_ord.keys() and not created_zero_array:
                 ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_ - self._aggregation_step)
                 next_ts = v_ord.keys()[ind_next_ts]
-                #variables needed for numexpr evaluator namespace
-                v_nts_ma = _mask_it(v_ord[next_ts], self._mvGrib)
+
 
                 if iter_ - self._aggregation_step == 0:
-                    self._log('Message %d not in dataset. Creating it as zero values array'%(iter_- self._aggregation_step))
-                    v_ord[iter_ - self._aggregation_step] = _mask_it(np.zeros(v_ord[next_ts].shape), self._mvGrib)
+                    self._log('Message 0 not in dataset. Creating it as zero values array')
+                    v_ord[0] = _mask_it(np.zeros(shape_iter), self._mvGrib, shape_iter)
                     originalts = 0
                     created_zero_array = True
                 else:
-                    self._log('Message %d not in dataset. Creating it. Masking with %.2f'%(iter_-self._aggregation_step, self._mvGrib))
-
+                    self._log('Message %d not in dataset. Creating it. Masking with %.2f' % (iter_ - self._aggregation_step, self._mvGrib))
+                    v_nts_ma = _mask_it(v_ord[next_ts], self._mvGrib)
                     ind_originalts = bisect.bisect_right(v_ord.keys(), iter_ - self._aggregation_step)
                     if ind_originalts == ind_next_ts:
                         ind_originalts -= 1
@@ -130,27 +130,34 @@ class Manipulator(object):
                     v_ots_ma = _mask_it(v_ord[originalts], self._mvGrib)
 
                     self._log('Trying to create message grib:%d as grib:%d+(grib:%d-grib:%d)*((%d-%d)/(%d-%d))'
-                              %(iter_ - self._aggregation_step, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
+                              % (iter_ - self._aggregation_step, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
                     v_out = ne.evaluate("v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))")
                     v_ord[iter_ - self._aggregation_step] = _mask_it(v_out, self._mvGrib)
 
-            key = Key(iter_ - self._aggregation_step, iter_, res, self._aggregation_step)
-            self._log('out[%s] = (grib:%d - grib:%d)  * (%d/%d))' % (key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
-            v_iter_ma = _mask_it(v_ord[iter_], self._mvGrib)
             if iter_ - self._aggregation_step == 0 and self._force_zero:
-                # forced ZERO array...
-                v_iter_1_ma = _mask_it(np.zeros(v_ord[0].shape), self._mvGrib)
+                # forced ZERO array...instead of taking the grib
+                v_iter_1_ma = _mask_it(np.zeros(shape_iter), self._mvGrib, shape_iter)
             else:
+                # Take the 0 step grib.
+                # It could be created before as zero-array,
+                # if 0 step is not present in the grib dataset (see line 117)
                 v_iter_1_ma = _mask_it(v_ord[iter_ - self._aggregation_step], self._mvGrib)
 
             #variables needed for numexpr evaluator namespace
+            #need to create the out array first as zero array, for issue in missing values for certain gribs
+            v_iter_ma = _mask_it(np.zeros(shape_iter), self._mvGrib, shape_iter)
+            v_iter_ma += _mask_it(v_ord[iter_], self._mvGrib)
+
             _unit_time = self._unit_time
             _aggr_step = self._aggregation_step
-            out_value = _mask_it(ne.evaluate("(v_iter_ma-v_iter_1_ma)*(_unit_time/_aggr_step)"), self._mvGrib)
+            key = Key(iter_ - self._aggregation_step, iter_, resolution, self._aggregation_step)
+            self._log('out[%s] = (grib:%d - grib:%d)  * (%d/%d))' % (key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
+            out_value = _mask_it(ne.evaluate("(v_iter_ma-v_iter_1_ma)*_unit_time/_aggr_step"), self._mvGrib)
             out_values[key] = out_value
 
         ordered = collections.OrderedDict(sorted(out_values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
         out_values = None
+        del out_values
         return ordered
 
     def _average(self, values):
@@ -164,8 +171,6 @@ class Manipulator(object):
             resolution_1 = values.keys()[0].resolution
             shape_iter = values[values.keys()[0]].shape
 
-            # v = self._convert_key_to_endstep(values)
-            # v_ord = collections.OrderedDict(sorted(v.iteritems(), key=lambda k: k[0]))
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
             if self._start > 0 and not self._second_t_res:
                 iter_start = self._start - self._aggregation_step + 1
@@ -185,23 +190,27 @@ class Manipulator(object):
 
                 temp_sum = _mask_it(np.zeros(shape_iter), self._mvGrib, shape_iter)
 
-                for iterator_avg  in range(iter_from, iter_to, 1):
+                for iterator_avg in range(iter_from, iter_to, 1):
+
                     #if (iterator_avg % self._input_step)==0:
-                     if iterator_avg in v_ord.keys():
+                    if iterator_avg in v_ord.keys():
                         self._log('temp_sum += grib[%d]'%iterator_avg, 'DEBUG')
                         v_ma = _mask_it(v_ord[iterator_avg], self._mvGrib)
                         temp_sum += v_ma
-                     else:
+                    else:
                         ind_next_ = bisect.bisect_left(v_ord.keys(), iterator_avg)
                         next_ = v_ord.keys()[ind_next_]
                         self._log('temp_sum += grib[%d] from -> grib[%d]' % (iterator_avg, next_))
                         v_ma = _mask_it(v_ord[next_], self._mvGrib)
                         temp_sum += v_ma
+
                 _aggregation_step = self._aggregation_step
-                result_iter_avg = _mask_it(ne.evaluate("temp_sum/_aggregation_step"), self._mvGrib)
                 key = Key(iter_, iter_ + self._aggregation_step, resolution_1, self._aggregation_step)
                 self._log('out[%s] = temp_sum / %d' % (key, self._aggregation_step))
+
+                result_iter_avg = _mask_it(ne.evaluate("temp_sum/_aggregation_step"), self._mvGrib)
                 out_values[key] = result_iter_avg
+
         ordered = collections.OrderedDict(sorted(out_values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
         return ordered
 
@@ -211,23 +220,30 @@ class Manipulator(object):
         elif self._step_type in [PARAM_INSTANT, PARAM_AVG]:
             out_values = {}
             start = self._start
-            if self._step_type==PARAM_AVG:
-                start=self._start+self._input_step
+            if self._step_type == PARAM_AVG:
+                start = self._start + self._input_step
             resolution_1 = values.keys()[0].resolution
             shape_iter = values[values.keys()[0]].shape
+
             #sets a new dict with different key (using only endstep)
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
 
             for iter_ in range(start, self._end + 1, self._aggregation_step):
+                res_inst = _mask_it(np.zeros(shape_iter), self._mvGrib, shape_iter)
                 key = Key(iter_, iter_, resolution_1, self._aggregation_step)
                 if iter_ in v_ord.keys():
-                    self._log('out[%s] = grib:%d'%(key,iter_))
-                    res_inst = _mask_it(v_ord[iter_], self._mvGrib)
+                    self._log('out[%s] = grib:%d' % (key, iter_))
+                    res_inst += _mask_it(v_ord[iter_], self._mvGrib)
                 else:
-                    ind_next_=bisect.bisect_right(v_ord.keys(), iter_)
-                    next_=v_ord.keys()[ind_next_]
-                    self._log('out[%s] = grib:%d'%(key, next_))
-                    res_inst= _mask_it(v_ord[next_], self._mvGrib)
+                    if iter_ == 0:
+                        #left out as zero arrays if 0 step is not in the grib
+                        self._log('out[%s] = zeros' % key)
+                        pass
+                    else:
+                        ind_next_ = bisect.bisect_right(v_ord.keys(), iter_)
+                        next_ = v_ord.keys()[ind_next_]
+                        self._log('out[%s] = grib:%d' % (key, next_))
+                        res_inst += _mask_it(v_ord[next_], self._mvGrib)
                 out_values[key] = res_inst
 
         ordered = collections.OrderedDict(sorted(out_values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))

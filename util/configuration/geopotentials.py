@@ -6,7 +6,7 @@ __author__ = 'dominik'
 dir_ = os.path.dirname(__file__)
 CONFIG_FILE = os.path.normpath(os.path.join(dir_, '../../configuration/geopotentials.xml'))
 DIR = os.path.normpath(os.path.join(dir_, '../../configuration/geopotentials')) + os.sep
-SHORT_NAMES = ['fis', 'z']
+SHORT_NAMES = ['fis', 'z', 'FIS']
 ADD_STRING = '<geopotential id=\"%(id)s\" name=\"%(name)s\"/>'
 
 

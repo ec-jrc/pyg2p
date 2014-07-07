@@ -1,6 +1,15 @@
 CHANGE LOG
 ==========
 
+v 1.3.1
+-------
+
+* **050** Bug Fix (major)
+
+   For first time step, accumulation was not handling missing values correctly.
+   Solution was to init the output array as zeros.
+
+
 v 1.3
 -----
 * **049** Improvement (major)

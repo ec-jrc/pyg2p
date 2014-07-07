@@ -5,7 +5,9 @@ class Key(object):
     def __init__(self, start_step_, end_step_, points_meridian_, input_step_):
         self.start_step = start_step_
         self.end_step = end_step_
+        #spatial resolution
         self.resolution = points_meridian_
+        #temporal resolution
         self.input_step = input_step_
 
     def __hash__(self):
@@ -13,7 +15,7 @@ class Key(object):
 
     def __eq__(self, other):
         return (self.start_step, self.end_step, self.resolution, self.input_step) == (
-        (other.start_step, other.end_step, other.resolution, other.input_step))
+               (other.start_step, other.end_step, other.resolution, other.input_step))
 
     def split(self, c):
         return [self.start_step, self.end_step, self.resolution, self.input_step]

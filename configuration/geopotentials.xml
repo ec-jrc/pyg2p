@@ -18,5 +18,5 @@
   <geopotential id="-18$23.5$665$657$436905$rotated_ll" name="dwd_grib1_ispra_LME_2013051300" />
   <geopotential id="0$359$MISSING$1280$2140702$reduced_gg" name="global_N640.grb" />
   <geopotential id="0$359.1667$432$325$140400$regular_ll" name="geo_UKMO2.grb" />
-  <geopotential id="0$359.912$MISSING$2048$5447118$reduced_gg" name="T3999.gph.grb" />
+  <geopotential id="0$359.955$MISSING$4000$20696844$reduced_gg" name="T3999_corr.grb" />
 </geopotentials>
