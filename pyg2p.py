@@ -174,6 +174,12 @@ def usage():
     -m --perturbationNumber: <eps member number>
          (ex: -m 10)
 
+    -T --dataTime [0|1200]
+       to select messages by dataTime key value
+
+    -D --dataDate <YYYYMMDD>
+       to select messages by dataDate key value
+
     -o --outDir output maps dir
          (optional, default: ./)
 

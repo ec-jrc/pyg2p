@@ -207,6 +207,7 @@ class GRIBReader(object):
             for g in _gribs_for_utils:
                 GRIB.grib_release(g)
             _gribs_for_utils = None
+            del _gribs_for_utils
             import gc
             gc.collect()
             return radius, self._step_grib, self._step_grib2, self._change_step_at, type_of_step, start_grib, end_grib, self._mv

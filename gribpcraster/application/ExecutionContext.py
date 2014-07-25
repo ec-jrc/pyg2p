@@ -63,11 +63,13 @@ class ExecutionContext:
     def _define_input_args(self, argv):
 
         try:
-            opts, argv = getopt.getopt(argv, "hc:o:i:I:m:T:l:d:g:t:s:e:f:x:", ['help', 'commandsFile=','outDir=','inputFile=',
-                                                                         'inputFile2=','perturbationNumber=','dataTime='
-                                                                         'loggerlLevel=', 'outLogDir=',
-                                                                         'addGeopotential=', 'test=', 'start=', 'end=',
-                                                                         'fmap=', 'ext='])
+            opts, argv = getopt.getopt(argv, "hc:o:i:I:m:T:D:l:d:g:t:s:e:f:x:", ['help', 'commandsFile=', 'outDir=',
+                                                                                 'inputFile=', 'inputFile2=',
+                                                                                 'perturbationNumber=',
+                                                                                 'dataTime=', 'dataDate',
+                                                                                 'loggerlLevel=', 'outLogDir=',
+                                                                                 'addGeopotential=', 'test=',
+                                                                                 'start=', 'end=', 'fmap=', 'ext='])
         except getopt.GetoptError, err:
             raise ApplicationException(err, None, str(err))
 
@@ -77,6 +79,7 @@ class ExecutionContext:
         self._params['parameter.tstart'] = None
         self._params['parameter.tend'] = None
         self._params['parameter.dataTime'] = None
+        self._params['parameter.dataDate'] = None
         self._params['outMaps.fmap'] = None
         self._params['outMaps.ext'] = None
 
@@ -91,6 +94,8 @@ class ExecutionContext:
                 self._params['parameter.tend'] = val
             elif opt in ('-T', '--dataTime'):
                 self._params['parameter.dataTime'] = val
+            elif opt in ('-D', '--dataDate'):
+                self._params['parameter.dataDate'] = val
             elif opt in ('-f', '--fmap'):
                 self._params['outMaps.fmap'] = val
             elif opt in ('-x', '--ext'):
@@ -137,8 +142,7 @@ class ExecutionContext:
             self._inputArguments['commandsFile'] = os.path.join(os.getcwd(), self._inputArguments['commandsFile'])
         param_xml_path = os.path.join(dir_, '../../' + PARAMETERS_XML)
         time.strftime('%l:%M%p %Z on %b %d, %Y')  # ' 1:36PM EDT on Oct 18, 2010'
-         # ' 1:36PM EST on Oct 18, 2010'
-        self._log('\n\n\n\nFirst debug message. pyg2p execution started at (%s).\n %s loading...' %(time.strftime('%l:%M%p %z on %b %d, %Y'), self._inputArguments['commandsFile']))
+        self._log('\n\n\nFirst debug message. pyg2p execution started at (%s).\n %s loading...' % (time.strftime('%l:%M%p %z on %b %d, %Y'), self._inputArguments['commandsFile']))
         if not Fm.exists(self._inputArguments['commandsFile']):
             raise ApplicationException.get_programmatic_exc(0, self._inputArguments['commandsFile'])
         u = untangle.parse(self._inputArguments['commandsFile'])
@@ -168,23 +172,21 @@ class ExecutionContext:
             self._params['correction.gemFormula'] = u.Execution.Parameter['gem']
             self._params['correction.demMap'] = u.Execution.Parameter['demMap']
 
-        #self._params['outMaps.outDir'] = u.Execution.OutMaps['outDir']
         self._params['outMaps.clone'] = u.Execution.OutMaps['cloneMap']
 
         self._params['interpolation.mode'] = u.Execution.OutMaps.Interpolation['mode'] if u.Execution.OutMaps.Interpolation['mode'] else DEFAULT_VALUES['interpolation.mode'] #must be recognised
         self._params['interpolation.dir'] = u.Execution.OutMaps.Interpolation['intertableDir'] if u.Execution.OutMaps.Interpolation['intertableDir'] else None
-        # self._set_additional_interp_attrs(u.Execution.OutMaps.Interpolation)
         self._params['interpolation.latMap'] = u.Execution.OutMaps.Interpolation['latMap']
         self._params['interpolation.lonMap'] = u.Execution.OutMaps.Interpolation['lonMap']
 
         #optional parameters
         self._params['outMaps.namePrefix'] = u.Execution.OutMaps['namePrefix'] if u.Execution.OutMaps['namePrefix'] else u.Execution.Parameter['shortName']
         self._params['outMaps.unitTime'] = u.Execution.OutMaps['unitTime'] if u.Execution.OutMaps['unitTime'] else None #in hours #number
-        #self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] if u.Execution.OutMaps['ext'] else '1' #number
         if self._params['outMaps.fmap'] is None:
             self._params['outMaps.fmap'] = u.Execution.OutMaps['fmap'] if u.Execution.OutMaps['fmap'] is not None else '1' #number
         if self._params['outMaps.ext'] is None:
             self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] if u.Execution.OutMaps['ext'] else '1' #number
+
         #if start, end and dataTime are defined via command line input args, these are ignored.
         if self._params['parameter.tstart'] is None:
             self._params['parameter.tstart'] = u.Execution.Parameter['tstart'] #number
@@ -192,6 +194,8 @@ class ExecutionContext:
             self._params['parameter.tend'] = u.Execution.Parameter['tend']  #number
         if self._params['parameter.dataTime'] is None:
             self._params['parameter.dataTime'] = u.Execution.Parameter['dataTime']  #number
+        if self._params['parameter.dataDate'] is None:
+            self._params['parameter.dataDate'] = u.Execution.Parameter['dataDate']  #date
 
         self._params['parameter.level'] = u.Execution.Parameter['level']  #number
 
@@ -205,7 +209,6 @@ class ExecutionContext:
                 if self._params['aggregation.type'] == MANIPULATION_ACCUM and u.Execution.Aggregation['forceZeroArray'] and u.Execution.Aggregation['forceZeroArray'] not in FALSE_STRINGS:
                     self._params['aggregation.forceZeroArray'] = True
 
-
     def must_do_manipulation(self):
         return self._params['execution.doAggregation']
 
@@ -217,12 +220,6 @@ class ExecutionContext:
 
     def is_2_input_files(self):
         return self._params['input.two_resolution']
-
-    # def _set_additional_interp_attrs(self, interp_conf_node):
-    #     pass
-    #     # for addattrs in KNOWN_INTERP_MODES[self._params['interpolation.mode']]:
-    #     #     key = self._params['interpolation.mode'] + '.' + addattrs
-    #     #     self._params[key] = interp_conf_node[addattrs] if interp_conf_node[addattrs] is not None else DEFAULT_VALUES[key]
 
     @staticmethod
     def _read_conversion(param_conf_node, conversion_id):
@@ -300,6 +297,7 @@ class ExecutionContext:
                 self._params['parameter.tstart'] = int(self._params['parameter.tstart']) if self._params['parameter.tstart'] is not None else None
 
                 self._params['parameter.dataTime'] = int(self._params['parameter.dataTime']) if self._params['parameter.dataTime'] is not None else None
+                self._params['parameter.dataDate'] = int(self._params['parameter.dataDate']) if self._params['parameter.dataDate'] is not None else None
 
 
                 if self._params['parameter.tend'] is not None and not self._params['parameter.tend'].isdigit():
@@ -329,25 +327,6 @@ class ExecutionContext:
 
                 raise ApplicationException(exc, None, str(exc))
 
-            # #check inv dist additional params if exist
-            #
-            # try:
-            #
-            #     if self._params['interpolation.mode'] in ['invdist', 'nearest']:
-            #         if self._params[self._params['interpolation.mode']+'.p'] is not None and not self._params[self._params['interpolation.mode']+'.p'].isdigit():
-            #             raise ApplicationException.get_programmatic_exc(1400, 'Interpolation param p')
-            #         self._params[self._params['interpolation.mode']+'.p'] = int(self._params[self._params['interpolation.mode']+'.p']) if self._params[self._params['interpolation.mode']+'.p'] is not None else None
-            #         if self._params[self._params['interpolation.mode']+'.leafsize'] is not None  and not self._params[self._params['interpolation.mode']+'.leafsize'].isdigit():
-            #             raise ApplicationException.get_programmatic_exc(1400, 'Interpolation param leafsize')
-            #         self._params[self._params['interpolation.mode']+'.leafsize'] = int(self._params[self._params['interpolation.mode']+'.leafsize']) if self._params[self._params['interpolation.mode']+'.leafsize'] is not None else None
-            #         #for float numbers is best to do:
-            #         try:
-            #             self._params[self._params['interpolation.mode']+'.eps'] = float(self._params[self._params['interpolation.mode']+'.eps']) if self._params[self._params['interpolation.mode']+'.eps'] is not None else None
-            #         except ValueError:
-            #             raise ApplicationException.get_programmatic_exc(1400, 'Interpolation param eps')
-            # except Exception, exc:
-            #
-            #     raise ApplicationException(exc, None, str(exc))
 
             try:
                 #check tstart<=tend
@@ -384,15 +363,21 @@ class ExecutionContext:
 
     def create_select_cmd_for_reader(self, start_, end_):
         self._log('\n\n**********Selecting gribs using:************ \n')
+
         ## 'var' suffix is for multiresolution 240 step message (global EUE files)
-        reader_args = {'shortName': [str(self._params['parameter.shortName']), str(self._params['parameter.shortName'] + 'var')]}
+        reader_args = {'shortName': [str(self._params['parameter.shortName']), str(self._params['parameter.shortName']).upper(), str(self._params['parameter.shortName'] + 'var')]}
+
         self._log('---variable short name = %s' % reader_args['shortName'])
+
         if self._params['parameter.level'] is not None:
             reader_args['level'] = self._params['parameter.level']
-            self._log('---level = %d'%self._params['parameter.level'])
+            self._log('---level = %d' % self._params['parameter.level'])
         if self._params['parameter.dataTime'] is not None:
             reader_args['dataTime'] = self._params['parameter.dataTime']
-            self._log('---dataTime = %s'%self._params['parameter.dataTime'])
+            self._log('---dataTime = %s' % self._params['parameter.dataTime'])
+        if self._params['parameter.dataDate'] is not None:
+            reader_args['dataDate'] = self._params['parameter.dataDate']
+            self._log('---dataDate = %s' % self._params['parameter.dataDate'])
 
         if self.has_perturbation_number():
             reader_args['perturbationNumber'] = self._params['parameter.perturbationNumber']

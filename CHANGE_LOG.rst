@@ -1,6 +1,16 @@
 CHANGE LOG
 ==========
 
+v 1.3.2
+-------
+
+* **051** Improvement (minor)
+
+   Added a new option to select messages based on the dataDate GRIB key. It's not possible to select a range of dates.
+   For certain GRIB files, this could be used in conjuction with the already existing dataTime option.
+
+
+
 v 1.3.1
 -------
 
