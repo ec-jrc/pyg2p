@@ -1,7 +1,7 @@
 CHANGE LOG
 ==========
 
-v 1.3.2
+v 1.3.3
 -------
 
 * **053** Bug Fix (minor)
@@ -11,6 +11,10 @@ v 1.3.2
 * **052** Improvement (major)
 
     Added AFFS configurations and tests
+
+
+v 1.3.2
+-------
 
 * **051** Improvement (minor)
 
