@@ -74,13 +74,12 @@
  p17@ -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111912 -o /dataset/testdiffmaps/dwdlme/ -s 6 -e 78 --fmap=1 -l ERROR -c /pyg2p_git/execution_templates_devel/dwdl_r06.xml
 
 
-
  #################################
  ### SCIPY INTERPOLATION TESTS ###
  #################################
 
+ ### pyg2p SCIPY vs- grib2pcraster###
 
- ###SCIPY###
  # EUE
  g18@ -p 167.128 -n gT24 -t 24 --fmap=1 -m 10 --ext=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueT24
  p18@ -l ERROR -c /pyg2p_git/execution_templates_devel/eue_t24_scipy_nn.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueT24 -m 10
@@ -91,7 +90,7 @@
  g20@ -p 228.128 -n gR24 -t 24 --fmap=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueR24 -m 10
  p20@ -l ERROR -c /pyg2p_git/execution_templates_devel/eue_r24_scipy_nn.xml -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueR24 -m 10
 
-# DWD
+ # DWD
  g21@  -p 102.201 -n gR06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdR06
  p21@  -l ERROR -c /pyg2p_git/execution_templates_devel/dwd_r06_scipy_inv.xml -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdR06
 
@@ -101,7 +100,7 @@
  g23@ -p 11.2 -n gT24 -t 24 --fmap=1 -e 30 --ext=4 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdT24
  p23@ -l ERROR -c /pyg2p_git/execution_templates_devel/dwd_t24_scipy_nn.xml -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdT24
 
- #COSMO
+ # COSMO
  g24@ -p 61.2 -n gR06 -t 06 --fmap=1 -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoR06 -m 10
  p24@ -l ERROR -c /pyg2p_git/execution_templates_devel/cosmo_r06_scipy_nn.xml -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoR06 -m 10
 
@@ -111,7 +110,7 @@
  g26@ -p 11.2 -n gT24 -t 24 --fmap=1 -m 10 --ext=4 -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24
  p26@ -l ERROR -c /pyg2p_git/execution_templates_devel/cosmo_t24_scipy_inv.xml -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24 -m 10
 
- #EUD
+ # EUD
  g27@ -p 228.128 -n gR06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudR06
  p27@ -l ERROR -c /pyg2p_git/execution_templates_devel/eud_r06_scipy_nn.xml -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudR06
 
@@ -121,7 +120,7 @@
  g29@ -p 167.128 -n gT24 -t 24 --fmap=1 -s 30 -e 30 --ext=4 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudT24
  p29@ -l ERROR -c /pyg2p_git/execution_templates_devel/eud_t24_scipy_nn.xml -s 30 -e 30 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudT24
 
- #GLOFAS
+ # GLOFAS
  #glofas commands. grib2pcraster needs two executions for each pyg2p command
  g30@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
  g30@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
@@ -131,6 +130,7 @@
  g31@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
  p31@ -l ERROR -c /pyg2p_git/execution_templates_devel/glofas_ssro_scipy_nn.xml -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50
 
+ ## COMPARISON TESTS BETWEEN GRIB_API and SCIPY interpolation methods in pyg2p
  p90@ -l ERROR -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_g.xml -m 0
  z90@ -l ERROR -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_scipy_nn.xml -m 0
 
@@ -149,4 +149,37 @@
  #p95@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_g.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
  #z95@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_scipy_nn.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
 
+ ############# AFFS TESTS ######################
+
+ g96@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/ta -p 167.128 -m 0 --ma 1 -n gta --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g96@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/ta -p 167.128 -m 0 --ma 1 -n gta --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p96@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/ta -c /pyg2p_git/execution_templates_devel/AFFS_ta.xml -m 0 -s 0 -e 360 --fmap=1
+
+ g97@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/td -p 168.128 -m 0 --ma 1 -n gtd --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt --interlookup2=/dataset/AFFS/intertableAfrica_320.txt
+ g97@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/td -p 168.128 -m 0 --ma 1 -n gtd --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p97@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/td -c /pyg2p_git/execution_templates_devel/AFFS_td.xml -m 0 -s 0 -e 360
+
+ g98@ -i /dataset/AFFS/FCACC.20141030.T639.0.grb -o /dataset/AFFS/out/rg -p 176.128 -m 0 --ma 2 -n grg --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g98@ -i /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rg -p 176.128 -m 0 --ma 2 -n grg --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p98@ -l ERROR -i /dataset/AFFS/FCACC.20141030.T639.0.grb -I /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rg -c /pyg2p_git/execution_templates_devel/AFFS_rg.xml -m 0 -s 0 -e 360
+
+ g99@ -i /dataset/AFFS/FCACC.20141030.T639.0.grb -o /dataset/AFFS/out/rn -p 177.128 -m 0 --ma 2 -n grn --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g99@ -i /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rn -p 177.128 -m 0 --ma 2 -n grn --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p99@ -l ERROR -i /dataset/AFFS/FCACC.20141030.T639.0.grb -I /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rn -c /pyg2p_git/execution_templates_devel/AFFS_rn.xml -m 0 -s 0 -e 360
+
+ g100@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/wu -p 165.128 -m 0 --ma 1 -n gwu --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g100@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wu -p 165.128 -m 0 --ma 1 -n gwu --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p100@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wu -c /pyg2p_git/execution_templates_devel/AFFS_wu.xml -m 0 -s 0 -e 360
+
+ g101@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/wv -p 166.128 -m 0 --ma 1 -n gwv --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g101@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wv -p 166.128 -m 0 --ma 1 -n gwv --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p101@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wv -c /pyg2p_git/execution_templates_devel/AFFS_wv.xml -m 0 -s 0 -e 360
+
+ g102@ -i /dataset/AFFS/FCACC.20141031.T639.10.grb -o /dataset/AFFS/out/cp -p 143.128 -m 10 --ma 2 -n gcp --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g102@ -i /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/cp -p 143.128 -m 10 --ma 2 -n gcp --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p102@ -l ERROR -i /dataset/AFFS/FCACC.20141031.T639.10.grb -I /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/cp -c /pyg2p_git/execution_templates_devel/AFFS_cp.xml -m 10 -s 0 -e 360
+
+ g103@ -i /dataset/AFFS/FCACC.20141031.T639.10.grb -o /dataset/AFFS/out/lsp -p 142.128 -m 10 --ma 2 -n glsp --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g103@ -i /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/lsp -p 142.128 -m 10 --ma 2 -n glsp --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p103@ -l ERROR -i /dataset/AFFS/FCACC.20141031.T639.10.grb -I /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/lsp -c /pyg2p_git/execution_templates_devel/AFFS_lsp.xml -m 10 -s 0 -e 360
 
