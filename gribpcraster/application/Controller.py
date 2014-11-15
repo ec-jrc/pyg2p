@@ -65,7 +65,7 @@ class Controller:
         grid_id = messages.getGridId()
         return grid_id, messages, type_of_param
 
-    def secondResManipulation(self, change_step, end_step, input_step, messages, mvGrib, type_of_param, values):
+    def second_res_manipulation(self, change_step, end_step, input_step, messages, mvGrib, type_of_param, values):
 
         #manipulation of second res messages
         start_step2 = int(change_step.end_step) + int(self._ctx.get('aggregation.step'))
@@ -82,8 +82,8 @@ class Controller:
         values = collections.OrderedDict(sorted(values.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
         return change_step, values
 
-    def createOutMap(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
-                     second_spatial_resolution=False):
+    def create_out_map(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
+                       second_spatial_resolution=False):
 
         if self._ctx.get('logging.level') == 'DEBUG':
             self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
@@ -116,7 +116,6 @@ class Controller:
                 v[v != self._mvEfas].max()))
 
         self._pcraster_writer.write(self._name_map(i), v, self._mvEfas)
-
 
     def read_2nd_res_messages(self, commandArgs, messages):
         #append messages
@@ -175,7 +174,7 @@ class Controller:
                 lats2, longs2 = messages.getLatLons2()
             grid_id2 = messages.getGridId2()
             if self._ctx.must_do_manipulation():
-                change_res_step, values = self.secondResManipulation(change_res_step, end_step, input_step, messages,
+                change_res_step, values = self.second_res_manipulation(change_res_step, end_step, input_step, messages,
                                                                      mvGrib, type_of_param, values)
 
         if self._ctx.must_do_conversion() and converter.mustDoCutOff():
@@ -205,7 +204,7 @@ class Controller:
             if i == 1 or changed_res:
                 #log the interpolation table name only on first map or at the first extended resolution map
                 log_it = True
-            self.createOutMap(grid_id, i, lats, longs, timestep, v, log_intertable=log_it, gid=-1,
+            self.create_out_map(grid_id, i, lats, longs, timestep, v, log_intertable=log_it, gid=-1,
                               second_spatial_resolution=second_resolution)
             v = None
             del v

@@ -1,8 +1,10 @@
 .idea/
-.idea/workspace.xml
 *.py[c|o]
 ~*.*
-*.~
+*.*~
 intertables_backup/
-configuration/alternate_intertables/
+configuration/alternate_intertables
+configuration/intertables
+configuration/geopotentials
+
 

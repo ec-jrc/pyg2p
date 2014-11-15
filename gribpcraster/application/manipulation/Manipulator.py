@@ -20,6 +20,7 @@ PARAM_INSTANT = 'instant'
 PARAM_AVG = 'avg'
 PARAM_CUM = 'accum'
 
+
 class Manipulator(object):
 
     def __init__(self, aggr_step, aggr_type, input_step, step_type_, start_step, end_step, unit_time, mv_, force_zero_array=False, sec_temp_res=False, lastFirstResMessage=None):
@@ -92,9 +93,10 @@ class Manipulator(object):
         created_zero_array = False
         for iter_ in xrange(self._start, self._end + 1, self._aggregation_step):
             if iter_ not in v_ord.keys():
+                self._log('Message %d not in %s. ' % (iter_, str(v_ord.keys())))
                 ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_)
+                self._log('Found index %d as bisect_left. ' % (ind_next_ts))
                 next_ts = v_ord.keys()[ind_next_ts]
-
                 v_nts_ma = _mask_it(v_ord[next_ts], self._mvGrib)
                 self._log('Message %d not in dataset. Creating it. Masking with %.2f' % (iter_, self._mvGrib))
 
@@ -214,14 +216,18 @@ class Manipulator(object):
         ordered = collections.OrderedDict(sorted(out_values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
         return ordered
 
+    def _find_start(self):
+        start = self._start - self._aggregation_step if self._start - self._aggregation_step > 0 else self._start
+        if self._step_type == PARAM_AVG:
+            start = self._start + self._input_step
+        return start
+
     def _instantaneous(self, values):
         if self._step_type in [PARAM_CUM]:
             raise ApplicationException.get_programmatic_exc(6100, details="Manipulation %d for parameter type: %s"%(self._aggregation, self._step_type))
         elif self._step_type in [PARAM_INSTANT, PARAM_AVG]:
             out_values = {}
-            start = self._start
-            if self._step_type == PARAM_AVG:
-                start = self._start + self._input_step
+            start = self._find_start()
             resolution_1 = values.keys()[0].resolution
             shape_iter = values[values.keys()[0]].shape
 

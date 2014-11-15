@@ -1,6 +1,18 @@
 CHANGE LOG
 ==========
 
+v 1.3.2
+-------
+
+* **52** Bug Fix (minor)
+
+    Show help when pyg2p is launched without arguments
+
+* **51** Improvement (major)
+
+    Added AFFS configurations and tests
+
+
 v 1.3.1
 -------
 

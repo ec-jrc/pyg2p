@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    <Execution name="AFFS_T24" id="1" >
+        <Parameter shortName="2d" applyConversion="k2c"
+                gem="(z/9.81)*0.0065"
+                correctionFormula="p+gem-dem*0.0065"
+                demMap="/dataset/vera/dem_mean.map" />
+
+         <Aggregation type="average" step="24" />
+
+        <OutMaps namePrefix="ptd" fmap="1" ext="1" unitTime="24"
+                 cloneMap="/dataset/vera/dem_mean.map" >
+            <Interpolation mode="grib_nearest"
+                           latMap="/dataset/vera/lat.map"
+                           lonMap="/dataset/vera/lon.map" />
+        </OutMaps>
+    </Execution>

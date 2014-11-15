@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 __author__ = "Nappo Domenico"
-__date__ = "$Jun 10, 2014 19:00$"
-__version__ = "1.3"
+__date__ = "November 15, 2014 19:00"
+__version__ = "1.3.2"
 
 import sys
 import collections
@@ -24,7 +24,8 @@ def run_command(cmd):
     argv = to_argv(str(cmd))
     return main(argv[1:])
 
-def addGeo(geopotential_file):
+
+def add_geo(geopotential_file):
     import util.configuration.geopotentials as geo
     geo.add(geopotential_file, _log)
 
@@ -99,11 +100,11 @@ def main(*args):
             usage()
             return 0
         elif exc_ctx.user_wants_to_add_geopotential():
-            addGeo(exc_ctx.get('geopotential'))
+            add_geo(exc_ctx.get('geopotential'))
             return 0
         elif exc_ctx.user_wants_to_test():
+            import memory_profiler
             try:
-                import memory_profiler
                 run_tests(exc_ctx.get('test.xml'))
                 return 0
             except ImportError:

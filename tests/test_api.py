@@ -57,7 +57,7 @@ class TestAPI(unittest.TestCase):
         self.assertListEqual(g_xml_element, [])
         self.assertTrue(not fm.exists(os.path.join(gp.DIR, 'T3999.gph.grb')))
 
-        pyg2p.addGeo('/dataset/maps/fredrik/T3999.gph.grb')
+        pyg2p.add_geo('/dataset/maps/fredrik/T3999.gph.grb')
 
         u2 = untangle.parse(gp.CONFIG_FILE)
         g_xml_element = [x for x in u2.geopotentials.geopotential if x['name'] == 'T3999.gph.grb']

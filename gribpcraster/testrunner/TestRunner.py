@@ -75,11 +75,11 @@ class TestRunner(object):
                 else:
                     print print_colored(G, '[GOOD] Almost all values are good [{:3.4f}% of differences]!'.format(perc_wrong))
         if failed:
-            return 1
+            return '1'
         elif problematic:
-            return 2
+            return '2'
         else:
-            return 0
+            return '0'
 
     @staticmethod
     def _print_time_diffs(elapsed_counter_part, elapsed_pyg2p, test_, from_scipy=False):
@@ -111,17 +111,17 @@ class TestRunner(object):
         elapsed_test = time.time() - elapsed_test
         print '\n\n\n' + print_colored(Y, '=========== TEST SUITE SUMMARY ==============')
         print print_colored(Y, '{} tests  executed in {}'.format(str(num_tests), str(datetime.timedelta(seconds=elapsed_test))))
-        print print_colored(Y, 'successful {}, problematic: {}, failed: {}'.format(len(results[0]), len(results[2]), len(results[1])))
-        print print_colored(R, 'Failed tests: {}'.format(str(results[1])))
-        print print_colored(W, 'Problematic tests: {}'.format(str(results[2])))
-        print print_colored(G, 'Successful tests: {}'.format(str(results[0])))
+        print print_colored(Y, 'successful {}, problematic: {}, failed: {}'.format(len(results['0']), len(results['2']), len(results['1'])))
+        print print_colored(R, 'Failed tests: {}'.format(str(results['1'])))
+        print print_colored(W, 'Problematic tests: {}'.format(str(results['2'])))
+        print print_colored(G, 'Successful tests: {}'.format(str(results['0'])))
         print '\n' + print_colored(Y, '=================== END ======================') + '\n'
 
     def run(self):
 
         num_tests = g_num_maps = z_num_maps = avg_mem_scipy = max_mem_scipy = 0
         g_maps = z_maps = []
-        results = {0: [], 1: [], 2: []}   # 0: succes, 1: errors, 2: problematic (with differences but up to 5%)
+        results = {'0': [], '1': [], '2': []}   # 0: succes, 1: errors, 2: problematic (with differences but up to 5%)
 
         ordered_tests = collections.OrderedDict(sorted(self._ctx.get('tests').iteritems(), key=lambda k: int(k[0])))
         elapsed_test = time.time()
@@ -178,7 +178,8 @@ class TestRunner(object):
     def _check_maps(self, p_num_maps, test_, o_num_maps, o_maps, results):
         if p_num_maps != o_num_maps:
             raw_input(print_colored(R, 'xxxxxxx! ATTENTION!!! Potential misconfiguration or bug! Number of maps are different p:' + str(p_num_maps) + ' g:' + str(o_num_maps)))
-
-        print '\n\n====> Producing pcraster diff maps. Copy and paste aguila commands to compare them.'
-        res = self.do_pcdiffs(self._ctx.get('pcrasterdiff.exec'), test_, o_maps)
-        results[res].append(test_.id)
+            results['1'].append(test_.id)
+        else:
+            print '\n\n====> Producing pcraster diff maps. Copy and paste aguila commands to compare them.'
+            res = self.do_pcdiffs(self._ctx.get('pcrasterdiff.exec'), test_, o_maps)
+            results[res].append(test_.id)

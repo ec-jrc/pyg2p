@@ -1,19 +1,47 @@
+ ######################################################
  #use '#' for comments and empty lines for readability#
  ######################################################
- ############# CURRENT FEW TESTS ######################
-#only pyg2p tests (these are not reproducible with grib2pcraster 1.07)
- p90@ -l ERROR -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_g.xml -m 0
- z90@ -l ERROR -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_scipy_nn.xml -m 0
 
- p91@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_g.xml -m 0
- z91@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_scipy_inv.xml -m 0
+ ############# CURRENT FEW TESTS (AFFS) ######################
 
- p92@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_g.xml -m 0
- z92@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_scipy_inv.xml -m 0
+ g0@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/ta -p 167.128 -m 0 --ma 1 -n gta --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g0@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/ta -p 167.128 -m 0 --ma 1 -n gta --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p0@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/ta -c /pyg2p_git/execution_templates_devel/AFFS_ta.xml -m 0 -s 0 -e 360 --fmap=1
 
- p93@ -l ERROR -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_g.xml -s 24 -e 360 -m 09 --fmap=1
- z93@ -l ERROR -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_scipy_nn.xml -s 24 -e 360 -m 09 --fmap=1
+ g1@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/td -p 168.128 -m 0 --ma 1 -n gtd --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt --interlookup2=/dataset/AFFS/intertableAfrica_320.txt
+ g1@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/td -p 168.128 -m 0 --ma 1 -n gtd --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p1@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/td -c /pyg2p_git/execution_templates_devel/AFFS_td.xml -m 0 -s 0 -e 360
 
- p94@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
- z94@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.xml -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+ g2@ -i /dataset/AFFS/FCACC.20141030.T639.0.grb -o /dataset/AFFS/out/rg -p 176.128 -m 0 --ma 2 -n grg --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g2@ -i /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rg -p 176.128 -m 0 --ma 2 -n grg --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p2@ -l ERROR -i /dataset/AFFS/FCACC.20141030.T639.0.grb -I /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rg -c /pyg2p_git/execution_templates_devel/AFFS_rg.xml -m 0 -s 0 -e 360
 
+ g3@ -i /dataset/AFFS/FCACC.20141030.T639.0.grb -o /dataset/AFFS/out/rn -p 177.128 -m 0 --ma 2 -n grn --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g3@ -i /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rn -p 177.128 -m 0 --ma 2 -n grn --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p3@ -l ERROR -i /dataset/AFFS/FCACC.20141030.T639.0.grb -I /dataset/AFFS/FCACC.20141030.T319.0.grb -o /dataset/AFFS/out/rn -c /pyg2p_git/execution_templates_devel/AFFS_rn.xml -m 0 -s 0 -e 360
+
+ g4@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/wu -p 165.128 -m 0 --ma 1 -n gwu --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g4@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wu -p 165.128 -m 0 --ma 1 -n gwu --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p4@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wu -c /pyg2p_git/execution_templates_devel/AFFS_wu.xml -m 0 -s 0 -e 360
+
+ g5@ -i /dataset/AFFS/FCINST.20141030.T639.0.grb -o /dataset/AFFS/out/wv -p 166.128 -m 0 --ma 1 -n gwv --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g5@ -i /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wv -p 166.128 -m 0 --ma 1 -n gwv --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p5@ -l ERROR -i /dataset/AFFS/FCINST.20141030.T639.0.grb -I /dataset/AFFS/FCINST.20141030.T319.0.grb -o /dataset/AFFS/out/wv -c /pyg2p_git/execution_templates_devel/AFFS_wv.xml -m 0 -s 0 -e 360
+
+ g6@ -i /dataset/AFFS/FCACC.20141031.T639.10.grb -o /dataset/AFFS/out/cp -p 143.128 -m 10 --ma 2 -n gcp --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g6@ -i /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/cp -p 143.128 -m 10 --ma 2 -n gcp --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p6@ -l ERROR -i /dataset/AFFS/FCACC.20141031.T639.10.grb -I /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/cp -c /pyg2p_git/execution_templates_devel/AFFS_cp.xml -m 10 -s 0 -e 360
+
+ g7@ -i /dataset/AFFS/FCACC.20141031.T639.10.grb -o /dataset/AFFS/out/lsp -p 142.128 -m 10 --ma 2 -n glsp --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=/dataset/AFFS/intertableAfrica_640.txt
+ g7@ -i /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/lsp -p 142.128 -m 10 --ma 2 -n glsp --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
+ p7@ -l ERROR -i /dataset/AFFS/FCACC.20141031.T639.10.grb -I /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/lsp -c /pyg2p_git/execution_templates_devel/AFFS_lsp.xml -m 10 -s 0 -e 360
+
+
+#167.128 2t
+#168.128 2d
+#176.128 ssr
+#177.128 str
+#165.128 10u
+#166.128 10v
+#143.128 cp
+#142.128 lsp

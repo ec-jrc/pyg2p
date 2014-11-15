@@ -19,4 +19,6 @@
   <geopotential id="0$359$MISSING$1280$2140702$reduced_gg" name="global_N640.grb" />
   <geopotential id="0$359.1667$432$325$140400$regular_ll" name="geo_UKMO2.grb" />
   <geopotential id="0$359.955$MISSING$4000$20696844$reduced_gg" name="T3999_corr.grb" />
+  <geopotential id="0$359.718$MISSING$640$542080$reduced_gg" name="T639.gph.grib" />
+  <geopotential id="0$359.437$MISSING$320$138346$reduced_gg" name="T319.gph.grib" />
 </geopotentials>

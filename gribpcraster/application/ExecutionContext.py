@@ -28,31 +28,31 @@ class ExecutionContext:
         self._addGeopotential = False
         self._params = {'outMaps.outDir': './', 'aggregation.forceZeroArray': False}
 
-        try:
-            #read cli input args (commands file path, input files, output dir, or shows help and exit)
-            self._define_input_args(argv)
-            if not (self.user_wants_to_add_geopotential() or self.user_wants_help() or self.user_wants_to_test()):
-                #read config files and define execuition parameters (set defaults also)
-                self._define_exec_params()
-        except ApplicationException, err:
-            raise err
-        except ValueError, err:
-            raise ApplicationException(err, None, str(err))
-        except Exception, err:
-            raise ApplicationException(err, None, str(err))
+        if not argv:
+            self._showHelp = True
+        else:
+            try:
+                #read cli input args (commands file path, input files, output dir, or shows help and exit)
+                self._define_input_args(argv)
+                if not (self.user_wants_to_add_geopotential() or self.user_wants_help() or self.user_wants_to_test()):
+                    #read config files and define execuition parameters (set defaults also)
+                    self._define_exec_params()
+            except ApplicationException, err:
+                raise err
+            except ValueError, err:
+                raise ApplicationException(err, None, str(err))
+            except Exception, err:
+                raise ApplicationException(err, None, str(err))
 
-        #check numbers, existing dirs and files, supported options, semantics etc.
-        try:
-            #pass
-            self._check_exec_params()
-        except ApplicationException, err:
-            raise err
-        except ValueError, err:
-            raise ApplicationException(err, None, str(err))
-            #raise err
-        except Exception, exc:
-            raise ApplicationException(exc, None, str(exc))
-            #raise exc
+            #check numbers, existing dirs and files, supported options, semantics etc.
+            try:
+                self._check_exec_params()
+            except ApplicationException, err:
+                raise err
+            except ValueError, err:
+                raise ApplicationException(err, None, str(err))
+            except Exception, exc:
+                raise ApplicationException(exc, None, str(exc))
 
     def interpolate_with_grib(self):
         return self._params['interpolation.mode'].startswith('grib_')  # in ['grib_invdist', 'grib_nearest']
