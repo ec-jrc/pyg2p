@@ -1,6 +1,14 @@
 CHANGE LOG
 ==========
 
+v 1.3.4
+-------
+
+* **054** Improvement (minor)
+
+    Added name prefix as command line argument (overwriting XML template configuration)
+
+
 v 1.3.3
 -------
 

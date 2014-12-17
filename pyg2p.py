@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 __author__ = "Nappo Domenico"
-__date__ = "November 15, 2014 19:00"
-__version__ = "1.3.3"
+__date__ = "December 2, 2014 09:00"
+__version__ = "1.3.4"
 
 import sys
 import collections
@@ -93,7 +93,7 @@ def main(*args):
     if __name__ in ("__main__", "pyg2p") and isinstance(args[0], list):
         args = args[0]
     try:
-        #read configuration (commands.xml, parameters.xml, loggers, geopotentials.xml if there is correction)
+        # read configuration (commands.xml, parameters.xml, loggers, geopotentials.xml if there is correction)
         exc_ctx = ExecutionContext(args)
 
         if exc_ctx.user_wants_help():

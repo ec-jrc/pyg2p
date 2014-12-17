@@ -5,7 +5,7 @@
 
          <Aggregation type="accumulation" step="24" />
 
-        <OutMaps namePrefix="prg" fmap="1" ext="1" unitTime="24"
+        <OutMaps namePrefix="rg" fmap="1" ext="1" unitTime="24"
                  cloneMap="/dataset/vera/dem_mean.map" >
             <Interpolation mode="grib_nearest"
                            latMap="/dataset/vera/lat.map"

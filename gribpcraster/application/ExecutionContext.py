@@ -63,13 +63,13 @@ class ExecutionContext:
     def _define_input_args(self, argv):
 
         try:
-            opts, argv = getopt.getopt(argv, "hc:o:i:I:m:T:D:l:d:g:t:s:e:f:x:", ['help', 'commandsFile=', 'outDir=',
-                                                                                 'inputFile=', 'inputFile2=',
-                                                                                 'perturbationNumber=',
-                                                                                 'dataTime=', 'dataDate',
-                                                                                 'loggerlLevel=', 'outLogDir=',
-                                                                                 'addGeopotential=', 'test=',
-                                                                                 'start=', 'end=', 'fmap=', 'ext='])
+            opts, argv = getopt.getopt(argv, "hc:o:i:I:m:T:D:l:d:g:t:s:e:f:x:n:", ['help', 'commandsFile=', 'outDir=',
+                                                                                   'inputFile=', 'inputFile2=',
+                                                                                   'perturbationNumber=',
+                                                                                   'dataTime=', 'dataDate',
+                                                                                   'loggerlLevel=', 'outLogDir=',
+                                                                                   'addGeopotential=', 'test=',
+                                                                                   'start=', 'end=', 'fmap=', 'ext=', 'namePrefix='])
         except getopt.GetoptError, err:
             raise ApplicationException(err, None, str(err))
 
@@ -82,6 +82,7 @@ class ExecutionContext:
         self._params['parameter.dataDate'] = None
         self._params['outMaps.fmap'] = None
         self._params['outMaps.ext'] = None
+        self._params['outMaps.namePrefix'] = None
 
         for opt, val in opts:
             if opt in ('-c', '--commandsFile'):
@@ -100,6 +101,8 @@ class ExecutionContext:
                 self._params['outMaps.fmap'] = val
             elif opt in ('-x', '--ext'):
                 self._params['outMaps.ext'] = val
+            elif opt in ('-n', '--namePrefix'):
+                self._params['outMaps.namePrefix'] = val
             elif opt in ('-l', '--loggerLevel'):
                 self._params['logger.level'] = val
             elif opt in ('-d', '--outLogDir'):
@@ -179,15 +182,16 @@ class ExecutionContext:
         self._params['interpolation.latMap'] = u.Execution.OutMaps.Interpolation['latMap']
         self._params['interpolation.lonMap'] = u.Execution.OutMaps.Interpolation['lonMap']
 
-        #optional parameters
-        self._params['outMaps.namePrefix'] = u.Execution.OutMaps['namePrefix'] if u.Execution.OutMaps['namePrefix'] else u.Execution.Parameter['shortName']
-        self._params['outMaps.unitTime'] = u.Execution.OutMaps['unitTime'] if u.Execution.OutMaps['unitTime'] else None #in hours #number
-        if self._params['outMaps.fmap'] is None:
-            self._params['outMaps.fmap'] = u.Execution.OutMaps['fmap'] if u.Execution.OutMaps['fmap'] is not None else '1' #number
-        if self._params['outMaps.ext'] is None:
-            self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] if u.Execution.OutMaps['ext'] else '1' #number
+        # optional parameters
+        self._params['outMaps.unitTime'] = u.Execution.OutMaps['unitTime'] if u.Execution.OutMaps['unitTime'] else None  # in hours #number
+        if not self._params['outMaps.namePrefix']:
+            self._params['outMaps.namePrefix'] = u.Execution.OutMaps['namePrefix'] or u.Execution.Parameter['shortName']
+        if not self._params['outMaps.fmap']:
+            self._params['outMaps.fmap'] = u.Execution.OutMaps['fmap'] or '1'  # number
+        if not self._params['outMaps.ext']:
+            self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] or '1'  # number
 
-        #if start, end and dataTime are defined via command line input args, these are ignored.
+        # if start, end and dataTime are defined via command line input args, these are ignored.
         if self._params['parameter.tstart'] is None:
             self._params['parameter.tstart'] = u.Execution.Parameter['tstart'] #number
         if self._params['parameter.tend'] is None:
