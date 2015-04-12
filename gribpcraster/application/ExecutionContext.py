@@ -66,7 +66,7 @@ class ExecutionContext:
             opts, argv = getopt.getopt(argv, "hc:o:i:I:m:T:D:l:d:g:t:s:e:f:x:n:", ['help', 'commandsFile=', 'outDir=',
                                                                                    'inputFile=', 'inputFile2=',
                                                                                    'perturbationNumber=',
-                                                                                   'dataTime=', 'dataDate',
+                                                                                   'dataTime=', 'dataDate=',
                                                                                    'loggerlLevel=', 'outLogDir=',
                                                                                    'addGeopotential=', 'test=',
                                                                                    'start=', 'end=', 'fmap=', 'ext=', 'namePrefix='])
@@ -302,7 +302,6 @@ class ExecutionContext:
 
                 self._params['parameter.dataTime'] = int(self._params['parameter.dataTime']) if self._params['parameter.dataTime'] is not None else None
                 self._params['parameter.dataDate'] = int(self._params['parameter.dataDate']) if self._params['parameter.dataDate'] is not None else None
-
 
                 if self._params['parameter.tend'] is not None and not self._params['parameter.tend'].isdigit():
                     raise ApplicationException.get_programmatic_exc(1400, 'End step')

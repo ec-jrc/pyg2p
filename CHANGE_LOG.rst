@@ -1,6 +1,19 @@
 CHANGE LOG
 ==========
 
+v 1.3.5
+-------
+
+* **056** Bug Fix (minor)
+    Fixed wrong order in output values when no aggregation was used
+
+* **055** Improvement (minor)
+
+    Ordering happens only in one place, with beneifts on performances and memory
+    Removed unused code
+    Minor formatting
+
+
 v 1.3.4
 -------
 

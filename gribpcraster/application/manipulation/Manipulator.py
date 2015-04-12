@@ -9,13 +9,13 @@ import gribpcraster.application.ExecutionContext as ex
 from util.numeric.numeric import _mask_it
 from gribpcraster.application.domain.Key import Key
 
-#types of manipulation
+# types of manipulation
 
 MANIPULATION_AVG = 'average'
 MANIPULATION_ACCUM = 'accumulation'
 MANIPULATION_INSTANT = 'instantaneous'
 
-#values of key stepType from grib
+# values of key stepType from grib
 PARAM_INSTANT = 'instant'
 PARAM_AVG = 'avg'
 PARAM_CUM = 'accum'
@@ -47,22 +47,10 @@ class Manipulator(object):
         self._log('Aggregation %s with step %s for %s values from %d to %d [considering from ts=%d]'
                   %(self._aggregation, self._aggregation_step, self._step_type, self._start, self._end, self._usable_start))
 
-        #dict of functions. Substitutes "if then else" pattern in doManipulation
+        # dict of functions. Substitutes "if then else" pattern in doManipulation
         self._functs = {MANIPULATION_ACCUM: self._cumulation,
                         MANIPULATION_AVG: self._average,
                         MANIPULATION_INSTANT: self._instantaneous}
-
-    #input is dict of values[start-end-res-input_step]
-    #out is values(end)
-    @staticmethod
-    def _convert_key_to_endstep(values):
-        v_by_endstep = {}
-        #sets a new dict with different key (using only endstep)
-        for k, v in values.iteritems():
-            v_by_endstep[int(k.end_step)] = v
-        return v_by_endstep
-
-
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
@@ -77,7 +65,6 @@ class Manipulator(object):
         gc.collect()
         return res
 
-    # @profile
     def _cumulation(self, values):
 
         out_values = {}
@@ -145,8 +132,8 @@ class Manipulator(object):
                 # if 0 step is not present in the grib dataset (see line 117)
                 v_iter_1_ma = _mask_it(v_ord[iter_ - self._aggregation_step], self._mvGrib)
 
-            #variables needed for numexpr evaluator namespace
-            #need to create the out array first as zero array, for issue in missing values for certain gribs
+            # variables needed for numexpr evaluator namespace
+            # need to create the out array first as zero array, for issue in missing values for certain gribs
             v_iter_ma = _mask_it(np.zeros(shape_iter), self._mvGrib, shape_iter)
             v_iter_ma += _mask_it(v_ord[iter_], self._mvGrib)
 
@@ -157,10 +144,7 @@ class Manipulator(object):
             out_value = _mask_it(ne.evaluate("(v_iter_ma-v_iter_1_ma)*_unit_time/_aggr_step"), self._mvGrib)
             out_values[key] = out_value
 
-        ordered = collections.OrderedDict(sorted(out_values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
-        out_values = None
-        del out_values
-        return ordered
+        return out_values
 
     def _average(self, values):
 
@@ -194,7 +178,6 @@ class Manipulator(object):
 
                 for iterator_avg in range(iter_from, iter_to, 1):
 
-                    #if (iterator_avg % self._input_step)==0:
                     if iterator_avg in v_ord.keys():
                         self._log('temp_sum += grib[%d]'%iterator_avg, 'DEBUG')
                         v_ma = _mask_it(v_ord[iterator_avg], self._mvGrib)
@@ -213,8 +196,7 @@ class Manipulator(object):
                 result_iter_avg = _mask_it(ne.evaluate("temp_sum/_aggregation_step"), self._mvGrib)
                 out_values[key] = result_iter_avg
 
-        ordered = collections.OrderedDict(sorted(out_values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
-        return ordered
+        return out_values
 
     def _find_start(self):
         start = self._start - self._aggregation_step if self._start - self._aggregation_step > 0 else self._start
@@ -231,7 +213,7 @@ class Manipulator(object):
             resolution_1 = values.keys()[0].resolution
             shape_iter = values[values.keys()[0]].shape
 
-            #sets a new dict with different key (using only endstep)
+            # sets a new dict with different key (using only endstep)
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
 
             for iter_ in range(start, self._end + 1, self._aggregation_step):
@@ -242,7 +224,7 @@ class Manipulator(object):
                     res_inst += _mask_it(v_ord[iter_], self._mvGrib)
                 else:
                     if iter_ == 0:
-                        #left out as zero arrays if 0 step is not in the grib
+                        # left out as zero arrays if 0 step is not in the grib
                         self._log('out[%s] = zeros' % key)
                         pass
                     else:
@@ -252,8 +234,7 @@ class Manipulator(object):
                         res_inst += _mask_it(v_ord[next_], self._mvGrib)
                 out_values[key] = res_inst
 
-        ordered = collections.OrderedDict(sorted(out_values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
-        return ordered
+        return out_values
 
     def get_real_start_end_steps(self):
         return self._usable_start, self._end

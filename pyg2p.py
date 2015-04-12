@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 __author__ = "Nappo Domenico"
-__date__ = "December 2, 2014 09:00"
-__version__ = "1.3.4"
+__date__ = "April 12, 2015 21:45"
+__version__ = "1.3.5"
 
 import sys
 import collections
@@ -15,7 +15,7 @@ from util.conversion.FromStringConversion import to_argv, to_argdict
 
 # API
 
-#Command factory
+# Command factory
 def command(*args):
     return Command(*args)
 

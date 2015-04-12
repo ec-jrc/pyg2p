@@ -1,10 +1,10 @@
+import collections
 from gribpcraster.application.manipulation.Conversion import Converter
 from gribpcraster.application.manipulation.Correction import Corrector
 from gribpcraster.application.interpolation.Interpolation import Interpolator
 from gribpcraster.application.readers.GRIBReader import GRIBReader
 from gribpcraster.application.writers.PCRasterWriter import PCRasterWriter
 from gribpcraster.application.manipulation.Manipulator import Manipulator as mnp
-import gribpcraster.application.ExecutionContext as ex
 import numpy as np
 from util.logger.Logger import Logger
 import gc
@@ -21,7 +21,7 @@ class Controller:
         self._ctx = executionContext
         self._logger = Logger('controller', loggingLevel=executionContext.get('logger.level'))
         self._reader = None
-        #GRIB reader for second spatial resolution file
+        # GRIB reader for second spatial resolution file
         self._reader2 = None
         self._firstMap = True
         self._interpolator = None
@@ -45,7 +45,8 @@ class Controller:
         self._mvEfas = self._interpolator.getMissingValueEfas()
         self._interpolator.setMissingValueGrib(mvGrib)
         self._pcraster_writer = PCRasterWriter(self._ctx.get('outMaps.clone'))
-        #read grib messages
+
+        # read grib messages
         start_step = 0 if self._ctx.get('parameter.tstart') is None else self._ctx.get('parameter.tstart')
         end_step = grib_end if self._ctx.get('parameter.tend') is None else self._ctx.get('parameter.tend')
 
@@ -67,7 +68,7 @@ class Controller:
 
     def second_res_manipulation(self, change_step, end_step, input_step, messages, mvGrib, type_of_param, values):
 
-        #manipulation of second res messages
+        # manipulation of second resolution messages
         start_step2 = int(change_step.end_step) + int(self._ctx.get('aggregation.step'))
         m2 = mnp(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
                  input_step, type_of_param, start_step2,
@@ -75,11 +76,8 @@ class Controller:
                  force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
         values2 = m2.do_manipulation(messages.getValuesOfSecondRes())
         values.update(values2)
-        import collections
-        #overwrite change_step resolution because of manipulation
-        # od = collections.OrderedDict(sorted(values2.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
+        # overwrite change_step resolution because of manipulation
         change_step = sorted(values2.iterkeys(), key=lambda k: int(k.end_step))[0]
-        values = collections.OrderedDict(sorted(values.iteritems(), key=lambda (k, v): (int(k.end_step), v)))
         return change_step, values
 
     def create_out_map(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
@@ -89,6 +87,7 @@ class Controller:
             self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()), 'DEBUG')
             self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep), 'DEBUG')
+
         if self._ctx.interpolate_with_grib():
             v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
             if (self._reader is not None or self._reader2 is not None) and intertable_was_used:
@@ -100,8 +99,9 @@ class Controller:
                     self._reader2.close()
                     self._reader2 = None
         else:
-            #interpolating gridded data with scipy kdtree
+            # interpolating gridded data with scipy kdtree
             v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
+
         if self._ctx.get('logging.level') == 'DEBUG':
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(),
@@ -110,6 +110,7 @@ class Controller:
         if self._ctx.must_do_correction():
             corrector = Corrector.getInstance(self._ctx, _findGeoFile(grid_id))
             v = corrector.correct(v)
+
         if self._ctx.get('logging.level') == 'DEBUG':
             self._log("Final Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(),
@@ -118,9 +119,9 @@ class Controller:
         self._pcraster_writer.write(self._name_map(i), v, self._mvEfas)
 
     def read_2nd_res_messages(self, commandArgs, messages):
-        #append messages
+        # append messages
         self._reader2 = GRIBReader(self._ctx.get('input.file2'), w_perturb=self._ctx.has_perturbation_number())
-        #messages.change_resolution() will return true after this append
+        # messages.change_resolution() will return true after this append
         mess_2nd_res, shortName = self._reader2.getSelectedMessages(**commandArgs)
         messages.append_2nd_res_messages(mess_2nd_res)
 
@@ -135,18 +136,18 @@ class Controller:
         grid_id, messages, type_of_param = self._read_messages(commandArgs)
 
         if self._ctx.is_2_input_files():
-            #two files as input
+            # two files as input (-i and -I input arguments were given)
             self.read_2nd_res_messages(commandArgs, messages)
-            #inject aux attributes for interpolation into main reader, to use later
+            # inject aux attributes for interpolation into main reader, to use later
             self._reader.set_2nd_aux(self._reader2.get_main_aux())
 
-        #Grib lats/lons are used for interpolation methods griddata, nearest, invdist.
-        #Not for grib_nearest and grib_invdist
+        # Grib lats/lons are used for interpolation methods nearest, invdist.
+        # Not for grib_nearest and grib_invdist
         if not self._ctx.interpolate_with_grib():
             lats, longs = messages.getLatLons()
         else:
-            #these "aux" values are used by grib interpolation methods to create tables on disk
-            #aux (gid and its values array) are read by GRIBReader which uses the first message selected
+            # these "aux" values are used by grib interpolation methods to create tables on disk
+            # aux (gid and its values array) are read by GRIBReader which uses the first message selected
             aux_g, aux_v, aux_g2, aux_v2 = self._reader.get_gids_for_grib_intertable()
             self._interpolator.setAuxToCreateLookup(aux_g, aux_v, aux_g2, aux_v2)
             lats = None
@@ -160,8 +161,8 @@ class Controller:
         values = messages.getValuesOfFirstOrSingleRes()
         if self._ctx.must_do_manipulation():
             if messages.have_change_resolution():
-                change_res_step = messages.get_change_res_step()  # Key object
-                #start step of the first message at 2nd resolution
+                change_res_step = messages.get_change_res_step()
+                # start step of the first message at 2nd resolution
                 manipulator.change_end_step(int(change_res_step.start_step))
             values = manipulator.do_manipulation(values)
 
@@ -170,12 +171,12 @@ class Controller:
             lats2 = None
             longs2 = None
             if not self._ctx.interpolate_with_grib():
-                #we need GRIB lats and lons for scipy interpolation
+                # we need GRIB lats and lons for scipy interpolation
                 lats2, longs2 = messages.getLatLons2()
             grid_id2 = messages.getGridId2()
             if self._ctx.must_do_manipulation():
                 change_res_step, values = self.second_res_manipulation(change_res_step, end_step, input_step, messages,
-                                                                     mvGrib, type_of_param, values)
+                                                                       mvGrib, type_of_param, values)
 
         if self._ctx.must_do_conversion() and converter.mustDoCutOff():
             values = converter.cutOffNegative(values)
@@ -185,14 +186,15 @@ class Controller:
         i = 0
         changed_res = False
         second_resolution = False
-
+        # Ordering values happens only here now - 12/04/2015
+        values = collections.OrderedDict(sorted(values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
         for timestep in values.keys():
             log_it = False
-            #writing map i
+            # writing map i
             i += 1
             if messages.have_change_resolution() and timestep == change_res_step:
                 self._log(">>>>>>>>>>>> Change of resolution at message: " + str(timestep), 'DEBUG')
-                #changing interpol parameters to 2nd res
+                # changing interpol parameters to 2nd res
                 lats = lats2
                 longs = longs2
                 grid_id = grid_id2
@@ -202,10 +204,10 @@ class Controller:
             values[timestep] = None
             del values[timestep]
             if i == 1 or changed_res:
-                #log the interpolation table name only on first map or at the first extended resolution map
+                # log the interpolation table name only on first map or at the first extended resolution map
                 log_it = True
             self.create_out_map(grid_id, i, lats, longs, timestep, v, log_intertable=log_it, gid=-1,
-                              second_spatial_resolution=second_resolution)
+                                second_spatial_resolution=second_resolution)
             v = None
             del v
             gc.collect()

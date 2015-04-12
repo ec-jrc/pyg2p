@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <!--
+    grib2pcraster
+    -i /gpfs/r_lxab/efas/emos/efas/meteo/forecasted/ecmwf/2013/06/DetN640-2013061600.grb
+    -o /gpfs/r_lxab/efas/emos/efas/europe5km/201306/EUD2013061712/initcond/for/
+    -p 228.128 -n R06a -t 06 -fmap=1 -s 12 -e 18
+        -->
+
+    <Execution name = "eue_r06_RA" id="eue_r06_RA" >
+        <Parameter shortName="tp" applyConversion="tomm"/>
+        <Aggregation type="instantaneous" step="6" />
+		
+        <OutMaps namePrefix="R06b" fmap="1"
+                  cloneMap="/dataset/maps/global/dem.map" unitTime="24">
+            <Interpolation mode="grib_nearest"
+                           latMap="/dataset/maps/global/lat.map"
+                           lonMap="/dataset/maps/global/lon.map" />
+        </OutMaps>
+    </Execution>

@@ -2,7 +2,6 @@ __author__ = "nappodo"
 __date__ = "$Feb 21, 2013 1:52:18 AM$"
 
 from util.logger.Logger import Logger
-import numpy as np
 import numexpr as ne
 import gribpcraster.application.ExecutionContext as ex
 
