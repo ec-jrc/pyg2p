@@ -1,6 +1,14 @@
 CHANGE LOG
 ==========
 
+v 2.0
+-----
+
+* **57** Improvement (major)
+    Configuration in JSON.
+    Write code to convert XML file into JSON.
+    Dismiss XML config and convert all XML config files into JSON.
+
 v 1.3.5
 -------
 
