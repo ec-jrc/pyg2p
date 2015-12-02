@@ -1,19 +1,7 @@
-__author__ = 'dominik'
-import untangle as unt
+import json
+import os
+
 from util.conversion.FromStringConversion import to_argv
-from util.file.FileManager import FileManager
-
-
-def _filter(cmd):
-    return not (cmd.startswith('#') or cmd == '' or cmd == '\n')
-
-
-def _get_list_commands(file_):
-    f = FileManager(file_)
-    commands = f.readFile()
-    commands = [cmd.strip() for cmd in commands if _filter(cmd.strip())]
-    f.close()
-    return commands
 
 
 class Test(object):
@@ -26,7 +14,7 @@ class Test(object):
         self.g2p_command = []  # can be two consecutive executions for multiresolution
 
     def __str__(self):
-        if len(self.g2p_command)>0:
+        if len(self.g2p_command) > 0:
 
             self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- g2p comms ' + str(self.g2p_command) + '\n\t- out dir' + self.out_dir
         elif self.pyg2p_scipy_command:
@@ -35,15 +23,19 @@ class Test(object):
             self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- out dir' + self.out_dir
         return self_str
 
+
 class TestContext(object):
 
-    def __init__(self, xmlfile):
-        xmltest = unt.parse(xmlfile)
-        xml_conf = xmltest.TestConfiguration
+    def __init__(self, json_file):
+        json_file = os.path.expanduser(json_file)
+        with open(json_file) as f:
+            res = json.loads(f.read())
+        test_conf = res['TestConfiguration']
 
-        self._params = {'file': xmlfile, 'pcrasterdiff.exec': xml_conf.PcRasterDiff['exec'],
-                        'atol': float(xml_conf['atol']), 'g2p.exec': xml_conf.g2p['exec'],
-                        'pre_commands': _get_list_commands(xml_conf['commands']), 'tests': {}}
+        self._params = {'file': json_file, 'pcrasterdiff.exec': test_conf['PcRasterDiff']['@exec'],
+                        'atol': float(test_conf['@atol']), 'g2p.exec': test_conf['g2p']['@exec'],
+                        'pre_commands': self._get_list_commands(test_conf['@commands']), 'tests': {}}
+
         for comm in self._params['pre_commands']:
             splitted = comm.split('@')
             map(str.strip, splitted)
@@ -53,7 +45,7 @@ class TestContext(object):
             out_dir_ = './'
             for i in range(len(args_)):
                 if args_[i] == '-o':
-                    #found output directory argument
+                    # found output directory argument
                     out_dir_ = args_[i + 1]
                     break
 
@@ -80,3 +72,17 @@ class TestContext(object):
 
     def get(self, param):
         return self._params[param] if param in self._params else None
+
+    @staticmethod
+    def _get_list_commands(file_):
+        file_ = os.path.expanduser(file_)
+        f = open(file_)
+        f.seek(0)
+        commands = f.readlines()
+
+        def _filter(line):
+            return not (line.startswith('#') or line == '' or line == '\n')
+
+        commands = [cmd.strip() for cmd in commands if _filter(cmd.strip())]
+        f.close()
+        return commands

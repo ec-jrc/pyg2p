@@ -1,4 +1,7 @@
+SHORTNAME_NOT_FOUND = 1100
+CONVERSION_NOT_FOUND = 1200
 NO_MESSAGES = 3000
+NO_GEOPOTENTIAL = 4000
 
 
 class ApplicationException(Exception):
@@ -8,8 +11,8 @@ class ApplicationException(Exception):
         0: 'Execution command file not found',
         1000: 'Did not found input file. Check filename.',
         1001: 'Input file not set as -i or --inputFile command line option',
-        1100: 'shortName not found in parameters.xml.',
-        1200: 'shortName - conversionId combination not found in parameters.xml.',
+        SHORTNAME_NOT_FOUND: 'shortName not found in parameters.json.',
+        CONVERSION_NOT_FOUND: 'shortName - conversionId combination not found in parameters.json.',
         1300: 'Latitude or longitude maps doesn''t exist. Check filenames in commands xml file.',
         1310: 'Clone map doesn''t exist. Check filename in commands xml file.',
         1320: 'Interlookuptables dir must exist. Check name in commands xml file or create it.',
@@ -19,7 +22,7 @@ class ApplicationException(Exception):
         1700: 'Unkwon ext mode. Must be number.',
         2000: 'Found Not Handled parameter value',
         NO_MESSAGES: 'No Messages found',
-        4000: 'No geopotential filename found in geopotentials.xml (for correction)',
+        NO_GEOPOTENTIAL: 'No geopotential filename found in geopotentials.json (for correction)',
         4100: 'Both correctionFormula, gemFormula and demMap attributes must be present in the Parameter tag',
         4200: 'Did not found demMap file',
         5000: 'Interpolating with not existing lat/lons. Probably a geopotential grib.\n'
@@ -29,24 +32,25 @@ class ApplicationException(Exception):
               'Interlookup table must be created, first. Otherwise, use other interpolation methods (nearest or invdist).',
         6100: 'Manipulation not implemented.',
         7000: 'XML configuration file for tests was not found',
-        7001: 'Geopotential grib file was not found'
+        7001: 'Geopotential grib file was not found',
+        7002: 'Path to old xml configuration was not found',
     }
 
     @staticmethod
-    def _getErrorDescription(code):
+    def error_description(code):
         if code in ApplicationException._errorMessages:
             return ApplicationException._errorMessages[code]
         else:
-            return 'Unknown Error Code: '+code
+            return 'Unknown Error Code: {}'.format(code)
 
     @classmethod
     def get_programmatic_exc(cls, code, details=''):
-        return cls(None, code, ApplicationException._getErrorDescription(code) + ' ' + str(details))
+        return cls(None, code, '{} - {}'.format(ApplicationException.error_description(code), str(details)))
 
     def __init__(self, inner, code, error):
         self.__innerException = inner
         self._code = code
-        if type(error).__name__ == 'str':
+        if isinstance(error, basestring):
             self.message = 'Application Error: ' + error
 
     def __str__(self):

@@ -1,8 +1,0 @@
-
-<TestConfiguration commands="/home/dominik/ECMWF_grib2pcraster/pyg2p_git/configuration/tests/commands_few.txt"
-        atol="1e-01">
-    <g2p exec="/home/dominik/ECMWF_grib2pcraster/grib2pcraster/grib2pcraster" />
-
-    <!--pcrcalc diff.001 = mapEFAS.001 - mappyg2p.001-->
-    <PcRasterDiff exec="/home/dominik/devapps/PCRaster-3.0/bin/pcrcalc"/>
-</TestConfiguration>

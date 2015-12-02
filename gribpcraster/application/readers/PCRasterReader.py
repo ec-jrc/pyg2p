@@ -3,15 +3,12 @@ __date__ = "$Feb 20, 2011 10:01:48 AM$"
 
 import gdal
 from gdalconst import *
-from util.logger.Logger import Logger
-import gribpcraster.application.ExecutionContext as ex
-
+from util.logger import Logger
 FORMAT = 'PCRaster'
 
 class PCRasterReader:
     def __init__(self, pcrasterMap):
-        import gribpcraster.application.ExecutionContext as ex
-        self._logger = Logger('PCRasterReader', loggingLevel=ex.global_logger_level)
+        self._logger = Logger.get_logger()
         self._log('Reading ' + pcrasterMap)
 
         self._driver = gdal.GetDriverByName(FORMAT)

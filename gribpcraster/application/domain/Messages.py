@@ -1,14 +1,11 @@
-__author__ = 'dominik'
-
-from util.logger.Logger import Logger
-import gribpcraster.application.ExecutionContext as ex
+from util.logger import Logger
 import gc
 
 
-class Messages():
+class Messages(object):
 
     def __init__(self, values_, missing_, unit_, type_of_level_, type_of_step_, grid_details_, val_2nd=None):
-        self._logger = Logger('Messages', loggingLevel=ex.global_logger_level)
+        self._logger = Logger.get_logger()
         self.values_first_or_single_res = values_
         self.values_second_res = val_2nd or {}
         self.type_of_step = type_of_step_

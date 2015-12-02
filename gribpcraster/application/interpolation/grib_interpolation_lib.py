@@ -1,11 +1,9 @@
 from sys import stdout
 
-import gribapi as GRIB
+import gribapi
 import numpy as np
 
 from gribpcraster.application.interpolation import progress_step_and_backchar
-
-__author__ = 'domenico nappo'
 
 
 def _grib_nearest(gid, target_lats, target_lons, mv, result):
@@ -27,11 +25,11 @@ def _grib_nearest(gid, target_lats, target_lons, mv, result):
                 stdout.write(back_char + 'Interpolation progress: %d/%d [out:%d] (%.2f%%)' % (i, num_cells, outs,i*100./num_cells))
                 stdout.flush()
             try:
-                n_nearest = GRIB.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]))
+                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]))
                 xs.append(x)
                 ys.append(y)
                 idxs.append(n_nearest[0]['index'])
-            except GRIB.GribInternalError:
+            except gribapi.GribInternalError:
                 outs += 1
     stdout.write(back_char + ' ' * 100)
     stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)\n' % (i, num_cells, 100))
@@ -64,7 +62,7 @@ def _grib_invdist(gid, target_lats, target_lons, mv, result):
                 stdout.flush()
             try:
                 notExactPosition = True
-                n_nearest = GRIB.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]), npoints=4)
+                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]), npoints=4)
                 xs.append(x)
                 ys.append(y)
                 for ig in range(4):
@@ -92,8 +90,8 @@ def _grib_invdist(gid, target_lats, target_lons, mv, result):
                 coeffs3.append(coeff3)
                 coeffs4.append(coeff4)
 
-            except GRIB.GribInternalError:
-                #tipically "out of grid" error
+            except gribapi.GribInternalError:
+                # tipically "out of grid" error
                 out += 1
     stdout.write(back_char + ' ' * 100)
     stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)\n' % (i, num_cells, 100))

@@ -1,3 +1,5 @@
+import util.files
+
 OKGREEN = '\033[92m'
 WARNING = '\033[93m'
 FAIL = '\033[91m'
@@ -11,19 +13,18 @@ warns = []
 try:
     import gribpcraster
     import util
-    import util.file.FileManager
+    import util.files
     import gribpcraster.exc
 except ImportError, e:
     errs.append('=================XXXX> Core packages missing. Contact the developer soon!!!')
 
-import util.file.FileManager as fm
 import os
 
 dir_ = os.path.abspath(os.path.dirname(__file__))
-if not (fm.exists(dir_+'/configuration/geopotentials', isDir=True) and fm.exists(dir_+'/configuration/intertables', isDir=True)):
+if not (util.files.exists(dir_ + '/configuration/geopotentials', is_dir=True) and util.files.exists(dir_ + '/configuration/intertables', is_dir=True)):
     errs.append('=================XXXX> Important configuration folders are missing (geopotentials or intertables)!!!')
 
-if not (fm.exists(dir_+'/configuration/geopotentials.xml') and fm.exists(dir_+'/configuration/parameters.xml') and fm.exists(dir_+'/configuration/logger-configuration.xml')):
+if not (util.files.exists(dir_ + '/configuration/geopotentials.xml') and util.files.exists(dir_+ '/configuration/parameters.xml') and util.files.exists(dir_+ '/configuration/logger-configuration.xml')):
     errs.append('=================XXXX> Important configuration files are missing (geopotentials.xml or parameters.xml)!!!')
 
 try:

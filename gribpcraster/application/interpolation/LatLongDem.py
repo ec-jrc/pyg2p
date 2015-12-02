@@ -1,20 +1,13 @@
 from gribpcraster.application.readers.PCRasterReader import PCRasterReader
-from util.logger.Logger import Logger
+from util.logger import Logger
 
-__author__ = "nappodo"
-__date__ = "$Feb 20, 2013 4:11:13 PM$"
-
-PROJ4_STRING_EFAS = {'proj':'laea', 'lat_0':48.0, 'lon_0':9.0 ,'x_0':0.0 ,'y_0':0.0 ,'datum':'WGS84' ,'a':6378388 ,'b':6378388}
-import gribpcraster.application.ExecutionContext as ex
 
 class LatLongBuffer:
 
     def __init__(self, latMapFile, longMapFile):
         self._latMap = latMapFile
         self._longMap = longMapFile
-        import gribpcraster.application.ExecutionContext as ex
-        #ex.global_logger_level
-        self._logger = Logger('LatLongMapsBuffer',loggingLevel=ex.global_logger_level)
+        self._logger = Logger.get_logger()
 
         self.area_extent = (-1700000, -1350000, 1700000, 2700000)
 

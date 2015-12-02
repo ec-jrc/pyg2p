@@ -1,25 +1,21 @@
+import gc
 import collections
+
+import numpy as np
+
 from gribpcraster.application.manipulation.Conversion import Converter
 from gribpcraster.application.manipulation.Correction import Corrector
 from gribpcraster.application.interpolation.Interpolation import Interpolator
 from gribpcraster.application.readers.GRIBReader import GRIBReader
 from gribpcraster.application.writers.PCRasterWriter import PCRasterWriter
 from gribpcraster.application.manipulation.Manipulator import Manipulator as mnp
-import numpy as np
-from util.logger.Logger import Logger
-import gc
-
-
-def _findGeoFile(grid_id):
-    import util.configuration.geopotentials as g
-
-    return g.read(grid_id)
+from util.logger import Logger
 
 
 class Controller:
-    def __init__(self, executionContext):
-        self._ctx = executionContext
-        self._logger = Logger('controller', loggingLevel=executionContext.get('logger.level'))
+    def __init__(self, exec_ctx):
+        self._ctx = exec_ctx
+        self._logger = Logger.get_logger()
         self._reader = None
         # GRIB reader for second spatial resolution file
         self._reader2 = None
@@ -42,8 +38,8 @@ class Controller:
         radius, input_step, input_step2, change_in_step_at, type_of_param, grib_start, grib_end, mvGrib = self._reader.get_grib_info(
             self._ctx.create_select_cmd_for_aggregation_attrs())
         self._interpolator = Interpolator(self._ctx, radius=radius)
-        self._mvEfas = self._interpolator.getMissingValueEfas()
-        self._interpolator.setMissingValueGrib(mvGrib)
+        self._mvEfas = self._interpolator.mv_output()
+        self._interpolator.set_mv_input(mvGrib)
         self._pcraster_writer = PCRasterWriter(self._ctx.get('outMaps.clone'))
 
         # read grib messages
@@ -83,7 +79,7 @@ class Controller:
     def create_out_map(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
                        second_spatial_resolution=False):
 
-        if self._ctx.get('logging.level') == 'DEBUG':
+        if self._ctx.get('logger.level') == 'DEBUG':
             self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()), 'DEBUG')
             self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep), 'DEBUG')
@@ -102,16 +98,16 @@ class Controller:
             # interpolating gridded data with scipy kdtree
             v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
 
-        if self._ctx.get('logging.level') == 'DEBUG':
+        if self._ctx.get('logger.level') == 'DEBUG':
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(),
                 v[v != self._mvEfas].max()))
 
         if self._ctx.must_do_correction():
-            corrector = Corrector.getInstance(self._ctx, _findGeoFile(grid_id))
+            corrector = Corrector.get_instance(self._ctx, grid_id)
             v = corrector.correct(v)
 
-        if self._ctx.get('logging.level') == 'DEBUG':
+        if self._ctx.get('logger.level') == 'DEBUG':
             self._log("Final Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(),
                 v[v != self._mvEfas].max()))
@@ -149,7 +145,7 @@ class Controller:
             # these "aux" values are used by grib interpolation methods to create tables on disk
             # aux (gid and its values array) are read by GRIBReader which uses the first message selected
             aux_g, aux_v, aux_g2, aux_v2 = self._reader.get_gids_for_grib_intertable()
-            self._interpolator.setAuxToCreateLookup(aux_g, aux_v, aux_g2, aux_v2)
+            self._interpolator.aux_for_intertable_generation(aux_g, aux_v, aux_g2, aux_v2)
             lats = None
             longs = None
 
@@ -214,7 +210,6 @@ class Controller:
             changed_res = False
 
     def close(self):
-        self._logger.close()
         if self._reader:
             self._reader.close()
             self._reader = None

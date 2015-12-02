@@ -1,15 +1,11 @@
-__author__ = "nappodo"
-__date__ = "$Feb 21, 2013 1:52:18 AM$"
-
-from util.logger.Logger import Logger
 import numexpr as ne
-import gribpcraster.application.ExecutionContext as ex
+from util.logger import Logger
 
 
 class Converter:
     def __init__(self, func=None, cut_off=False):
 
-        self._logger = Logger('Converter', loggingLevel=ex.global_logger_level)
+        self._logger = Logger.get_logger()
         self._unitToConvert = None
         self._identity = False
         self._mv = -1

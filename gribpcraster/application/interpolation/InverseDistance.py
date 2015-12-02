@@ -1,19 +1,18 @@
 from __future__ import division
 from scipy.spatial import cKDTree as KDTree
 from sys import stdout
-from util.logger.Logger import Logger
 import numpy as np
 import numexpr as ne
-from util.numeric.numeric import _mask_it
-import gribpcraster.application.ExecutionContext as ex
+
+from util.logger import Logger
+from util.numeric.numeric import mask_it
 from gribpcraster.application.interpolation import progress_step_and_backchar
-__author__ = 'unknown'
 
 
 
 def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None, from_inter=False):
     p = 2
-    z = _mask_it(z, _mv_grib)
+    z = mask_it(z, _mv_grib)
     if nnear == 1:
         #for nnear=1 it doesn't care at this point if indexes come from intertable
         #                                     # or were just queried from the tree
@@ -23,7 +22,7 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
     else:
         #no intertable found for inverse distance nnear = 8
 
-        result = _mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
+        result = mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
         jinterpol = 0
         num_cells = result.size
         back_char, progress_step = progress_step_and_backchar(num_cells)
@@ -124,7 +123,7 @@ is exceedingly sensitive to distance and to h.
         x, y, zz = to_3d(longrib, latgrib, self._radius)
         grib_locations = np.vstack((x.ravel(), y.ravel(), zz.ravel())).T
         assert len(grib_locations) == len(source_values), "len(coordinates) %d != len(values) %d" % (len(grib_locations), len(source_values))
-        self._logger = Logger('Interpolator', loggingLevel=ex.global_logger_level)
+        self._logger = Logger.get_logger()
         self._mvEfas = mvEfas
         self._mvGrib = mvGrib
         self.tree = KDTree(grib_locations)  # build the tree
@@ -147,7 +146,7 @@ is exceedingly sensitive to distance and to h.
         x, y, z = to_3d(lonefas, latefas, self._radius)
         efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
         qdim = efas_locations.ndim
-        efasefas_locations_ma = _mask_it(efas_locations, self._mvEfas)
+        efasefas_locations_ma = mask_it(efas_locations, self._mvEfas)
         if qdim == 1:
             efas_locations = np.array([efasefas_locations_ma])
         result = self._invdst(efas_locations, nnear)

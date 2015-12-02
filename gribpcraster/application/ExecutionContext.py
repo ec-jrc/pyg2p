@@ -1,410 +1,308 @@
-import getopt
-import untangle
-import collections
+import argparse
+import json
 import os
-
+import util.files
 from gribpcraster.exc.ApplicationException import ApplicationException
 import util.date.Dates as Du
-from util.logger.Logger import Logger
-import util.file.FileManager as Fm
 import util.conversion.FromStringConversion as Fsc
-import time
+from gribpcraster.application.manipulation.Manipulator import MANIPULATION_ACCUM
+from util.generics import FALSE_STRINGS
 
-# global global_main_logger
-global_main_logger = Logger('application', loggingLevel='INFO')
-global_out_log_dir = './'
-global_logger_level = 'INFO'
-
-PARAMETERS_XML = 'configuration/parameters.xml'
 DEFAULT_VALUES = {'interpolation.mode': 'grib_nearest',
                   'outMaps.unitTime': '24'}
 
 
 class ExecutionContext:
-    def __init__(self, argv):
-
-        self._inputArguments = {}
-        self._showHelp = False
-        self._addGeopotential = False
-        self._params = {'outMaps.outDir': './', 'aggregation.forceZeroArray': False}
-
-        if not argv:
-            self._showHelp = True
-        else:
-            try:
-                #read cli input args (commands file path, input files, output dir, or shows help and exit)
-                self._define_input_args(argv)
-                if not (self.user_wants_to_add_geopotential() or self.user_wants_help() or self.user_wants_to_test()):
-                    #read config files and define execuition parameters (set defaults also)
-                    self._define_exec_params()
-            except ApplicationException, err:
-                raise err
-            except ValueError, err:
-                raise ApplicationException(err, None, str(err))
-            except Exception, err:
-                raise ApplicationException(err, None, str(err))
-
-            #check numbers, existing dirs and files, supported options, semantics etc.
-            try:
-                self._check_exec_params()
-            except ApplicationException, err:
-                raise err
-            except ValueError, err:
-                raise ApplicationException(err, None, str(err))
-            except Exception, exc:
-                raise ApplicationException(exc, None, str(exc))
-
-    def interpolate_with_grib(self):
-        return self._params['interpolation.mode'].startswith('grib_')  # in ['grib_invdist', 'grib_nearest']
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
-
-    def _define_input_args(self, argv):
+    def __init__(self, user_conf, argv):
+        self._conf = user_conf
+        self._input_args = {}
+        self._to_add_geopotential = False
+        self._vars = {}
 
         try:
-            opts, argv = getopt.getopt(argv, "hc:o:i:I:m:T:D:l:d:g:t:s:e:f:x:n:", ['help', 'commandsFile=', 'outDir=',
-                                                                                   'inputFile=', 'inputFile2=',
-                                                                                   'perturbationNumber=',
-                                                                                   'dataTime=', 'dataDate=',
-                                                                                   'loggerlLevel=', 'outLogDir=',
-                                                                                   'addGeopotential=', 'test=',
-                                                                                   'start=', 'end=', 'fmap=', 'ext=', 'namePrefix='])
-        except getopt.GetoptError, err:
+            # read cli input args (commands file path, input files, output dir, or shows help and exit)
+            self._define_input_args(argv)
+            if not (self.add_geopotential or self.run_tests or self.convert_conf):
+                # read config files and define execuition parameters (set defaults also)
+                self._define_exec_params()
+        except Exception, err:
             raise ApplicationException(err, None, str(err))
 
-        self._params['input.two_resolution'] = False
-        self._params['logger.level'] = 'INFO'
-        self._params['logger.dir'] = './logs/'
-        self._params['parameter.tstart'] = None
-        self._params['parameter.tend'] = None
-        self._params['parameter.dataTime'] = None
-        self._params['parameter.dataDate'] = None
-        self._params['outMaps.fmap'] = None
-        self._params['outMaps.ext'] = None
-        self._params['outMaps.namePrefix'] = None
+        # check numbers, existing dirs and files, supported options, semantics etc.
+        try:
+            self._check_exec_params()
+        except ApplicationException, err:
+            raise err
+        except ValueError, err:
+            raise ApplicationException(err, None, str(err))
+        except Exception, exc:
+            raise ApplicationException(exc, None, str(exc))
 
-        for opt, val in opts:
-            if opt in ('-c', '--commandsFile'):
-                self._inputArguments['commandsFile'] = val
-            elif opt in ('-i', '--inputFile'):
-                self._params['input.file'] = val
-            elif opt in ('-s', '--start'):
-                self._params['parameter.tstart'] = val
-            elif opt in ('-e', '--end'):
-                self._params['parameter.tend'] = val
-            elif opt in ('-T', '--dataTime'):
-                self._params['parameter.dataTime'] = val
-            elif opt in ('-D', '--dataDate'):
-                self._params['parameter.dataDate'] = val
-            elif opt in ('-f', '--fmap'):
-                self._params['outMaps.fmap'] = val
-            elif opt in ('-x', '--ext'):
-                self._params['outMaps.ext'] = val
-            elif opt in ('-n', '--namePrefix'):
-                self._params['outMaps.namePrefix'] = val
-            elif opt in ('-l', '--loggerLevel'):
-                self._params['logger.level'] = val
-            elif opt in ('-d', '--outLogDir'):
-                self._params['logger.dir'] = val
-            elif opt in ('-o', '--outDir'):
-                self._params['outMaps.outDir'] = val
-            elif opt in ('-m', '--perturbationNumber'):
-                self._params['parameter.perturbationNumber'] = val
-            elif opt in ('-I', '--inputFile2'):
-                self._params['input.file2'] = val
-                self._params['input.two_resolution'] = True
-            elif opt in ('-g', '--addGeopotential'):
-                self._params['geopotential'] = val
-                self._addGeopotential = True
-            elif opt in ('-t', '--test'):
-                self._params['test.xml'] = val
-            elif opt in ('-h', '--help'):
-                self._showHelp = True
+    def interpolate_with_grib(self):
+        return self._vars['interpolation.mode'].startswith('grib_')  # in ['grib_invdist', 'grib_nearest']
+
+    def _define_input_args(self, argv):
+        # import ipdb
+        # ipdb.set_trace()
+        parser = argparse.ArgumentParser(description='''Execute the grib to pcraster conversion using parameters from the input xml configuration.
+                                                        \n Read user and configuration manuals''')
+
+        parser.add_argument('-c', '--commandsFile', help='/path/to/input/xml')
+        parser.add_argument('-o', '--outDir', help='output maps dir', default='./')
+        parser.add_argument('-i', '--inputFile', help='/path/to/input/grib')
+        parser.add_argument('-I', '--inputFile2', help='/path/to/input/grib/2ndres/file')
+        parser.add_argument('-s', '--start',
+                            help='Grib timestep start. It overwrites the tstart in json execution file.', type=int)
+        parser.add_argument('-e', '--end', help='Grib timestep end. It overwrites the tend in json execution file.',
+                            type=int)
+
+        parser.add_argument('-m', '--perturbationNumber', help='eps member number', type=int)
+
+        parser.add_argument('-T', '--dataTime', help='To select messages by dataTime key value', type=int,
+                            choices=['0', '1200'])
+        parser.add_argument('-D', '--dataDate', help='<YYYYMMDD> to select messages by dataDate key value', type=int)
+
+        parser.add_argument('-l', '--loggerLevel', help='Console logging level', default='INFO',
+                            choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'])
+        parser.add_argument('-d', '--outLogDir', help='output logs dir', default='./logs/')
+
+        parser.add_argument('-g', '--addGeopotential', help='''</path/to/geopotential/grib/file
+        \nAdd the file to geopotentials.xml configuration file, to use for correction.
+        \nThe file will be copied into the right folder (configuration/geopotentials)
+        \nNote: shortName of geopotential must be "fis" or "z"''')
+
+        parser.add_argument('-t', '--test', help='''/path/to/test/xml_conf
+        \nWill execute a battery of commands defined in configuration/tests/pyg2p_commands.txt
+        \nand in configuration/tests/g2p_commands.txt. Then it will create diff pcraster maps and log alerts
+        \nif differences are higher than a threshold''')
+
+        parser.add_argument('-f', '--fmap', help='First map number', type=int, default=1)
+        parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1)
+        parser.add_argument('-n', '--namePrefix', help='Prefix name for maps')
+        parser.add_argument('-C', '--convert_to_v2', help='Convert old xml configuration to new json format')
+
+        parsed_args = vars(parser.parse_args(argv))
+
+        self._vars['logger.level'] = parsed_args['loggerLevel']
+        self._vars['logger.dir'] = parsed_args['outLogDir']
+
+        self._input_args['commandsFile'] = parsed_args['commandsFile']
+        self._vars['input.file'] = parsed_args['inputFile']
+        self._vars['parameter.tstart'] = parsed_args['start']
+        self._vars['parameter.tend'] = parsed_args['end']
+        self._vars['parameter.dataTime'] = parsed_args['dataTime']
+        self._vars['parameter.dataDate'] = parsed_args['dataDate']
+        self._vars['outMaps.fmap'] = parsed_args['fmap']
+        self._vars['outMaps.ext'] = parsed_args['ext']
+        self._vars['outMaps.namePrefix'] = parsed_args['namePrefix']
+        self._vars['outMaps.outDir'] = parsed_args['outDir']
+        self._vars['parameter.perturbationNumber'] = parsed_args['perturbationNumber']
+        self._vars['input.file2'] = parsed_args['inputFile2']
+        self._vars['input.two_resolution'] = bool(self._vars['input.file2'])
+        self._vars['geopotential'] = parsed_args['addGeopotential']
+        self._to_add_geopotential = bool(self._vars['geopotential'])
+        self._vars['path_to_convert'] = parsed_args['convert_to_v2']
+        self._vars['test.json'] = parsed_args['test']
 
         global global_out_log_dir
-        global_out_log_dir = self._params['logger.dir']
-        global global_main_logger
-        global_main_logger = Logger('application', loggingLevel=self.get('logger.level'))
-        self._logger = Logger('ExecutionContext', loggingLevel=self.get('logger.level'))
-        global global_logger_level
-        global_logger_level = self._params['logger.level']
+        global_out_log_dir = self._vars['logger.dir']
 
     def get(self, param):
-        return self._params[param] if param in self._params else None
+        return self._vars.get(param)
 
-    #will read the xml commands file and store parameters
+    # will read the xml commands file and store parameters
     def _define_exec_params(self):
-        dir_ = os.path.dirname(__file__)
-        self._params['execution.doAggregation'] = False
-        self._params['execution.doConversion'] = False
-        self._params['execution.doCorrection'] = False
-        self._params['parameter.conversionId'] = None
-        #added on 16th july (v1.01)
-        if self._inputArguments['commandsFile'].startswith('./') or self._inputArguments['commandsFile'].startswith('../'):
-            self._inputArguments['commandsFile'] = os.path.join(os.getcwd(), self._inputArguments['commandsFile'])
-        param_xml_path = os.path.join(dir_, '../../' + PARAMETERS_XML)
-        time.strftime('%l:%M%p %Z on %b %d, %Y')  # ' 1:36PM EDT on Oct 18, 2010'
-        self._log('\n\n\nFirst debug message. pyg2p execution started at (%s).\n %s loading...' % (time.strftime('%l:%M%p %z on %b %d, %Y'), self._inputArguments['commandsFile']))
-        if not Fm.exists(self._inputArguments['commandsFile']):
-            raise ApplicationException.get_programmatic_exc(0, self._inputArguments['commandsFile'])
-        u = untangle.parse(self._inputArguments['commandsFile'])
-        self._log(self._inputArguments['commandsFile'] + ' done!')
+        self._vars['execution.doAggregation'] = False
+        self._vars['execution.doConversion'] = False
+        self._vars['execution.doCorrection'] = False
+        self._vars['parameter.conversionId'] = None
 
-        self._params['execution.name'] = u.Execution['name']
-        self._params['execution.id'] = u.Execution['id']
+        if self._input_args['commandsFile'].startswith('./') or self._input_args['commandsFile'].startswith('../'):
+            self._input_args['commandsFile'] = os.path.join(os.getcwd(), self._input_args['commandsFile'])
 
-        self._params['parameter.shortName'] = u.Execution.Parameter['shortName']
-        p = untangle.parse(param_xml_path)
+        if not util.files.exists(self._input_args['commandsFile']):
+            raise ApplicationException.get_programmatic_exc(0, self._input_args['commandsFile'])
+        with open(self._input_args['commandsFile']) as f:
+            u = json.load(f)
+        exec_conf = u['Execution']
 
-        parameter_from_xml = self._read_parameter_from(p, self._params['parameter.shortName'])
-        self._params['parameter.description'] = parameter_from_xml['description']
-        self._params['parameter.unit'] = parameter_from_xml['unit']
-        self._params['parameter.conversionUnit'] = parameter_from_xml['unit']
-        if u.Execution.Parameter['applyConversion']:
-            self._params['execution.doConversion'] = True
-            self._params['parameter.conversionId'] = u.Execution.Parameter['applyConversion']
-            conversion_from_xml = self._read_conversion(parameter_from_xml, self._params['parameter.conversionId'])
-            self._params['parameter.conversionUnit'] = conversion_from_xml['unit']
-            self._params['parameter.conversionFunction'] = conversion_from_xml['function']
-            self._params['parameter.cutoffnegative'] = Fsc.to_boolean(conversion_from_xml['cutOffNegative'])
+        self._vars['execution.name'] = exec_conf['@name']
+        self._vars['execution.id'] = exec_conf['@id']
 
-        if u.Execution.Parameter['correctionFormula'] and u.Execution.Parameter['gem'] and u.Execution.Parameter['demMap']:
-            self._params['execution.doCorrection'] = True
-            self._params['correction.formula'] = u.Execution.Parameter['correctionFormula']
-            self._params['correction.gemFormula'] = u.Execution.Parameter['gem']
-            self._params['correction.demMap'] = u.Execution.Parameter['demMap']
+        self._vars['parameter.shortName'] = exec_conf['Parameter']['@shortName']
 
-        self._params['outMaps.clone'] = u.Execution.OutMaps['cloneMap']
+        parameter = self._conf.parameters.get(self._vars['parameter.shortName'])
+        self._vars['parameter.description'] = parameter['@description']
+        self._vars['parameter.unit'] = parameter['@unit']
+        self._vars['parameter.conversionUnit'] = parameter['@unit']
 
-        self._params['interpolation.mode'] = u.Execution.OutMaps.Interpolation['mode'] if u.Execution.OutMaps.Interpolation['mode'] else DEFAULT_VALUES['interpolation.mode'] #must be recognised
-        self._params['interpolation.dir'] = u.Execution.OutMaps.Interpolation['intertableDir'] if u.Execution.OutMaps.Interpolation['intertableDir'] else None
-        self._params['interpolation.latMap'] = u.Execution.OutMaps.Interpolation['latMap']
-        self._params['interpolation.lonMap'] = u.Execution.OutMaps.Interpolation['lonMap']
+        if exec_conf['Parameter'].get('@applyConversion'):
+            self._vars['execution.doConversion'] = True
+            self._vars['parameter.conversionId'] = exec_conf['Parameter']['@applyConversion']
+            conversion = self._conf.parameters.get_conversion(parameter, self._vars['parameter.conversionId'])
+            self._vars['parameter.conversionUnit'] = conversion['@unit']
+            self._vars['parameter.conversionFunction'] = conversion['@function']
+            self._vars['parameter.cutoffnegative'] = Fsc.to_boolean(conversion.get('@cutOffNegative'))
+
+        if exec_conf['Parameter'].get('@correctionFormula') and exec_conf['Parameter'].get('@gem') and exec_conf['Parameter'].get('@demMap'):
+            self._vars['execution.doCorrection'] = True
+            self._vars['correction.formula'] = exec_conf['Parameter']['@correctionFormula']
+            self._vars['correction.gemFormula'] = exec_conf['Parameter']['@gem']
+            self._vars['correction.demMap'] = exec_conf['Parameter']['@demMap']
+
+        self._vars['outMaps.clone'] = exec_conf['OutMaps']['@cloneMap']
+        interpolation_conf = exec_conf['OutMaps']['Interpolation']
+        self._vars['interpolation.mode'] = interpolation_conf.get('@mode', DEFAULT_VALUES['interpolation.mode'])
+        self._vars['interpolation.dir'] = interpolation_conf.get('@intertableDir', self._conf.default_interpol_dir)
+        self._vars['interpolation.latMap'] = interpolation_conf['@latMap']
+        self._vars['interpolation.lonMap'] = interpolation_conf['@lonMap']
 
         # optional parameters
-        self._params['outMaps.unitTime'] = u.Execution.OutMaps['unitTime'] if u.Execution.OutMaps['unitTime'] else None  # in hours #number
-        if not self._params['outMaps.namePrefix']:
-            self._params['outMaps.namePrefix'] = u.Execution.OutMaps['namePrefix'] or u.Execution.Parameter['shortName']
-        if not self._params['outMaps.fmap']:
-            self._params['outMaps.fmap'] = u.Execution.OutMaps['fmap'] or '1'  # number
-        if not self._params['outMaps.ext']:
-            self._params['outMaps.ext'] = u.Execution.OutMaps['ext'] or '1'  # number
+        self._vars['outMaps.unitTime'] = exec_conf['OutMaps'].get('@unitTime')
+        if not self._vars['outMaps.namePrefix']:
+            self._vars['outMaps.namePrefix'] = exec_conf['OutMaps'].get('@namePrefix') or exec_conf['Parameter']['@shortName']
+        if self._vars['outMaps.fmap'] == 1:
+            self._vars['outMaps.fmap'] = exec_conf['OutMaps'].get('@fmap') or 1  # number
+        if self._vars['outMaps.ext'] == 1:
+            self._vars['outMaps.ext'] = exec_conf['OutMaps'].get('@ext') or 1
 
         # if start, end and dataTime are defined via command line input args, these are ignored.
-        if self._params['parameter.tstart'] is None:
-            self._params['parameter.tstart'] = u.Execution.Parameter['tstart'] #number
-        if self._params['parameter.tend'] is None:
-            self._params['parameter.tend'] = u.Execution.Parameter['tend']  #number
-        if self._params['parameter.dataTime'] is None:
-            self._params['parameter.dataTime'] = u.Execution.Parameter['dataTime']  #number
-        if self._params['parameter.dataDate'] is None:
-            self._params['parameter.dataDate'] = u.Execution.Parameter['dataDate']  #date
+        if self._vars['parameter.tstart'] is None and exec_conf['Parameter'].get('@tstart'):
+            self._vars['parameter.tstart'] = int(exec_conf['Parameter']['@tstart'])
+        if self._vars['parameter.tend'] is None and exec_conf['Parameter'].get('@tend'):
+            self._vars['parameter.tend'] = int(exec_conf['Parameter']['@tend'])
+        if self._vars['parameter.dataTime'] is None and exec_conf['Parameter'].get('@dataTime'):
+            self._vars['parameter.dataTime'] = int(exec_conf['Parameter']['@dataTime'])  # number
+        if self._vars['parameter.dataDate'] is None and exec_conf['Parameter'].get('@dataDate'):
+            self._vars['parameter.dataDate'] = int(exec_conf['Parameter']['@dataDate'])  # date
 
-        self._params['parameter.level'] = u.Execution.Parameter['level']  #number
+        self._vars['parameter.level'] = exec_conf['Parameter'].get('@level')  # number
 
-        if hasattr(u.Execution, 'Aggregation'):
-            self._params['aggregation.step'] = u.Execution.Aggregation['step']
-            self._params['aggregation.type'] = u.Execution.Aggregation['type']
-            if self._params['aggregation.step'] and self._params['aggregation.type']:
-                self._params['execution.doAggregation'] = True
-                from gribpcraster.application.manipulation.Manipulator import MANIPULATION_ACCUM
-                from util.generics import FALSE_STRINGS
-                if self._params['aggregation.type'] == MANIPULATION_ACCUM and u.Execution.Aggregation['forceZeroArray'] and u.Execution.Aggregation['forceZeroArray'] not in FALSE_STRINGS:
-                    self._params['aggregation.forceZeroArray'] = True
+        if exec_conf.get('Aggregation'):
+            self._vars['aggregation.step'] = exec_conf['Aggregation'].get('@step')
+            self._vars['aggregation.type'] = exec_conf['Aggregation'].get('@type')
+            self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) and bool(self._vars.get('aggregation.type'))
+            self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == MANIPULATION_ACCUM and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in FALSE_STRINGS
 
     def must_do_manipulation(self):
-        return self._params['execution.doAggregation']
+        return self._vars['execution.doAggregation']
 
     def must_do_correction(self):
-        return self._params['execution.doCorrection']
+        return self._vars['execution.doCorrection']
 
     def must_do_conversion(self):
-        return self._params['execution.doConversion']
+        return self._vars['execution.doConversion']
 
     def is_2_input_files(self):
-        return self._params['input.two_resolution']
-
-    @staticmethod
-    def _read_conversion(param_conf_node, conversion_id):
-        if isinstance(param_conf_node, collections.Iterable):
-            for c in param_conf_node.Conversion:
-                if c['id'] == conversion_id:
-                    return c
-            raise ApplicationException.get_programmatic_exc(1200)
-        else:
-            c = param_conf_node.Conversion
-            if c['id'] == conversion_id:
-                return c
-        raise ApplicationException.get_programmatic_exc(1200)
-
-    @staticmethod
-    def _read_parameter_from(untangled, short_name):
-
-        if isinstance(untangled.Parameters.Parameter, collections.Iterable):
-            for p in untangled.Parameters.Parameter:
-                if p['shortName'] == short_name:
-                    return p
-            raise ApplicationException.get_programmatic_exc(1100)
-        else:
-            p = untangled.Parameters.Parameter
-            if p['shortName'] == short_name:
-                return p
-            raise ApplicationException.get_programmatic_exc(1100)
+        return self._vars['input.two_resolution']
 
     def _check_exec_params(self):
 
-        if self.user_wants_to_test():
-            if not Fm.exists(self._params['test.xml']):
-                raise ApplicationException.get_programmatic_exc(7000, self._params['test.xml'])
-        elif self.user_wants_help():
-            pass
-        elif self.user_wants_to_add_geopotential():
-            if not Fm.exists(self._params['geopotential']):
-                raise ApplicationException.get_programmatic_exc(7001, self._params['geopotential'])
+        if self.run_tests:
+            if not util.files.exists(self._vars['test.json']):
+                raise ApplicationException.get_programmatic_exc(7000, self._vars['test.json'])
+        elif self.add_geopotential:
+            if not util.files.exists(self._vars['geopotential']):
+                raise ApplicationException.get_programmatic_exc(7001, self._vars['geopotential'])
+        elif self.convert_conf:
+            if not util.files.exists(self._vars['path_to_convert'], is_dir=True):
+                raise ApplicationException.get_programmatic_exc(7002, self._vars['path_to_convert'])
         else:
 
+            if not self._vars.get('input.file'):
+                raise ApplicationException.get_programmatic_exc(1001)
+            if not util.files.exists(self._vars['input.file']):
+                raise ApplicationException.get_programmatic_exc(1000, self._vars['input.file'])
+            if not util.files.exists(self._vars['interpolation.lonMap']) or not util.files.exists(self._vars['interpolation.latMap']):
+                raise ApplicationException.get_programmatic_exc(1300)
+            if not util.files.exists(self._vars['outMaps.clone']):
+                raise ApplicationException.get_programmatic_exc(1310)
+
+            # create out dir if not existing
             try:
-                if not 'input.file' in self._params:
-                    raise ApplicationException.get_programmatic_exc(1001)
-                if not Fm.exists(self._params['input.file']):
-                    raise ApplicationException.get_programmatic_exc(1000,self._params['input.file'])
-                if not Fm.exists(self._params['interpolation.lonMap']) or not Fm.exists(self._params['interpolation.latMap']):
-                    raise ApplicationException.get_programmatic_exc(1300)
-                if not Fm.exists(self._params['outMaps.clone']):
-                    raise ApplicationException.get_programmatic_exc(1310)
-            except ApplicationException, exc:
-                raise exc
+                if self._vars['outMaps.outDir'] != './':
+                    if not self._vars['outMaps.outDir'].endswith('/'):
+                        self._vars['outMaps.outDir'] += '/'
+                    if not util.files.exists(self._vars['outMaps.outDir'], is_dir=True):
+                        util.files.create_dir(self._vars['outMaps.outDir'])
             except Exception, exc:
                 raise ApplicationException(exc, None, str(exc))
 
-            #create out dir if not existing
-            try:
-                if self._params['outMaps.outDir'] != './':
-                    if not self._params['outMaps.outDir'].endswith('/'):
-                        self._params['outMaps.outDir']+='/'
-                    if not Fm.exists(self._params['outMaps.outDir'], isDir=True):
-                        Fm.createDir(self._params['outMaps.outDir'])
-                        self._log('Non existing Output directory: ' + self._params['outMaps.outDir'] + ' - created.')
-            except Exception, exc:
+            if self._vars.get('interpolation.dir') and not util.files.exists(self._vars['interpolation.dir'], is_dir=True):
+                raise ApplicationException.get_programmatic_exc(1320, self._vars['interpolation.dir'])
 
-                raise ApplicationException(exc, None, str(exc))
+            # check all numbers
 
-            if self._params['interpolation.dir'] is not None and not Fm.exists(self._params['interpolation.dir'], isDir=True):
-                raise ApplicationException.get_programmatic_exc(1320, self._params['interpolation.dir'])
+            if self._vars['parameter.level'] and not self._vars['parameter.level'].isdigit():
+                raise ApplicationException.get_programmatic_exc(1400, 'Parameter level')
+            self._vars['parameter.level'] = int(self._vars['parameter.level']) if self._vars.get('parameter.level') else None
 
-            #check all numbers
+            self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else None
 
-            try:
-                if self._params['parameter.tstart'] is not None and not self._params['parameter.tstart'].isdigit():
-                    raise ApplicationException.get_programmatic_exc(1400, 'Start step')
-                self._params['parameter.tstart'] = int(self._params['parameter.tstart']) if self._params['parameter.tstart'] is not None else None
+            # check tstart<=tend
+            if not self._vars.get('parameter.tstart', 0) <= self._vars.get('parameter.tend', 1):
+                raise ApplicationException.get_programmatic_exc(1500)
 
-                self._params['parameter.dataTime'] = int(self._params['parameter.dataTime']) if self._params['parameter.dataTime'] is not None else None
-                self._params['parameter.dataDate'] = int(self._params['parameter.dataDate']) if self._params['parameter.dataDate'] is not None else None
-
-                if self._params['parameter.tend'] is not None and not self._params['parameter.tend'].isdigit():
-                    raise ApplicationException.get_programmatic_exc(1400, 'End step')
-                self._params['parameter.tend'] = int(self._params['parameter.tend']) if self._params['parameter.tend'] is not None else None
-
-                if self._params['parameter.level'] and not self._params['parameter.level'].isdigit():
-                    raise ApplicationException.get_programmatic_exc(1400, 'Parameter level')
-                self._params['parameter.level'] = int(self._params['parameter.level']) if self._params['parameter.level'] is not None else None
-
-                if 'parameter.perturbationNumber' in self._params and not self._params['parameter.perturbationNumber'].isdigit():
-                    raise ApplicationException.get_programmatic_exc(1400, 'EPS member')
-                self._params['parameter.perturbationNumber'] = int(self._params['parameter.perturbationNumber']) if 'parameter.perturbationNumber' in self._params else None
-
-                if self._params['outMaps.unitTime'] and not self._params['outMaps.unitTime'].isdigit():
-                    raise ApplicationException.get_programmatic_exc(1400, 'Output maps unit time')
-                self._params['outMaps.unitTime'] = int(self._params['outMaps.unitTime']) if self._params['outMaps.unitTime'] is not None else None
-
-                if self._params['outMaps.fmap'] and not self._params['outMaps.fmap'].isdigit():
-                    raise ApplicationException.get_programmatic_exc(1400, 'fmap number')
-                if self._params['outMaps.ext'] and not self._params['outMaps.ext'].isdigit():
-                    raise ApplicationException.get_programmatic_exc(1400, 'ext number')
-                self._params['outMaps.fmap'] = int(self._params['outMaps.fmap'])
-
-                self._params['outMaps.ext'] = int(self._params['outMaps.ext'])
-            except Exception, exc:
-
-                raise ApplicationException(exc, None, str(exc))
-
-
-            try:
-                #check tstart<=tend
-                if self._params['parameter.tstart'] is not None and self._params['parameter.tend'] is not None and not (self._params['parameter.tstart'] <= self._params['parameter.tend']):
-                    raise ApplicationException.get_programmatic_exc(1500)
-
-                # #check interpolation.mode is supported
-                # if not KNOWN_INTERP_MODES.has_key(self._params['interpolation.mode']):
-                #     raise ApplicationException.get_programmatic_exc(1600, self._params['interpolation.mode'])
-
-                #check both correction params are present
-                if self._params['execution.doCorrection'] and not ('correction.gemFormula' in self._params and 'correction.formula' in self._params and  'correction.demMap' in self._params):
-                    raise ApplicationException.get_programmatic_exc(4100)
-                if self._params['execution.doCorrection'] and not Fm.exists(self._params['correction.demMap']):
-                    raise ApplicationException.get_programmatic_exc(4200, self._params['correction.demMap'])
-            except Exception, exc:
-                raise ApplicationException(exc, None, str(exc))
+            # check both correction params are present
+            if self._vars['execution.doCorrection'] and not (self._vars.get('correction.gemFormula') and self._vars.get('correction.demMap') and self._vars.get('correction.formula')):
+                raise ApplicationException.get_programmatic_exc(4100)
+            if self._vars['execution.doCorrection'] and not util.files.exists(self._vars['correction.demMap']):
+                raise ApplicationException.get_programmatic_exc(4200, self._vars['correction.demMap'])
 
     def __str__(self):
         mess = '\n\n\n============ grib-pcraster-pie: Execution parameters ' + Du.getNowStr() + ' ================\n\n'
 
-        for par in sorted(self._params.iterkeys()):
-            mess += '\n' + par + '=' + str(self._params[par]) if self._params[par] is not None and self._params[par] else ''
+        for par in sorted(self._vars.iterkeys()):
+            mess += '\n' + par + '=' + str(self._vars[par]) if self._vars[par] is not None and self._vars[par] else ''
         return mess
 
-    def user_wants_help(self):
-        return self._showHelp
-
-    def user_wants_to_add_geopotential(self):
-        return self._addGeopotential
+    @property
+    def add_geopotential(self):
+        return self._to_add_geopotential
 
     def has_perturbation_number(self):
-        return 'parameter.perturbationNumber' in self._params and self._params['parameter.perturbationNumber'] is not None
+        return 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None
 
     def create_select_cmd_for_reader(self, start_, end_):
-        self._log('\n\n**********Selecting gribs using:************ \n')
 
-        ## 'var' suffix is for multiresolution 240 step message (global EUE files)
-        reader_args = {'shortName': [str(self._params['parameter.shortName']), str(self._params['parameter.shortName']).upper(), str(self._params['parameter.shortName'] + 'var')]}
+        # 'var' suffix is for multiresolution 240 step message (global EUE files)
+        reader_args = {
+            'shortName': [str(self._vars['parameter.shortName']), str(self._vars['parameter.shortName']).upper(),
+                          str(self._vars['parameter.shortName'] + 'var')]}
 
-        self._log('---variable short name = %s' % reader_args['shortName'])
-
-        if self._params['parameter.level'] is not None:
-            reader_args['level'] = self._params['parameter.level']
-            self._log('---level = %d' % self._params['parameter.level'])
-        if self._params['parameter.dataTime'] is not None:
-            reader_args['dataTime'] = self._params['parameter.dataTime']
-            self._log('---dataTime = %s' % self._params['parameter.dataTime'])
-        if self._params['parameter.dataDate'] is not None:
-            reader_args['dataDate'] = self._params['parameter.dataDate']
-            self._log('---dataDate = %s' % self._params['parameter.dataDate'])
+        if self._vars['parameter.level'] is not None:
+            reader_args['level'] = self._vars['parameter.level']
+        if self._vars['parameter.dataTime'] is not None:
+            reader_args['dataTime'] = self._vars['parameter.dataTime']
+        if self._vars['parameter.dataDate'] is not None:
+            reader_args['dataDate'] = self._vars['parameter.dataDate']
 
         if self.has_perturbation_number():
-            reader_args['perturbationNumber'] = self._params['parameter.perturbationNumber']
-            self._log('---eps Member (perturbationNumber) = %d' % self._params['parameter.perturbationNumber'])
+            reader_args['perturbationNumber'] = self._vars['parameter.perturbationNumber']
 
-        #start_step, end_step
+        # start_step, end_step
         if start_ == end_:
             reader_args['endStep'] = end_
             reader_args['startStep'] = start_
-            self._log('---startStep = %d'%start_)
-            self._log('-----endStep = %d\n\n'%end_)
         else:
             reader_args['endStep'] = lambda s: s <= end_
             reader_args['startStep'] = lambda s: s >= start_
-            self._log('---startStep >= %d'%start_)
-            self._log('-----endStep <= %d\n\n'%end_)
         return reader_args
 
     def create_select_cmd_for_aggregation_attrs(self):
 
-        reader_arguments = {'shortName': str(self._params['parameter.shortName'])}
-        if 'parameter.perturbationNumber' in self._params and self._params['parameter.perturbationNumber'] is not None:
-            reader_arguments['perturbationNumber'] = self._params['parameter.perturbationNumber']
+        reader_arguments = {'shortName': str(self._vars['parameter.shortName'])}
+        if 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None:
+            reader_arguments['perturbationNumber'] = self._vars['parameter.perturbationNumber']
         return reader_arguments
 
-    def user_wants_to_test(self):
-        return 'test.xml' in self._params and self._params['test.xml'] is not None
+    @property
+    def run_tests(self):
+        return bool(self._vars.get('test.json'))
+
+    @property
+    def convert_conf(self):
+        return bool(self._vars.get('path_to_convert'))
+
+    def geo_file(self, grid_id):
+        return self._conf.geopotentials.get_filepath(grid_id)

@@ -1,19 +1,13 @@
-__author__ = "nappodo"
-__date__ = "$Feb 10, 2013 10:02:04 AM$"
-
 import gdal
-from gdalconst import *
 import numpy.ma as ma
-from util.logger.Logger import Logger
-import gribpcraster.application.ExecutionContext as ex
-
+from util.logger import Logger
 FORMAT = 'PCRaster'
+
 
 class PCRasterWriter:
     def __init__(self, clone_mapP):
         self._clone_map = clone_mapP
-        import gribpcraster.application.ExecutionContext as ex
-        self._logger = Logger('PCRasterWriter', loggingLevel=ex.global_logger_level)
+        self._logger = Logger.get_logger()
         self._log("Set PCRaster clone for writing maps: " + self._clone_map)
         # =============================================================================
         # Create a MEM clone of the source file.
@@ -26,7 +20,7 @@ class PCRasterWriter:
 
         self._mem_ds = gdal.GetDriverByName('MEM').CreateCopy('mem', self._src_ds)
 
-        #Producing mask array
+        # Producing mask array
         cols = self._src_ds.RasterXSize
         rows = self._src_ds.RasterYSize
         rs = self._src_band.ReadAsArray(0, 0, cols, rows)
@@ -44,7 +38,7 @@ class PCRasterWriter:
         self._mem_ds.GetRasterBand(1).SetNoDataValue(mv)
         self._mem_ds.GetRasterBand(1).WriteArray(maskedValues)
         out_ds = drv.CreateCopy(output_map_name.encode('utf-8'), self._mem_ds)
-        self._log('%s written!'%output_map_name, 'INFO')
+        self._log('%s written!' % output_map_name, 'INFO')
         out_ds = None
 
     def _produceMaskedValues(self, values, mv):
@@ -56,4 +50,3 @@ class PCRasterWriter:
         self._mem_ds = None
         self._src_ds = None
         self._src_band = None
-        self._logger.close()

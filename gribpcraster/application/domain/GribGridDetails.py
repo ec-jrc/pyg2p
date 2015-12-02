@@ -5,7 +5,8 @@
 
 import gribapi as GRIB
 import numpy as np
-from util.logger.Logger import Logger
+
+from util.logger import Logger
 
 
 def _buildId(gid, grid_type):
@@ -42,9 +43,8 @@ class GribGridDetails(object):
 
     def __init__(self, gid):
 
-        import gribpcraster.application.ExecutionContext as ex
         self._lats = self._longs = None
-        self._logger = Logger('Messages', loggingLevel=ex.global_logger_level)
+        self._logger = Logger.get_logger()
         self._gid = gid
         self._geo_keys = self._extract_info_keys(gid)
         self._grid_type = self._geo_keys.get('gridType')
