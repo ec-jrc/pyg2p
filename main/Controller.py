@@ -8,7 +8,7 @@ from main.manipulation.correction import Corrector
 from main.interpolation.Interpolation import Interpolator
 from main.readers.grib import GRIBReader
 from main.writers.pcraster import PCRasterWriter
-from main.manipulation.aggregator import Aggregator as aggregator
+from main.manipulation.aggregator import Aggregator
 from util.logger import Logger
 
 
@@ -21,56 +21,45 @@ class Controller:
         self._reader2 = None
         self._firstMap = True
         self._interpolator = None
-        self._mvEfas = None
+        self._mv_efas = None
         self._pcraster_writer = None
 
     def log_execution_context(self):
         self._log(str(self._ctx), 'INFO')
 
     def init_execution(self):
-        change_step = ''
-        manip_2nd_time_res = None
         m = None
-        start_step2 = -1
 
-        self._reader = GRIBReader(self._ctx.get('input.file'),
-                                  w_perturb=self._ctx.has_perturbation_number())
-        radius, input_step, input_step2, change_in_step_at, type_of_param, grib_start, grib_end, mvGrib = self._reader.get_grib_info(
-            self._ctx.create_select_cmd_for_aggregation_attrs())
-        self._interpolator = Interpolator(self._ctx, radius=radius)
-        self._mvEfas = self._interpolator.mv_output()
-        self._interpolator.set_mv_input(mvGrib)
+        self._reader = GRIBReader(self._ctx.get('input.file'), w_perturb=self._ctx.has_perturbation_number())
+        grib_info = self._reader.get_grib_info(self._ctx.create_select_cmd_for_aggregation_attrs())
+        self._interpolator = Interpolator(self._ctx, radius=grib_info.radius)
+        self._mv_efas = self._interpolator.mv_output()
+        self._interpolator.set_mv_input(grib_info.mv)
         self._pcraster_writer = PCRasterWriter(self._ctx.get('outMaps.clone'))
 
         # read grib messages
-        start_step = 0 if self._ctx.get('parameter.tstart') is None else self._ctx.get('parameter.tstart')
-        end_step = grib_end if self._ctx.get('parameter.tend') is None else self._ctx.get('parameter.tend')
+        start_step = self._ctx.get('parameter.tstart', 0)
+        end_step = self._ctx.get('parameter.tend', grib_info.end)
 
         if self._ctx.must_do_manipulation():
-            m = aggregator(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
-                           input_step, type_of_param, start_step,
-                           end_step, self._ctx.get('outMaps.unitTime'), mvGrib,
+            m = Aggregator(aggr_step=self._ctx.get('aggregation.step'), aggr_type=self._ctx.get('aggregation.type'),
+                           input_step=grib_info.input_step, step_type=grib_info.type_of_param, start_step=start_step,
+                           end_step=end_step, unit_time=self._ctx.get('outMaps.unitTime'), mv_grib=grib_info.mv,
                            force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
             start_step, end_step = m.get_real_start_end_steps()
         selector_params = self._ctx.create_select_cmd_for_reader(start_step, end_step)
-        return change_step, selector_params, end_step, input_step, input_step2, m, manip_2nd_time_res, mvGrib, start_step2
+        return grib_info, selector_params, end_step, m
 
-    def _read_messages(self, selector_params):
-
-        messages, shortName = self._reader.getSelectedMessages(**selector_params)
-        type_of_param = messages.getTypeOfStep()
-        grid_id = messages.getGridId()
-        return grid_id, messages, type_of_param
-
-    def second_res_manipulation(self, change_step, end_step, input_step, messages, mvGrib, type_of_param, values):
+    def second_res_manipulation(self, change_step, end_step, input_step, messages, mv_grib, type_of_param, values):
 
         # manipulation of second resolution messages
         start_step2 = int(change_step.end_step) + int(self._ctx.get('aggregation.step'))
-        m2 = aggregator(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
-                        input_step, type_of_param, start_step2,
-                        end_step, self._ctx.get('outMaps.unitTime'), mvGrib,
+        m2 = Aggregator(aggr_step=self._ctx.get('aggregation.step'),
+                        aggr_type=self._ctx.get('aggregation.type'),
+                        input_step=input_step, step_type=type_of_param, start_step=start_step2,
+                        end_step=end_step, unit_time=self._ctx.get('outMaps.unitTime'), mv_grib=mv_grib,
                         force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
-        values2 = m2.do_manipulation(messages.getValuesOfSecondRes())
+        values2 = m2.do_manipulation(messages.second_resolution_values())
         values.update(values2)
         # overwrite change_step resolution because of manipulation
         change_step = sorted(values2.iterkeys(), key=lambda k: int(k.end_step))[0]
@@ -100,8 +89,8 @@ class Controller:
 
         if self._ctx.get('logger.level') == 'DEBUG':
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-                self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(),
-                v[v != self._mvEfas].max()))
+                self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mv_efas]), v[v != self._mv_efas].min(),
+                v[v != self._mv_efas].max()))
 
         if self._ctx.must_do_correction():
             corrector = Corrector.get_instance(self._ctx, grid_id)
@@ -109,16 +98,16 @@ class Controller:
 
         if self._ctx.get('logger.level') == 'DEBUG':
             self._log("Final Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-                self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mvEfas]), v[v != self._mvEfas].min(),
-                v[v != self._mvEfas].max()))
+                self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mv_efas]), v[v != self._mv_efas].min(),
+                v[v != self._mv_efas].max()))
 
-        self._pcraster_writer.write(self._name_map(i), v, self._mvEfas)
+        self._pcraster_writer.write(self._name_map(i), v, self._mv_efas)
 
     def read_2nd_res_messages(self, commandArgs, messages):
         # append messages
         self._reader2 = GRIBReader(self._ctx.get('input.file2'), w_perturb=self._ctx.has_perturbation_number())
         # messages.change_resolution() will return true after this append
-        mess_2nd_res, shortName = self._reader2.getSelectedMessages(**commandArgs)
+        mess_2nd_res, shortName = self._reader2.select_messages(**commandArgs)
         messages.append_2nd_res_messages(mess_2nd_res)
 
         ########################################################
@@ -127,13 +116,17 @@ class Controller:
 
     def execute(self):
         converter = None
+        grib_info, grib_select_cmd, end_step, manipulator = self.init_execution()
+        mv_grib = grib_info.mv
+        input_step = grib_info.input_step
 
-        change_res_step, commandArgs, end_step, input_step, input_step2, manipulator, manip_2nd_time_res, mvGrib, start_step2 = self.init_execution()
-        grid_id, messages, type_of_param = self._read_messages(commandArgs)
+        messages, short_name = self._reader.select_messages(**grib_select_cmd)
+        grid_id = messages.getGridId()
+        type_of_param = messages.type_of_step
 
         if self._ctx.is_2_input_files():
             # two files as input (-i and -I input arguments were given)
-            self.read_2nd_res_messages(commandArgs, messages)
+            self.read_2nd_res_messages(grib_select_cmd, messages)
             # inject aux attributes for interpolation into main reader, to use later
             self._reader.set_2nd_aux(self._reader2.get_main_aux())
 
@@ -149,16 +142,19 @@ class Controller:
             lats = None
             longs = None
 
+        # Conversion
         if self._ctx.must_do_conversion():
             converter = Converter(func=self._ctx.get('parameter.conversionFunction'),
                                   cut_off=self._ctx.get('parameter.cutoffnegative'))
-            messages.convertValues(converter)
+            messages.apply_conversion(converter)
 
-        values = messages.getValuesOfFirstOrSingleRes()
+        values = messages.first_resolution_values()
+
+        # First resolution manipulation
         if self._ctx.must_do_manipulation():
             if messages.have_change_resolution():
                 change_res_step = messages.get_change_res_step()
-                # start step of the first message at 2nd resolution
+                # First resolution manipulation by setting end step as start step of the first message at 2nd resolution
                 manipulator.change_end_step(int(change_res_step.start_step))
             values = manipulator.do_manipulation(values)
 
@@ -169,13 +165,14 @@ class Controller:
             if not self._ctx.interpolate_with_grib():
                 # we need GRIB lats and lons for scipy interpolation
                 lats2, longs2 = messages.latlons_2nd()
-            grid_id2 = messages.getGridId2()
+            grid_id2 = messages.grid2_id
             if self._ctx.must_do_manipulation():
+                # second resolution manipulation
                 change_res_step, values = self.second_res_manipulation(change_res_step, end_step, input_step, messages,
-                                                                       mvGrib, type_of_param, values)
+                                                                       mv_grib, type_of_param, values)
 
-        if self._ctx.must_do_conversion() and converter.mustDoCutOff():
-            values = converter.cutOffNegative(values)
+        if self._ctx.must_do_conversion and converter.must_cut_off:
+            values = converter.cut_off_negative(values)
 
         self._log('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
 
@@ -189,8 +186,8 @@ class Controller:
             # writing map i
             i += 1
             if messages.have_change_resolution() and timestep == change_res_step:
-                self._log(">>>>>>>>>>>> Change of resolution at message: " + str(timestep), 'DEBUG')
-                # changing interpol parameters to 2nd res
+                self._log(">>>>>>>>>>>> Change of resolution at message: {}".format(str(timestep)))
+                # Switching to second resolution
                 lats = lats2
                 longs = longs2
                 grid_id = grid_id2
@@ -202,8 +199,7 @@ class Controller:
             if i == 1 or changed_res:
                 # log the interpolation table name only on first map or at the first extended resolution map
                 log_it = True
-            self.create_out_map(grid_id, i, lats, longs, timestep, v, log_intertable=log_it, gid=-1,
-                                second_spatial_resolution=second_resolution)
+            self.create_out_map(grid_id, i, lats, longs, timestep, v, log_intertable=log_it, gid=-1, second_spatial_resolution=second_resolution)
             v = None
             del v
             gc.collect()

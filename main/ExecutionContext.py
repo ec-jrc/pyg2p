@@ -5,7 +5,7 @@ import os
 import util.files
 import util.strings as Fsc
 from main.exceptions import ApplicationException
-from main.manipulation.aggregator import MANIPULATION_ACCUM
+from main.manipulation.aggregator import ACCUMULATION
 from util.generics import now_string, FALSE_STRINGS
 
 DEFAULT_VALUES = {'interpolation.mode': 'grib_nearest',
@@ -175,6 +175,7 @@ class ExecutionContext:
             self._vars['outMaps.ext'] = exec_conf['OutMaps'].get('@ext') or 1
 
         # if start, end and dataTime are defined via command line input args, these are ignored.
+        # if missing, GribReader will read all timesteps for the parameter
         if self._vars['parameter.tstart'] is None and exec_conf['Parameter'].get('@tstart'):
             self._vars['parameter.tstart'] = int(exec_conf['Parameter']['@tstart'])
         if self._vars['parameter.tend'] is None and exec_conf['Parameter'].get('@tend'):
@@ -190,7 +191,7 @@ class ExecutionContext:
             self._vars['aggregation.step'] = exec_conf['Aggregation'].get('@step')
             self._vars['aggregation.type'] = exec_conf['Aggregation'].get('@type')
             self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) and bool(self._vars.get('aggregation.type'))
-            self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == MANIPULATION_ACCUM and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in FALSE_STRINGS
+            self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == ACCUMULATION and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in FALSE_STRINGS
 
         # string interpolation for custom user configurations (i.e. dataset folders)
         self._conf.user.interpolate_dirs(self)
@@ -201,6 +202,7 @@ class ExecutionContext:
     def must_do_correction(self):
         return self._vars['execution.doCorrection']
 
+    @property
     def must_do_conversion(self):
         return self._vars['execution.doConversion']
 

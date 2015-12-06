@@ -20,49 +20,30 @@ class Messages(object):
     def append_2nd_res_messages(self, messages):
         # messages is a Messages object from second set at different resolution
         self.grid_details.set_2nd_resolution(messages.grid_details, messages.first_step_range)
-        self.values_second_res = messages.getValuesOfFirstOrSingleRes()
+        self.values_second_res = messages.first_resolution_values()
         # garbaged
         messages = None
         del messages
 
-    def getUnit(self):
-        return self.unit
-
-    def getValuesOfFirstOrSingleRes(self):
+    def first_resolution_values(self):
         return self.values_first_or_single_res
 
-    def getValuesOfSecondRes(self):
+    def second_resolution_values(self):
         return self.values_second_res
 
-    def getGridId(self):
+    @property
+    def grid_id(self):
         return self.grid_details.getGridId()
 
-    def getGridId2(self):
+    @property
+    def grid2_id(self):
         return self.grid_details.get_2nd_resolution().getGridId()
-
-    def getTypeOfStep(self):
-        return self.type_of_step
-
-    def getTypeOfLevel(self):
-        return self.type_of_level
-
-    def getGridType(self):
-        return self.grid_details.getGridType()
-
-    def getValues(self, step):
-        return self.values_first_or_single_res[step]
 
     def latlons(self):
         return self.grid_details.latlons()
 
     def latlons_2nd(self):
         return self.grid_details.get_2nd_resolution().latlons()
-
-    def getGridDetails(self):
-        return self.grid_details
-
-    def getGridDetails2nd(self):
-        return self.grid_details.get_2nd_resolution()
 
     def have_change_resolution(self):
         return self.grid_details.get_2nd_resolution() is not None
@@ -73,9 +54,9 @@ class Messages(object):
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def convertValues(self, converter):
-        converter.setUnitToConvert(self.getUnit())
-        converter.setMissingValue(self.missing_value)
+    def apply_conversion(self, converter):
+        converter.set_unit_to_convert(self.unit)
+        converter.set_missing_value(self.missing_value)
         # convert all values
         self._log(converter, 'INFO')
         self.values_first_or_single_res = {key: converter.convert(values) for key, values in self.values_first_or_single_res.iteritems()}

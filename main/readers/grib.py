@@ -10,6 +10,18 @@ from main.exceptions import ApplicationException, NO_MESSAGES
 from util.logger import Logger
 
 
+class GRIBInfo(object):
+    def __init__(self, **kwargs):
+        self.radius = kwargs.get('radius')
+        self.input_step = kwargs.get('input_step')
+        self.input_step2 = kwargs.get('input_step2')
+        self.change_step_at = kwargs.get('change_step_at')
+        self.type_of_param = kwargs.get('type_of_param')
+        self.grib_start = kwargs.get('start')
+        self.grib_end = kwargs.get('end')
+        self.mv = kwargs.get('mv')
+
+
 class GRIBReader(object):
 
     def __init__(self, grib_file, w_perturb=False):
@@ -112,10 +124,10 @@ class GRIBReader(object):
                 kwargs['startStep'] = lambda s: s >= 0
                 self.scan_grib(gribs, kwargs)
             return gribs
-        except ValueError, noValsExc:
-            raise ApplicationException.get_programmatic_exc(NO_MESSAGES, details="using "+str(kwargs))
+        except ValueError:
+            raise ApplicationException.get_programmatic_exc(NO_MESSAGES, details="using {}".format((str(kwargs))))
 
-    def getSelectedMessages(self, **kwargs):
+    def select_messages(self, **kwargs):
         self._selected_grbs = self._get_gids(**kwargs)
         self._log("Selected " + str(len(self._selected_grbs)) + " grib messages")
 
@@ -163,8 +175,7 @@ class GRIBReader(object):
             if grid2 is not None:
                 key_2nd_spatial_res = min(allValues2ndRes.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
-            return Messages(allValues, missing_value, unit,
-                            type_of_level, type_of_step, grid, allValues2ndRes), short_name
+            return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes), short_name
         # no messages found
         else:
             raise ApplicationException.get_programmatic_exc(3000, details="using {}".format(kwargs))
@@ -205,7 +216,10 @@ class GRIBReader(object):
             del _gribs_for_utils
             import gc
             gc.collect()
-            return radius, self._step_grib, self._step_grib2, self._change_step_at, type_of_step, start_grib, end_grib, self._mv
+            info = GRIBInfo(radius=radius, input_step=self._step_grib, input_step2=self._step_grib2,
+                            change_step_at=self._change_step_at, type_of_param=type_of_step,
+                            start=start_grib, end=end_grib, mv=self._mv)
+            return info
         # no messages found
         else:
             raise ApplicationException.get_programmatic_exc(3000, details="using " + str(readerArgs))

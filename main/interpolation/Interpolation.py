@@ -6,7 +6,7 @@ import InverseDistance as ID
 import util.files
 from InverseDistance import InverseDistance
 from main.exceptions import ApplicationException
-from .LatLongDem import LatLongBuffer
+from .latlong import LatLong
 from .grib_interpolation_lib import grib_nearest, grib_invdist
 from util.logger import Logger
 from util.numeric import mask_it
@@ -42,14 +42,18 @@ class Interpolator:
             self._radius = radius
         _latMap = exec_ctx.get('interpolation.latMap')
         _lonMap = exec_ctx.get('interpolation.lonMap')
-        self._latLongBuffer = LatLongBuffer(_latMap, _lonMap)
-        self._mvEfas = self._latLongBuffer.missing_value
+        self._latlons = LatLong(_latMap, _lonMap)
+        self._mvEfas = self._latlons.missing_value
         self._mvGrib = -1
 
         self._aux_val = None
         self._aux_gid = None
         self._aux_2nd_res_gid = None
         self._aux_2nd_res_val = None
+
+    def _intertable_name(self, grid_id, suffix):
+        name = '{}{}_{}{}.npy'.format(self._prefix, grid_id.replace('$', '_'), self._latlons.identifier, suffix)
+        return os.path.normpath(os.path.join(self._intertable_dir, name))
 
     def set_radius(self, r):
         self._radius = r
@@ -68,15 +72,16 @@ class Interpolator:
 
     def interpolate_scipy(self, latgrib, longrib, f, grid_id, log_intertable=False):
 
-        lonefas = self._latLongBuffer.getLong()
-        latefas = self._latLongBuffer.getLat()
+        lonefas = self._latlons.longs
+        latefas = self._latlons.lats
+        intertable_name = self._intertable_name(grid_id, suffix=self.tabname_scipy + self._mode)
 
-        intertable_name = os.path.normpath(os.path.join(self._intertable_dir, self._prefix + grid_id.replace('$', '_') + '_' + self._latLongBuffer.getId() + self.tabname_scipy + self._mode + '.npy'))
-        log = self._log if log_intertable else None
+        # intertable_name = os.path.normpath(os.path.join(self._intertable_dir, self._prefix + grid_id.replace('$', '_') + '_' + self._latLongBuffer.identifier + self.tabname_scipy + self._mode + '.npy'))
         orig_shape = lonefas.shape
         # parameters
         nnear = Interpolator.modes_nnear[self._mode]
         if util.files.exists(intertable_name):
+            log = self._log if log_intertable else None
             dists, indexes = _read_intertable(intertable_name, log=log)
             result = ID.interpolate_invdist(f, self._mvGrib, self._mvEfas, dists, indexes, nnear, from_inter=True)
             grid_data = result.reshape(orig_shape)
@@ -104,10 +109,10 @@ class Interpolator:
             return self.grib_inverse_distance(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
 
     def grib_nearest(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
-
-        intertable_name = os.path.normpath(os.path.join(self._intertable_dir, self._prefix + grid_id.replace('$', '_') + '_' + self._latLongBuffer.getId() + '_nn.npy'))
+        intertable_name = self._intertable_name(grid_id, suffix='_nn')
+        # intertable_name = os.path.normpath(os.path.join(self._intertable_dir, self._prefix + grid_id.replace('$', '_') + '_' + self._latLongBuffer.identifier + '_nn.npy'))
         existing_intertable = False
-        result = np.empty(self._latLongBuffer.getLong().shape)
+        result = np.empty(self._latlons.longs.shape)
         result.fill(self._mvEfas)
         result = mask_it(result, self._mvEfas)
         if gid == -1 and not util.files.exists(intertable_name):
@@ -129,9 +134,9 @@ class Interpolator:
             if gid == -1:
                 raise ApplicationException.get_programmatic_exc(6000)
             self._log('Interpolating table not found. Will create file: ' + intertable_name, 'INFO')
-            lonefas = self._latLongBuffer.getLong()
-            latefas = self._latLongBuffer.getLat()
-            mv = self._latLongBuffer.missing_value
+            lonefas = self._latlons.longs
+            latefas = self._latlons.lats
+            mv = self._latlons.missing_value
             # xs, ys, idxs, result = _grib_nearest(gid, latefas, lonefas, mv, result)
             xs, ys, idxs = grib_nearest(gid, latefas, lonefas, mv, result)
             intertable = np.array([xs, ys, idxs])
@@ -142,9 +147,9 @@ class Interpolator:
         return result, existing_intertable
 
     def grib_inverse_distance(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
-
-        intertable_name = os.path.normpath(os.path.join(self._intertable_dir, self._prefix + grid_id.replace('$', '_') + '_' + self._latLongBuffer.getId() + '_inv.npy'))
-        result = np.empty(self._latLongBuffer.getLong().shape)
+        intertable_name = self._intertable_name(grid_id, suffix='_inv')
+        # intertable_name = os.path.normpath(os.path.join(self._intertable_dir, self._prefix + grid_id.replace('$', '_') + '_' + self._latLongBuffer.identifier + '_inv.npy'))
+        result = np.empty(self._latlons.longs.shape)
         result.fill(self._mvEfas)
         result = np.ma.masked_array(data=result, fill_value=self._mvEfas, copy=False)
         v = mask_it(v, self._mvGrib)
@@ -171,9 +176,9 @@ class Interpolator:
             if gid == -1:
                 raise ApplicationException.get_programmatic_exc(6000)
             self._log('Interpolating table not found. Will create file: ' + intertable_name, 'INFO')
-            lonefas = self._latLongBuffer.getLong()
-            latefas = self._latLongBuffer.getLat()
-            mv = self._latLongBuffer.missing_value
+            lonefas = self._latlons.longs
+            latefas = self._latlons.lats
+            mv = self._latlons.missing_value
             xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = grib_invdist(gid, latefas, lonefas, mv, result)
             intertable = np.array([xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4])
             # saving interpolation lookup table
