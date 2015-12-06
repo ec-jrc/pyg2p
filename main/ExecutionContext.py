@@ -1,12 +1,12 @@
 import argparse
 import json
 import os
+
 import util.files
-from gribpcraster.exc.ApplicationException import ApplicationException
-import util.date.Dates as Du
-import util.conversion.FromStringConversion as Fsc
-from gribpcraster.application.manipulation.Manipulator import MANIPULATION_ACCUM
-from util.generics import FALSE_STRINGS
+import util.strings as Fsc
+from main.exceptions import ApplicationException
+from main.manipulation.aggregator import MANIPULATION_ACCUM
+from util.generics import now_string, FALSE_STRINGS
 
 DEFAULT_VALUES = {'interpolation.mode': 'grib_nearest',
                   'outMaps.unitTime': '24'}
@@ -122,15 +122,16 @@ class ExecutionContext:
 
         if not util.files.exists(self._input_args['commandsFile']):
             raise ApplicationException.get_programmatic_exc(0, self._input_args['commandsFile'])
+
         with open(self._input_args['commandsFile']) as f:
             u = json.load(f)
+
         exec_conf = u['Execution']
 
         self._vars['execution.name'] = exec_conf['@name']
         self._vars['execution.id'] = exec_conf['@id']
 
         self._vars['parameter.shortName'] = exec_conf['Parameter']['@shortName']
-
         parameter = self._conf.parameters.get(self._vars['parameter.shortName'])
         self._vars['parameter.description'] = parameter['@description']
         self._vars['parameter.unit'] = parameter['@unit']
@@ -157,12 +158,13 @@ class ExecutionContext:
         self._vars['interpolation.latMap'] = interpolation_conf['@latMap']
         self._vars['interpolation.lonMap'] = interpolation_conf['@lonMap']
 
-        # optional parameters
         self._vars['outMaps.unitTime'] = exec_conf['OutMaps'].get('@unitTime')
+
+        # optional parameters (can also be defined by command line)
         if not self._vars['outMaps.namePrefix']:
             self._vars['outMaps.namePrefix'] = exec_conf['OutMaps'].get('@namePrefix') or exec_conf['Parameter']['@shortName']
         if self._vars['outMaps.fmap'] == 1:
-            self._vars['outMaps.fmap'] = exec_conf['OutMaps'].get('@fmap') or 1  # number
+            self._vars['outMaps.fmap'] = exec_conf['OutMaps'].get('@fmap') or 1
         if self._vars['outMaps.ext'] == 1:
             self._vars['outMaps.ext'] = exec_conf['OutMaps'].get('@ext') or 1
 
@@ -237,7 +239,7 @@ class ExecutionContext:
                 raise ApplicationException.get_programmatic_exc(1400, 'Parameter level')
             self._vars['parameter.level'] = int(self._vars['parameter.level']) if self._vars.get('parameter.level') else None
 
-            self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else None
+            self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else DEFAULT_VALUES['outMaps.unitTime']
 
             # check tstart<=tend
             if not self._vars.get('parameter.tstart', 0) <= self._vars.get('parameter.tend', 1):
@@ -250,7 +252,7 @@ class ExecutionContext:
                 raise ApplicationException.get_programmatic_exc(4200, self._vars['correction.demMap'])
 
     def __str__(self):
-        mess = '\n\n\n============ grib-pcraster-pie: Execution parameters ' + Du.getNowStr() + ' ================\n\n'
+        mess = '\n\n\n============ grib-pcraster-pie: Execution parameters ' + now_string() + ' ================\n\n'
 
         for par in sorted(self._vars.iterkeys()):
             mess += '\n' + par + '=' + str(self._vars[par]) if self._vars[par] is not None and self._vars[par] else ''

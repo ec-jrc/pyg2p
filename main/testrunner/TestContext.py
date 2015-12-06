@@ -1,7 +1,7 @@
 import json
 import os
 
-from util.conversion.FromStringConversion import to_argv
+from util.strings import to_argv
 
 
 class Test(object):

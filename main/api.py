@@ -1,7 +1,7 @@
 import collections
 
 from pyg2p import main
-from util.conversion.FromStringConversion import to_argv, to_argdict
+from util.strings import to_argv, to_argdict
 
 
 def command(*args):

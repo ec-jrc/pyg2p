@@ -2,11 +2,12 @@ SHORTNAME_NOT_FOUND = 1100
 CONVERSION_NOT_FOUND = 1200
 NO_MESSAGES = 3000
 NO_GEOPOTENTIAL = 4000
+NO_VAR_DEFINED = 8000
 
 
 class ApplicationException(Exception):
 
-    #TODO: convert key from number to explicative string (e.g. 1000 --> 'file.notfound')
+    # TODO: convert key from number to explicative string (e.g. 1000 --> 'file.notfound')
     _errorMessages = {
         0: 'Execution command file not found',
         1000: 'Did not found input file. Check filename.',
@@ -34,6 +35,7 @@ class ApplicationException(Exception):
         7000: 'XML configuration file for tests was not found',
         7001: 'Geopotential grib file was not found',
         7002: 'Path to old xml configuration was not found',
+        NO_VAR_DEFINED: 'Variable was not found in any .conf files. Please add it in ~/.pyg2p/<myconffile>.conf'
     }
 
     @staticmethod
