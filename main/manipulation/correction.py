@@ -26,19 +26,19 @@ class Corrector(object):
 
     def __init__(self, ctx, geo_file_):
         self._logger = Logger.get_logger()
-        demMap = ctx.get('correction.demMap')
-        self._dem_missing_value, self._dem_values = _readDem(demMap)
+        dem_map = ctx.get('correction.demMap')
+        self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
         self._formula = ctx.get('correction.formula')
         self._gem_formula = ctx.get('correction.gemFormula')
         self._numexpr_eval = 'where((dem!=mv)&(p!=mv)&(gem!=mv),' + self._formula + ', mv)'
         self._numexpr_eval_gem = 'where(z!=mv,' + self._gem_formula + ', mv)'
-        self._log('Reading dem:%s, geopotential:%s for correction (using: %s)'% (demMap, geo_file_, self._formula))
+        self._log('Reading dem:%s, geopotential:%s for correction (using: %s)'% (dem_map, geo_file_, self._formula))
         self._log('Reading dem values %s)' % geo_file_)
 
         interpolator = Interpolator(ctx)
         self._log('Reading geopotential values (with interpolation) %s)' % geo_file_)
 
-        self._gem_missing_value, self._gem_values = self._readGeopotential(geo_file_, interpolator, ctx.interpolate_with_grib())
+        self._gem_missing_value, self._gem_values = self._read_geo(geo_file_, interpolator, ctx.interpolate_with_grib())
 
     def correct(self, values):
 
@@ -58,7 +58,7 @@ class Corrector(object):
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def _readGeopotential(self, grib_file, interpolator, is_grib_interpolation):
+    def _read_geo(self, grib_file, interpolator, is_grib_interpolation):
 
         self._log('Reading %s for correction using one of %s)' % (grib_file, str(GeopotentialsConfiguration.short_names)))
         reader = GRIBReader(grib_file)
@@ -87,10 +87,10 @@ class Corrector(object):
         reader.close()
         return missing, values_resampled
 
-
-def _readDem(demMap):
-    reader = PCRasterReader(demMap)
-    values = reader.getValues()
-    missing = reader.missing_value
-    reader.close()
-    return missing, values
+    @staticmethod
+    def _read_dem(dem_map):
+        reader = PCRasterReader(dem_map)
+        values = reader.getValues()
+        missing = reader.missing_value
+        reader.close()
+        return missing, values

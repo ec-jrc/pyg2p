@@ -10,12 +10,6 @@ from main import exceptions as appexcmodule
 __version__ = 'v2.0'
 
 
-def run_tests(test_xml_file):
-    from main.testrunner.TestRunner import TestRunner
-    runner = TestRunner(test_xml_file)
-    runner.run()
-
-
 def main(*args):
     if __name__ in ("__main__", "pyg2p") and isinstance(args[0], list):
         args = args[0]
@@ -27,27 +21,31 @@ def main(*args):
     try:
 
         if exc_ctx.convert_conf:
+            # convert old XML configurations to JSON
             Configuration.convert_to_v2(exc_ctx.get('path_to_convert'))
             return 0
         elif exc_ctx.add_geopotential:
+            # add geopotential GRIB file to geopotentials.json
             conf.add_geopotential(exc_ctx.get('geopotential'))
             return 0
         elif exc_ctx.run_tests:
-            import memory_profiler
+            # comparison tests between grib2pcraster and pyg2p results
             try:
-                run_tests(exc_ctx.get('test.json'))
+                import memory_profiler
+                from main.testrunner import TestRunner
+                TestRunner(exc_ctx.get('test.json')).run()
                 return 0
             except ImportError:
                 print 'memory_profiler module is missing'
                 print 'try "pip install memory_profiler" and re-execute'
                 return 0
-
     except appexcmodule.ApplicationException, err:
         logger = Logger.get_logger()
         logger.log('\nConfiguration Error: {}'.format(str(err)) + '\n\n', 'ERROR')
         logger.close()
         return 1
 
+    # normal execution flow
     _controller = None
     logger = Logger.get_logger(exc_ctx.get('logger.level'), exc_ctx.get('logger.dir'))
     try:

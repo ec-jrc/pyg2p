@@ -3,11 +3,11 @@ import collections
 
 import numpy as np
 
-from main.manipulation.Conversion import Converter
-from main.manipulation.Correction import Corrector
+from main.manipulation.conversion import Converter
+from main.manipulation.correction import Corrector
 from main.interpolation.Interpolation import Interpolator
 from main.readers.grib import GRIBReader
-from main.writers.PCRasterWriter import PCRasterWriter
+from main.writers.pcraster import PCRasterWriter
 from main.manipulation.aggregator import Aggregator as aggregator
 from util.logger import Logger
 
