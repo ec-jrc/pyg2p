@@ -1,0 +1,26 @@
+{
+    "Execution": {
+        "@id": 1, 
+        "@name": "AFFS_CP24", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/vera/dem_mean.map", 
+            "@ext": 1, 
+            "@fmap": 1, 
+            "@namePrefix": "cp", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/vera/lat.map", 
+                "@lonMap": "/dataset/vera/lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm", 
+            "@shortName": "cp"
+        }
+    }
+}

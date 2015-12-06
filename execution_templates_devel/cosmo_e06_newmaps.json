@@ -1,0 +1,26 @@
+{
+    "Execution": {
+        "@id": 1, 
+        "@name": "cosmo_e06", 
+        "Aggregation": {
+            "@step": 6, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/cosmo/dem05.map", 
+            "@ext": 6, 
+            "@fmap": 1, 
+            "@namePrefix": "pE06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/cosmo/lat_cosmo5km_new.map", 
+                "@lonMap": "/dataset/maps/cosmo/lon_cosmo5km_new.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tommd", 
+            "@shortName": "alhfl_s"
+        }
+    }
+}

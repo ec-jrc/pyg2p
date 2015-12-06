@@ -1,0 +1,12 @@
+{
+    "TestConfiguration": {
+        "@atol": 0.1, 
+        "@commands": "~/.pyg2p/tests/commands_few.txt",
+        "PcRasterDiff": {
+            "@exec": "/home/dominik/devapps/PCRaster-3.0/bin/pcrcalc"
+        }, 
+        "g2p": {
+            "@exec": "/home/dominik/ECMWF_grib2pcraster/grib2pcraster/grib2pcraster"
+        }
+    }
+}

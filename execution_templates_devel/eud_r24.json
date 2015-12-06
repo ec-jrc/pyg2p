@@ -1,0 +1,25 @@
+{
+    "Execution": {
+        "@id": "xx", 
+        "@name": "eud_r24", 
+        "Aggregation": {
+            "@step": 6, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/europe5km/dem.map", 
+            "@fmap": 1, 
+            "@namePrefix": "pR24", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/europe5km/lat.map", 
+                "@lonMap": "/dataset/maps/europe5km/long.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm", 
+            "@shortName": "tp"
+        }
+    }
+}

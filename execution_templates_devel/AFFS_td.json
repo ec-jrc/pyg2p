@@ -1,0 +1,29 @@
+{
+    "Execution": {
+        "@id": 1, 
+        "@name": "AFFS_T24", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/vera/dem_mean.map", 
+            "@ext": 1, 
+            "@fmap": 1, 
+            "@namePrefix": "td", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/vera/lat.map", 
+                "@lonMap": "/dataset/vera/lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "k2c", 
+            "@correctionFormula": "p+gem-dem*0.0065", 
+            "@demMap": "/dataset/vera/dem_mean.map", 
+            "@gem": "(z/9.81)*0.0065", 
+            "@shortName": "2d"
+        }
+    }
+}

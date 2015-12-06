@@ -1,0 +1,26 @@
+{
+    "Execution": {
+        "@id": 4, 
+        "@name": "dwd_rain_gsp", 
+        "Aggregation": {
+            "@step": 6, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/efasLatLon/europe5km/dem.map", 
+            "@fmap": 14, 
+            "@namePrefix": "pR06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/efasLatLon/europe5km/lat.map", 
+                "@lonMap": "/dataset/maps/efasLatLon/europe5km/long.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@shortName": "RAIN_GSP", 
+            "@tend": 168, 
+            "@tstart": 84
+        }
+    }
+}

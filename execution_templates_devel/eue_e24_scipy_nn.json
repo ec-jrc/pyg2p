@@ -1,0 +1,25 @@
+{
+    "Execution": {
+        "@id": "eue_e", 
+        "@name": "eue_e", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/europe5km/dem.map", 
+            "@fmap": 1, 
+            "@namePrefix": "pE24", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/europe5km/lat.map", 
+                "@lonMap": "/dataset/maps/europe5km/long.map", 
+                "@mode": "nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm", 
+            "@shortName": "e"
+        }
+    }
+}

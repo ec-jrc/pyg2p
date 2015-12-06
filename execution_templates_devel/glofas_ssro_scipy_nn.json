@@ -1,0 +1,27 @@
+{
+    "Execution": {
+        "@id": 101, 
+        "@name": "multi_ssro", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/global/dem.map", 
+            "@fmap": 1, 
+            "@namePrefix": "pssro", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/global/lat.map", 
+                "@lonMap": "/dataset/maps/global/lon.map", 
+                "@mode": "nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "m2mm", 
+            "@shortName": "ssro", 
+            "@tend": 360, 
+            "@tstart": 0
+        }
+    }
+}
