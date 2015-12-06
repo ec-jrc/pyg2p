@@ -1,0 +1,21 @@
+{
+    "Execution": {
+        "@id": "eue_r06_RA", 
+        "@name": "eue_r06_RA", 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/provaUngribDecember/dem0.map", 
+            "@fmap": 1, 
+            "@namePrefix": "pR06a", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/provaUngribDecember/lat.map", 
+                "@lonMap": "/dataset/maps/provaUngribDecember/lon.map", 
+                "@mode": "grib_invdist"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm", 
+            "@shortName": "tp"
+        }
+    }
+}

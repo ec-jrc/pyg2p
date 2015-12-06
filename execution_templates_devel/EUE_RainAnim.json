@@ -1,0 +1,22 @@
+{
+    "Execution": {
+        "@id": "eue_r06_RA", 
+        "@name": "eue_r06_RA", 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/UKMO/dem0.map", 
+            "@ext": 6, 
+            "@fmap": 6, 
+            "@namePrefix": "pR06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/UKMO/lat.map", 
+                "@lonMap": "/dataset/maps/UKMO/lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm", 
+            "@shortName": "tp"
+        }
+    }
+}

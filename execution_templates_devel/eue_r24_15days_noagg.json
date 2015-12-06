@@ -1,0 +1,23 @@
+{
+    "Execution": {
+        "@id": "xx", 
+        "@name": "eue_r24_15d", 
+        "OutMaps": {
+            "@cloneMap": "/dataset/15dayUngrib/dem05.map", 
+            "@fmap": 1, 
+            "@namePrefix": "pR24a", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/15dayUngrib/latitude_5km_resampled.map", 
+                "@lonMap": "/dataset/15dayUngrib/longitude_5km_resampled.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm", 
+            "@shortName": "tp", 
+            "@tend": 360, 
+            "@tstart": 0
+        }
+    }
+}

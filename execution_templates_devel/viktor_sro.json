@@ -1,0 +1,28 @@
+{
+    "Execution": {
+        "@id": 100, 
+        "@name": "multi_sro", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/global/dem.map", 
+            "@fmap": 2, 
+            "@namePrefix": "sro", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@intertableDir": "/home/dominik/ECMWF_grib2pcraster/pyg2p_git/configuration/alternate_intertables", 
+                "@latMap": "/dataset/maps/global/lat.map", 
+                "@lonMap": "/dataset/maps/global/lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "m2mm", 
+            "@shortName": "sro", 
+            "@tend": 24, 
+            "@tstart": 24
+        }
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "Execution": {
+        "@id": 100, 
+        "@name": "multi_sro", 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/europe5km/dem.map", 
+            "@fmap": 1, 
+            "@namePrefix": "psro", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/europe5km/lat.map", 
+                "@lonMap": "/dataset/maps/europe5km/long.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "m2mm", 
+            "@shortName": "sro", 
+            "@tend": 360, 
+            "@tstart": 0
+        }
+    }
+}

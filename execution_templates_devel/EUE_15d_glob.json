@@ -1,0 +1,27 @@
+{
+    "Execution": {
+        "@id": "xx", 
+        "@name": "eue_r24_15d", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/global/dem.map", 
+            "@fmap": 1, 
+            "@namePrefix": "psrog", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/global/lat.map", 
+                "@lonMap": "/dataset/maps/global/long.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "m2mm", 
+            "@shortName": "sro", 
+            "@tend": 360, 
+            "@tstart": 24
+        }
+    }
+}

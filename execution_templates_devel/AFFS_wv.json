@@ -1,0 +1,25 @@
+{
+    "Execution": {
+        "@id": 1, 
+        "@name": "AFFS_WV24", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/vera/dem_mean.map", 
+            "@ext": 1, 
+            "@fmap": 1, 
+            "@namePrefix": "wv", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/vera/lat.map", 
+                "@lonMap": "/dataset/vera/lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@shortName": "10v"
+        }
+    }
+}

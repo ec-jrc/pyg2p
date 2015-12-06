@@ -1,0 +1,30 @@
+{
+    "Execution": {
+        "@id": 99, 
+        "@name": "eud_r06", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/europe5km/dem.map", 
+            "@fmap": 1, 
+            "@namePrefix": "pR06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/fredrik/latitude_5km_resampled.map", 
+                "@lonMap": "/dataset/maps/fredrik/longitude_5km_resampled.map", 
+                "@mode": "nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "k2c", 
+            "@correctionFormula": "p+gem-dem*0.0065", 
+            "@demMap": "/dataset/maps/cosmo/dem05.map", 
+            "@gem": "(z/9.81)*0.0065", 
+            "@shortName": "2t", 
+            "@tend": 240, 
+            "@tstart": 6
+        }
+    }
+}

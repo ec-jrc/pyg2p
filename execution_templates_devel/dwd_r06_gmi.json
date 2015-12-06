@@ -1,0 +1,26 @@
+{
+    "Execution": {
+        "@id": 4, 
+        "@name": "dwd_rain_gsp", 
+        "Aggregation": {
+            "@step": 6, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/dwd/dem05.map", 
+            "@fmap": 14, 
+            "@namePrefix": "pR06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/dwd/dwdgmi05_lat.map", 
+                "@lonMap": "/dataset/maps/dwd/dwdgmi05_lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@shortName": "RAIN_GSP", 
+            "@tend": 168, 
+            "@tstart": 84
+        }
+    }
+}

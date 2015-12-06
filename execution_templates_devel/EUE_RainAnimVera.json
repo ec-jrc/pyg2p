@@ -1,0 +1,25 @@
+{
+    "Execution": {
+        "@id": "eue_r06_RA", 
+        "@name": "eue_r06_RA", 
+        "Aggregation": {
+            "@step": 6, 
+            "@type": "instantaneous"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/global/dem.map", 
+            "@fmap": 1, 
+            "@namePrefix": "R06b", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/global/lat.map", 
+                "@lonMap": "/dataset/maps/global/lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm", 
+            "@shortName": "tp"
+        }
+    }
+}

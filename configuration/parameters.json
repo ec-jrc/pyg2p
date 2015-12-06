@@ -1,0 +1,263 @@
+{
+    "Parameters": {
+        "Parameter": [
+            {
+                "@description": "Total precipitation", 
+                "@shortName": "tp", 
+                "@unit": "kg m**-2 s**-1", 
+                "Conversion": [
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x", 
+                        "@id": "cut", 
+                        "@unit": "kg m**-2 s**-1"
+                    }, 
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x*1000", 
+                        "@id": "tomm", 
+                        "@unit": "mm"
+                    }
+                ]
+            }, 
+            {
+                "@description": "Evaporation", 
+                "@shortName": "e", 
+                "@unit": "m", 
+                "Conversion": {
+                    "@cutOffNegative": true, 
+                    "@function": "x=-x*1000", 
+                    "@id": "tomm", 
+                    "@unit": "mm"
+                }
+            }, 
+            {
+                "@description": "2 meters Temperature", 
+                "@shortName": "2T", 
+                "@unit": "K", 
+                "Conversion": {
+                    "@cutOffNegative": false, 
+                    "@function": "x=x-273.15", 
+                    "@id": "k2c", 
+                    "@unit": "C"
+                }
+            }, 
+            {
+                "@description": "2 meters Temperature", 
+                "@shortName": "2t", 
+                "@unit": "K", 
+                "Conversion": {
+                    "@cutOffNegative": false, 
+                    "@function": "x=x-273.15", 
+                    "@id": "k2c", 
+                    "@unit": "C"
+                }
+            }, 
+            {
+                "@description": "2 meters Temperature", 
+                "@shortName": "td_2m", 
+                "@unit": "K", 
+                "Conversion": {
+                    "@cutOffNegative": false, 
+                    "@function": "x=x-273.15", 
+                    "@id": "k2c", 
+                    "@unit": "C"
+                }
+            }, 
+            {
+                "@description": "2 meters Temperature", 
+                "@shortName": "t_2m", 
+                "@unit": "K", 
+                "Conversion": {
+                    "@cutOffNegative": false, 
+                    "@function": "x=x-273.15", 
+                    "@id": "k2c", 
+                    "@unit": "C"
+                }
+            }, 
+            {
+                "@description": "latent heat flux", 
+                "@shortName": "ALHFL_S", 
+                "@unit": "W/(m^2)", 
+                "Conversion": [
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x*(-0.0353)", 
+                        "@id": "tommd", 
+                        "@unit": "mm/d"
+                    }, 
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x*(-0.00147)", 
+                        "@id": "tommh", 
+                        "@unit": "mm/h"
+                    }
+                ]
+            }, 
+            {
+                "@description": "latent heat flux", 
+                "@shortName": "alhfl_s", 
+                "@unit": "W/(m^2)", 
+                "Conversion": [
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x*(-0.0353)", 
+                        "@id": "tommd", 
+                        "@unit": "mm/d"
+                    }, 
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x*(-0.00147)", 
+                        "@id": "tommh", 
+                        "@unit": "mm/h"
+                    }
+                ]
+            }, 
+            {
+                "@description": "surface latent heat flux", 
+                "@shortName": "slhf", 
+                "@unit": "W/(m^2)", 
+                "Conversion": [
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x*(-0.0353)", 
+                        "@id": "tommd", 
+                        "@unit": "mm/d"
+                    }, 
+                    {
+                        "@cutOffNegative": true, 
+                        "@function": "x=x*(-0.00147)", 
+                        "@id": "tommh", 
+                        "@unit": "mm/h"
+                    }
+                ]
+            }, 
+            {
+                "@description": "2 meters Dewpoint", 
+                "@shortName": "2D", 
+                "@unit": "K", 
+                "Conversion": {
+                    "@function": "x=x-273.15", 
+                    "@id": "k2c", 
+                    "@unit": "C"
+                }
+            }, 
+            {
+                "@description": "2 meters Dewpoint", 
+                "@shortName": "2d", 
+                "@unit": "K", 
+                "Conversion": {
+                    "@function": "x=x-273.15", 
+                    "@id": "k2c", 
+                    "@unit": "C"
+                }
+            }, 
+            {
+                "@description": "Surface Runoff", 
+                "@shortName": "sro", 
+                "@unit": "m", 
+                "Conversion": {
+                    "@cutOffNegative": true, 
+                    "@function": "x=x*1000", 
+                    "@id": "m2mm", 
+                    "@unit": "mm"
+                }
+            }, 
+            {
+                "@description": "Sub-Surface Runoff", 
+                "@shortName": "ssro", 
+                "@unit": "m", 
+                "Conversion": {
+                    "@cutOffNegative": true, 
+                    "@function": "x=x*1000", 
+                    "@id": "m2mm", 
+                    "@unit": "mm"
+                }
+            }, 
+            {
+                "@description": "Geopotential", 
+                "@shortName": "z", 
+                "@unit": "m**2 s**-2"
+            }, 
+            {
+                "@description": "Geopotential cosmo", 
+                "@shortName": "fis", 
+                "@unit": "m**2 s**-2"
+            }, 
+            {
+                "@description": "Geopotential", 
+                "@shortName": "Z", 
+                "@unit": "m**2 s**-2"
+            }, 
+            {
+                "@description": "Geopotential cosmo", 
+                "@shortName": "FIS", 
+                "@unit": "m**2 s**-2"
+            }, 
+            {
+                "@description": "10 meters u wind component", 
+                "@shortName": "10u", 
+                "@unit": "m/s"
+            }, 
+            {
+                "@description": "10 meters v wind component", 
+                "@shortName": "10v", 
+                "@unit": "m/s"
+            }, 
+            {
+                "@description": "surface precipitation amount, rain, grid scale", 
+                "@shortName": "RAIN_GSP", 
+                "@unit": "kg/m^2", 
+                "Conversion": {
+                    "@cutOffNegative": true, 
+                    "@function": "x=x", 
+                    "@id": "cut", 
+                    "@unit": "kg m**-2 s**-1"
+                }
+            }, 
+            {
+                "@description": "surface precipitation amount, rain, convective", 
+                "@shortName": "RAIN_CON", 
+                "@unit": "kg/m^2", 
+                "Conversion": {
+                    "@cutOffNegative": true, 
+                    "@function": "x=x", 
+                    "@id": "cut", 
+                    "@unit": "kg m**-2 s**-1"
+                }
+            }, 
+            {
+                "@description": "Surface solar radiation", 
+                "@shortName": "ssr", 
+                "@unit": "W s/m^2"
+            }, 
+            {
+                "@description": "Surface thermal radiation", 
+                "@shortName": "str", 
+                "@unit": "W s/m^2"
+            }, 
+            {
+                "@description": "Convective precipitation", 
+                "@shortName": "cp", 
+                "@unit": "m", 
+                "Conversion": {
+                    "@cutOffNegative": true, 
+                    "@function": "x=x*1000", 
+                    "@id": "tomm", 
+                    "@unit": "mm"
+                }
+            }, 
+            {
+                "@description": "Large scale precipitation", 
+                "@shortName": "lsp", 
+                "@unit": "m", 
+                "Conversion": {
+                    "@cutOffNegative": true, 
+                    "@function": "x=x*1000", 
+                    "@id": "tomm", 
+                    "@unit": "mm"
+                }
+            }
+        ]
+    }
+}

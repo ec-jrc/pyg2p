@@ -1,0 +1,28 @@
+{
+    "Execution": {
+        "@id": 5, 
+        "@name": "dwd_E06a", 
+        "Aggregation": {
+            "@step": 6, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/efasLatLon/europe5km/dem.map", 
+            "@ext": 1, 
+            "@fmap": 14, 
+            "@namePrefix": "pE06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/efasLatLon/europe5km/lat.map", 
+                "@lonMap": "/dataset/maps/efasLatLon/europe5km/long.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tommd", 
+            "@shortName": "ALHFL_S", 
+            "@tend": 168, 
+            "@tstart": 84
+        }
+    }
+}

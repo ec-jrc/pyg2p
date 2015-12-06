@@ -1,0 +1,26 @@
+{
+    "Execution": {
+        "@id": 3, 
+        "@name": "cosmo_r06", 
+        "Aggregation": {
+            "@forceZeroArray": true, 
+            "@step": 6, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/cosmo/dem05.map", 
+            "@fmap": 1, 
+            "@namePrefix": "pR06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/cosmo/cosmo05_lat.map", 
+                "@lonMap": "/dataset/maps/cosmo/cosmo05_lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "cut", 
+            "@shortName": "tp"
+        }
+    }
+}

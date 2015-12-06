@@ -1,0 +1,27 @@
+{
+    "Execution": {
+        "@id": 5, 
+        "@name": "dwd_E06a", 
+        "Aggregation": {
+            "@step": 6, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/dwd/dem05.map", 
+            "@fmap": 3, 
+            "@namePrefix": "E06a", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/dwd/dwdlme05_lat.map", 
+                "@lonMap": "/dataset/maps/dwd/dwdlme05_lon.map", 
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tommd", 
+            "@shortName": "ALHFL_S", 
+            "@tend": 12, 
+            "@tstart": 12
+        }
+    }
+}

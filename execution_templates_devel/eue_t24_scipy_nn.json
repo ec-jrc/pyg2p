@@ -1,0 +1,29 @@
+{
+    "Execution": {
+        "@id": "eue_2t", 
+        "@name": "eue_t24", 
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/europe5km/lat.map", 
+            "@ext": 1, 
+            "@fmap": 1, 
+            "@namePrefix": "pT24", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/europe5km/lat.map", 
+                "@lonMap": "/dataset/maps/europe5km/long.map", 
+                "@mode": "nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "k2c", 
+            "@correctionFormula": "p+gem-dem*0.0065", 
+            "@demMap": "/dataset/maps/dem05.map", 
+            "@gem": "(z/9.81)*0.0065", 
+            "@shortName": "2t"
+        }
+    }
+}
