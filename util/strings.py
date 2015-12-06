@@ -1,6 +1,4 @@
 import csv
-import util.date.Dates as Dates
-"""Module for conversion operations from a String """
 
 
 def to_boolean(bool_):
@@ -26,6 +24,7 @@ def _is_empty_string(string_):
 def to_argv(string_):
     c = csv.reader(csv.StringIO(string_), delimiter=" ")
     return filter(_is_empty_string, list(c)[0])
+
 
 def to_argdict(string_):
     c = csv.reader(csv.StringIO(string_), delimiter=" ")

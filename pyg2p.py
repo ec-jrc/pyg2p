@@ -2,16 +2,16 @@
 
 import sys
 from util.logger import Logger
-from gribpcraster.application.Controller import Controller
-from gribpcraster.application.ExecutionContext import ExecutionContext
-from gribpcraster.config import Configuration
-from gribpcraster.exc import ApplicationException as appexcmodule
+from main.Controller import Controller
+from main.ExecutionContext import ExecutionContext
+from main.config import Configuration
+from main import exceptions as appexcmodule
 
 __version__ = 'v2.0'
 
 
 def run_tests(test_xml_file):
-    from gribpcraster.testrunner.TestRunner import TestRunner
+    from main.testrunner.TestRunner import TestRunner
     runner = TestRunner(test_xml_file)
     runner.run()
 

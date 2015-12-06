@@ -3,9 +3,17 @@ CHANGE LOG
 
 v 2.0
 -----
+* **59** Improvement (minor)
+    Documentation in a single file, with more information on interpolation (and internals),
+    grids and examples.
+
+* **58** Improvement (major)
+    JSON commands configuration can contain variables in the form {var}.
+    Those vars can be defined in a .conf file under ~/.pyg2p/ user folder:
+    var = /path/to/my/data
 
 * **57** Improvement (major)
-    Configuration in JSON.
+    Configuration in JSON and placed under ~/.pyg2p/ user folder.
     Write code to convert XML file into JSON.
     Dismiss XML config and convert all XML config files into JSON.
 

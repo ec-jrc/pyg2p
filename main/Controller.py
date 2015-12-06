@@ -3,12 +3,12 @@ import collections
 
 import numpy as np
 
-from gribpcraster.application.manipulation.Conversion import Converter
-from gribpcraster.application.manipulation.Correction import Corrector
-from gribpcraster.application.interpolation.Interpolation import Interpolator
-from gribpcraster.application.readers.GRIBReader import GRIBReader
-from gribpcraster.application.writers.PCRasterWriter import PCRasterWriter
-from gribpcraster.application.manipulation.Manipulator import Manipulator as mnp
+from main.manipulation.Conversion import Converter
+from main.manipulation.Correction import Corrector
+from main.interpolation.Interpolation import Interpolator
+from main.readers.grib import GRIBReader
+from main.writers.PCRasterWriter import PCRasterWriter
+from main.manipulation.aggregator import Aggregator as aggregator
 from util.logger import Logger
 
 
@@ -47,10 +47,10 @@ class Controller:
         end_step = grib_end if self._ctx.get('parameter.tend') is None else self._ctx.get('parameter.tend')
 
         if self._ctx.must_do_manipulation():
-            m = mnp(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
-                    input_step, type_of_param, start_step,
-                    end_step, self._ctx.get('outMaps.unitTime'), mvGrib,
-                    force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
+            m = aggregator(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
+                           input_step, type_of_param, start_step,
+                           end_step, self._ctx.get('outMaps.unitTime'), mvGrib,
+                           force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
             start_step, end_step = m.get_real_start_end_steps()
         selector_params = self._ctx.create_select_cmd_for_reader(start_step, end_step)
         return change_step, selector_params, end_step, input_step, input_step2, m, manip_2nd_time_res, mvGrib, start_step2
@@ -66,10 +66,10 @@ class Controller:
 
         # manipulation of second resolution messages
         start_step2 = int(change_step.end_step) + int(self._ctx.get('aggregation.step'))
-        m2 = mnp(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
-                 input_step, type_of_param, start_step2,
-                 end_step, self._ctx.get('outMaps.unitTime'), mvGrib,
-                 force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
+        m2 = aggregator(self._ctx.get('aggregation.step'), self._ctx.get('aggregation.type'),
+                        input_step, type_of_param, start_step2,
+                        end_step, self._ctx.get('outMaps.unitTime'), mvGrib,
+                        force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
         values2 = m2.do_manipulation(messages.getValuesOfSecondRes())
         values.update(values2)
         # overwrite change_step resolution because of manipulation
@@ -140,7 +140,7 @@ class Controller:
         # Grib lats/lons are used for interpolation methods nearest, invdist.
         # Not for grib_nearest and grib_invdist
         if not self._ctx.interpolate_with_grib():
-            lats, longs = messages.getLatLons()
+            lats, longs = messages.latlons()
         else:
             # these "aux" values are used by grib interpolation methods to create tables on disk
             # aux (gid and its values array) are read by GRIBReader which uses the first message selected
@@ -168,7 +168,7 @@ class Controller:
             longs2 = None
             if not self._ctx.interpolate_with_grib():
                 # we need GRIB lats and lons for scipy interpolation
-                lats2, longs2 = messages.getLatLons2()
+                lats2, longs2 = messages.latlons_2nd()
             grid_id2 = messages.getGridId2()
             if self._ctx.must_do_manipulation():
                 change_res_step, values = self.second_res_manipulation(change_res_step, end_step, input_step, messages,

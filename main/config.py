@@ -1,22 +1,32 @@
 import json
 import os
-from xmljson import badgerfish as bf
+import re
 from xml.etree.ElementTree import fromstring
 
+from xmljson import badgerfish as bf
+
 import util.files
-from gribpcraster.application.readers.GRIBReader import GRIBReader
-from gribpcraster.exc.ApplicationException import (
+from main.exceptions import (
     ApplicationException,
     SHORTNAME_NOT_FOUND,
     CONVERSION_NOT_FOUND,
-    NO_GEOPOTENTIAL
-)
+    NO_GEOPOTENTIAL,
+    NO_VAR_DEFINED)
+from main.readers.grib import GRIBReader
 
 
 class UserConfiguration(object):
+    """
+    Class that holds all values defined in properties .conf files under ~/.pyg2p/ folder
+    These variables are used to interpolate .json command files.
+    Ex: in a json command file you can define "@latMap": "{EFAS_MAPS}/lat.map"
+    and in ~/pyg2p/mysettings.conf you set EFAS_MAPS=/path/to/my/maps
+    """
     user_conf_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
     sep = '='
     comment_char = '#'
+    to_interpolate = ('correction.demMap', 'outMaps.clone', 'interpolation.latMap', 'interpolation.lonMap')
+    regex = re.compile(r'{(?P<var>[a-zA-Z_]+)}')
 
     def __init__(self):
         self.vars = {}
@@ -31,9 +41,6 @@ class UserConfiguration(object):
         return self.vars.get(var)
 
     def load_properties(self, filepath):
-        """
-        Read the file passed as parameter as a properties file.
-        """
         props = {}
         with open(filepath, "rt") as f:
             for line in f:
@@ -43,14 +50,27 @@ class UserConfiguration(object):
                     props[key_value[0].strip()] = key_value[1].strip('" \t')
         return props
 
+    def interpolate_dirs(self, execution_context):
+        """
+        execution_context: instance of ExecutionContext
+        """
+        vars_with_variables = [var for var in self.to_interpolate if self.regex.search(execution_context.get(var, ''))]
+        for var in vars_with_variables:
+            # we can have multiple variables {CONF_DIR}/{MAPS_DIR}lat.map
+            execution_context[var] = execution_context[var].format(**self.vars)
+            if self.regex.search(execution_context[var]):
+                # some variables where not string-interpolated so they are missing in user configuration
+                vars_not_defined = self.regex.findall(execution_context[var])
+                raise ApplicationException.get_programmatic_exc(NO_VAR_DEFINED, str(vars_not_defined))
+
 
 class BaseConfiguration(object):
-    config_file_ = ''
+    config_filename = ''
     data_path_ = ''
 
     def __init__(self, user_configuration):
         self.user_configuration = user_configuration
-        self.config_file = os.path.join(user_configuration.user_conf_dir, self.config_file_)
+        self.config_file = os.path.join(user_configuration.user_conf_dir, self.config_filename)
         self.data_path = os.path.join(user_configuration.user_conf_dir, self.data_path_)
         self.vars = self.load()
 
@@ -64,7 +84,7 @@ class BaseConfiguration(object):
 
 
 class ParametersConfiguration(BaseConfiguration):
-    config_file_ = 'parameters.json'
+    config_filename = 'parameters.json'
 
     def get(self, short_name):
         for param in self.vars['Parameters']['Parameter']:
@@ -84,7 +104,7 @@ class ParametersConfiguration(BaseConfiguration):
 
 
 class GeopotentialsConfiguration(BaseConfiguration):
-    config_file_ = 'geopotentials.json'
+    config_filename = 'geopotentials.json'
     data_path_ = 'geopotentials'
     short_names = ['fis', 'z', 'FIS']
 

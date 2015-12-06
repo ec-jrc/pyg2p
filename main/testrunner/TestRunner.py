@@ -1,19 +1,18 @@
-import os
-import time, datetime
 import collections
-import numpy as np
-
-import util.files
-
-from gribpcraster.testrunner.TestContext import TestContext
-from util.conversion.FromStringConversion import to_argv
-
+import datetime
+import os
+import time
 from subprocess import call, STDOUT
-from memory_profiler import memory_usage
-import pyg2p
 
-from gribpcraster.application.readers.PCRasterReader import PCRasterReader as pcraster_reader
+import numpy as np
+from memory_profiler import memory_usage
+
+import pyg2p
+import util.files
+from main.readers.pcraster import PCRasterReader as pcraster_reader
+from main.testrunner.TestContext import TestContext
 from util.logger import Logger
+from util.strings import to_argv
 
 ENDC = '\033[0m'
 BOLD = "\033[1m"
@@ -66,7 +65,7 @@ class TestRunner(object):
 
             reader_ = pcraster_reader(test_.out_dir + diff_map)
             diff_values = reader_.getValues()
-            diff_values = diff_values[diff_values != reader_.getMissingValue()]
+            diff_values = diff_values[diff_values != reader_.missing_value]
             # returns true if all elements are absolute(diff) <= atol
             all_ok = np.allclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
             if all_ok:
