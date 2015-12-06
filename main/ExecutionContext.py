@@ -107,8 +107,14 @@ class ExecutionContext:
         global global_out_log_dir
         global_out_log_dir = self._vars['logger.dir']
 
-    def get(self, param):
-        return self._vars.get(param)
+    def get(self, param, default=None):
+        return self._vars.get(param, default)
+
+    def __getitem__(self, param):
+        return self._vars[param]
+
+    def __setitem__(self, param, value):
+        self._vars[param] = value
 
     # will read the xml commands file and store parameters
     def _define_exec_params(self):
@@ -185,6 +191,9 @@ class ExecutionContext:
             self._vars['aggregation.type'] = exec_conf['Aggregation'].get('@type')
             self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) and bool(self._vars.get('aggregation.type'))
             self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == MANIPULATION_ACCUM and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in FALSE_STRINGS
+
+        # string interpolation for custom user configurations (i.e. dataset folders)
+        self._conf.user.interpolate_dirs(self)
 
     def must_do_manipulation(self):
         return self._vars['execution.doAggregation']

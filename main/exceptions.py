@@ -14,7 +14,7 @@ class ApplicationException(Exception):
         1001: 'Input file not set as -i or --inputFile command line option',
         SHORTNAME_NOT_FOUND: 'shortName not found in parameters.json.',
         CONVERSION_NOT_FOUND: 'shortName - conversionId combination not found in parameters.json.',
-        1300: 'Latitude or longitude maps doesn''t exist. Check filenames in commands xml file.',
+        1300: "Latitude or longitude maps doesn't exist. Check filenames in commands json file.",
         1310: 'Clone map doesn''t exist. Check filename in commands xml file.',
         1320: 'Interlookuptables dir must exist. Check name in commands xml file or create it.',
         1400: 'Not a number. Check configuration.',
@@ -32,7 +32,7 @@ class ApplicationException(Exception):
               'with no more reference to original gribs, using grib_api interpolation methods.  \n'
               'Interlookup table must be created, first. Otherwise, use other interpolation methods (nearest or invdist).',
         6100: 'Manipulation not implemented.',
-        7000: 'XML configuration file for tests was not found',
+        7000: 'JSON configuration file for tests was not found',
         7001: 'Geopotential grib file was not found',
         7002: 'Path to old xml configuration was not found',
         NO_VAR_DEFINED: 'Variable was not found in any .conf files. Please add it in ~/.pyg2p/<myconffile>.conf'
