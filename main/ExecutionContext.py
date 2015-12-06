@@ -3,7 +3,7 @@ import json
 import os
 
 import util.files
-import util.strings as Fsc
+import util.strings
 from main.exceptions import ApplicationException
 from main.manipulation.aggregator import ACCUMULATION
 from util.generics import now_string, FALSE_STRINGS
@@ -12,7 +12,7 @@ DEFAULT_VALUES = {'interpolation.mode': 'grib_nearest',
                   'outMaps.unitTime': '24'}
 
 
-class ExecutionContext:
+class ExecutionContext(object):
     def __init__(self, user_conf, argv):
         self._conf = user_conf
         self._input_args = {}
@@ -65,6 +65,8 @@ class ExecutionContext:
         parser.add_argument('-l', '--loggerLevel', help='Console logging level', default='INFO',
                             choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'])
         parser.add_argument('-d', '--outLogDir', help='output logs dir', default='./logs/')
+        parser.add_argument('-N', '--intertableDir', help='interpolation tables dir')
+        parser.add_argument('-B', '--createIntertable', help='create intertable file', action='store_true', default=False)
 
         parser.add_argument('-g', '--addGeopotential', help='''</path/to/geopotential/grib/file
         \nAdd the file to geopotentials.xml configuration file, to use for correction.
@@ -92,6 +94,8 @@ class ExecutionContext:
         self._vars['parameter.tend'] = parsed_args['end']
         self._vars['parameter.dataTime'] = parsed_args['dataTime']
         self._vars['parameter.dataDate'] = parsed_args['dataDate']
+        self._vars['interpolation.dir'] = parsed_args['intertableDir']
+        self._vars['interpolation.create'] = parsed_args['createIntertable']
         self._vars['outMaps.fmap'] = parsed_args['fmap']
         self._vars['outMaps.ext'] = parsed_args['ext']
         self._vars['outMaps.namePrefix'] = parsed_args['namePrefix']
@@ -104,11 +108,8 @@ class ExecutionContext:
         self._vars['path_to_convert'] = parsed_args['convert_to_v2']
         self._vars['test.json'] = parsed_args['test']
 
-        global global_out_log_dir
-        global_out_log_dir = self._vars['logger.dir']
-
     def get(self, param, default=None):
-        return self._vars.get(param, default)
+        return self._vars.get(param, default) or default
 
     def __getitem__(self, param):
         return self._vars[param]
@@ -116,7 +117,7 @@ class ExecutionContext:
     def __setitem__(self, param, value):
         self._vars[param] = value
 
-    # will read the xml commands file and store parameters
+    # will read the json commands file and store parameters into a common dictionary
     def _define_exec_params(self):
         self._vars['execution.doAggregation'] = False
         self._vars['execution.doConversion'] = False
@@ -149,7 +150,7 @@ class ExecutionContext:
             conversion = self._conf.parameters.get_conversion(parameter, self._vars['parameter.conversionId'])
             self._vars['parameter.conversionUnit'] = conversion['@unit']
             self._vars['parameter.conversionFunction'] = conversion['@function']
-            self._vars['parameter.cutoffnegative'] = Fsc.to_boolean(conversion.get('@cutOffNegative'))
+            self._vars['parameter.cutoffnegative'] = util.strings.to_boolean(conversion.get('@cutOffNegative'))
 
         if exec_conf['Parameter'].get('@correctionFormula') and exec_conf['Parameter'].get('@gem') and exec_conf['Parameter'].get('@demMap'):
             self._vars['execution.doCorrection'] = True
@@ -160,7 +161,10 @@ class ExecutionContext:
         self._vars['outMaps.clone'] = exec_conf['OutMaps']['@cloneMap']
         interpolation_conf = exec_conf['OutMaps']['Interpolation']
         self._vars['interpolation.mode'] = interpolation_conf.get('@mode', DEFAULT_VALUES['interpolation.mode'])
-        self._vars['interpolation.dir'] = interpolation_conf.get('@intertableDir', self._conf.default_interpol_dir)
+        if self._vars['interpolation.dir'] is None:
+            # interlookup tables folder was not defined via command line with argument -N, --intertableDir
+            # get from JSON or from default user configuration
+            self._vars['interpolation.dir'] = interpolation_conf.get('@intertableDir', self._conf.default_interpol_dir)
         self._vars['interpolation.latMap'] = interpolation_conf['@latMap']
         self._vars['interpolation.lonMap'] = interpolation_conf['@lonMap']
 
@@ -196,9 +200,11 @@ class ExecutionContext:
         # string interpolation for custom user configurations (i.e. dataset folders)
         self._conf.user.interpolate_dirs(self)
 
-    def must_do_manipulation(self):
+    @property
+    def must_do_aggregation(self):
         return self._vars['execution.doAggregation']
 
+    @property
     def must_do_correction(self):
         return self._vars['execution.doCorrection']
 

@@ -48,6 +48,6 @@ class Converter:
     def __str__(self):
         log_mess = "\nConverting values from units {}. " \
                    "\nFunction: {}" \
-                   "\nMissing value: {.2f}".format(self._initial_unit, self._function_str, self._mv)
+                   "\nMissing value: {:.2f}".format(self._initial_unit, self._function_str, self._mv)
         return log_mess
 

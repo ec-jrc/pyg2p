@@ -5,7 +5,7 @@ import numpy as np
 import InverseDistance as ID
 import util.files
 from InverseDistance import InverseDistance
-from main.exceptions import ApplicationException
+from main.exceptions import ApplicationException, NO_INTERTABLE_CREATED
 from .latlong import LatLong
 from .grib_interpolation_lib import grib_nearest, grib_invdist
 from util.logger import Logger
@@ -50,6 +50,7 @@ class Interpolator:
         self._aux_gid = None
         self._aux_2nd_res_gid = None
         self._aux_2nd_res_val = None
+        self.create_if_missing = exec_ctx.get('interpolation.create')
 
     def _intertable_name(self, grid_id, suffix):
         name = '{}{}_{}{}.npy'.format(self._prefix, grid_id.replace('$', '_'), self._latlons.identifier, suffix)
@@ -80,12 +81,14 @@ class Interpolator:
         orig_shape = lonefas.shape
         # parameters
         nnear = Interpolator.modes_nnear[self._mode]
+
         if util.files.exists(intertable_name):
             log = self._log if log_intertable else None
             dists, indexes = _read_intertable(intertable_name, log=log)
             result = ID.interpolate_invdist(f, self._mvGrib, self._mvEfas, dists, indexes, nnear, from_inter=True)
             grid_data = result.reshape(orig_shape)
-        else:
+
+        elif self.create_if_missing:
             if latgrib is None and longrib is None:
                 self._log('Trying to interpolate without grib lat/lons. Probably a geopotential grib!','ERROR')
                 raise ApplicationException.get_programmatic_exc(5000)
@@ -97,6 +100,9 @@ class Interpolator:
             np.save(intertable_name, np.array([dists, indexes], dtype=np.float64))
             # reshape to efas
             grid_data = result.reshape(orig_shape)
+
+        else:
+            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
         return grid_data
 
@@ -129,7 +135,7 @@ class Interpolator:
             log = self._log if log_intertable else None
             xs, ys, idxs = _read_intertable(intertable_name, log=log)
             v = mask_it(v, self._mvGrib)
-        else:
+        elif self.create_if_missing:
             # assert...
             if gid == -1:
                 raise ApplicationException.get_programmatic_exc(6000)
@@ -142,6 +148,8 @@ class Interpolator:
             intertable = np.array([xs, ys, idxs])
             # saving interpolation lookup table
             np.save(intertable_name, intertable)
+        else:
+            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
         result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
         return result, existing_intertable
@@ -170,8 +178,7 @@ class Interpolator:
             existing_intertable = True
             self._log('Interpolating with table ' + intertable_name)
             xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = _read_intertable(intertable_name, log=log)
-
-        else:
+        elif self.create_if_missing:
             # assert...
             if gid == -1:
                 raise ApplicationException.get_programmatic_exc(6000)
@@ -183,6 +190,8 @@ class Interpolator:
             intertable = np.array([xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4])
             # saving interpolation lookup table
             np.save(intertable_name, intertable)
+        else:
+            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
         result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs1.astype(int, copy=False)] * coeffs1 + v[idxs2.astype(int, copy=False)] * coeffs2 + \
             v[idxs3.astype(int, copy=False)] * coeffs3 + v[idxs4.astype(int, copy=False)] * coeffs4

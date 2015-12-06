@@ -49,7 +49,7 @@ class Aggregator(object):
             self._usable_start = self._start
         log_message = 'Aggregation {} with step {} '\
                       'for {} values from {} to {} '\
-                      '[real start: %d]'.format(self._aggregation, self._aggregation_step,
+                      '[real start: {}]'.format(self._aggregation, self._aggregation_step,
                                                 self._step_type, self._start,
                                                 self._end, self._usable_start)
         self._log(log_message)

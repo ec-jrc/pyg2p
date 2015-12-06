@@ -13,14 +13,8 @@ class GribGridDetails(object):
 
     @staticmethod
     def _build_id(gid, grid_type):
-        if gribapi.grib_is_missing(gid, 'Ni'):
-            ni = 'MISSING'
-        else:
-            ni = gribapi.grib_get(gid, 'Ni')
-        if gribapi.grib_is_missing(gid, 'Nj'):
-            nj = 'MISSING'
-        else:
-            nj = gribapi.grib_get(gid, 'Nj')
+        ni = 'MISSING' if gribapi.grib_is_missing(gid, 'Ni') else gribapi.grib_get(gid, 'Ni')
+        nj = 'MISSING' if gribapi.grib_is_missing(gid, 'Nj') else gribapi.grib_get(gid, 'Nj')
         num_of_values = gribapi.grib_get(gid, 'numberOfValues')
         long_first = ('%.4f' % (gribapi.grib_get_double(gid, 'longitudeOfFirstGridPointInDegrees'),)).rstrip('0').rstrip('.')
         long_last = ('%.4f' % (gribapi.grib_get_double(gid, 'longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
@@ -74,7 +68,7 @@ class GribGridDetails(object):
     def get_change_res_step(self):
         return self._change_resolution_step
 
-    def _computeLatLongs(self, gid):
+    def _compute_latlongs(self, gid):
 
         # method to use with scipy interpolation methods
         # in this case, lats/lons of reduced grids will be expanded
@@ -95,14 +89,15 @@ class GribGridDetails(object):
         lats = lons = None
         return latsf, lonsf
 
+    @property
     def latlons(self):
         # this method is called only when interpolation is a scipy method
-
         if self._lats is None:
-            self._lats, self._longs = self._computeLatLongs(self._gid)
+            self._lats, self._longs = self._compute_latlongs(self._gid)
         return self._lats, self._longs
 
-    def _extract_info_keys(self, gid):
+    @staticmethod
+    def _extract_info_keys(gid):
 
         working_keys = {}
         if gribapi.grib_is_defined(gid, 'gridType'):

@@ -17,8 +17,8 @@ class GRIBInfo(object):
         self.input_step2 = kwargs.get('input_step2')
         self.change_step_at = kwargs.get('change_step_at')
         self.type_of_param = kwargs.get('type_of_param')
-        self.grib_start = kwargs.get('start')
-        self.grib_end = kwargs.get('end')
+        self.start = kwargs.get('start')
+        self.end = kwargs.get('end')
         self.mv = kwargs.get('mv')
 
 

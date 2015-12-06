@@ -1,0 +1,26 @@
+{
+    "Execution": {
+        "@id": 100,
+        "@name": "Octahedral test 1",
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/europe5km/dem.map",
+            "@ext": 1, 
+            "@fmap": 1, 
+            "@namePrefix": "t2",
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/europe5km/lat.map",
+                "@lonMap": "/dataset/maps/europe5km/long.map",
+                "@mode": "grib_nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "k2c",
+            "@shortName": "2t"
+        }
+    }
+}

@@ -39,11 +39,13 @@ class Messages(object):
     def grid2_id(self):
         return self.grid_details.get_2nd_resolution().getGridId()
 
+    @property
     def latlons(self):
-        return self.grid_details.latlons()
+        return self.grid_details.latlons
 
+    @property
     def latlons_2nd(self):
-        return self.grid_details.get_2nd_resolution().latlons()
+        return self.grid_details.get_2nd_resolution().latlons
 
     def have_change_resolution(self):
         return self.grid_details.get_2nd_resolution() is not None
