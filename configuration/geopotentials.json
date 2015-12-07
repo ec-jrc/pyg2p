@@ -1,94 +1,110 @@
 {
-    "geopotentials": {
-        "geopotential": [
-            {
-                "@id": "-35$45$161$91$14651$regular_ll", 
-                "@name": "europe_0.5_degree_T799.grb"
-            }, 
-            {
-                "@id": "-35$45$81$46$3726$regular_ll", 
-                "@name": "europe_1_degree_T399.grb"
-            }, 
-            {
-                "@id": "0$359$MISSING$800$843490$reduced_gg", 
-                "@name": "global_T799.grb"
-            }, 
-            {
-                "@id": "0$359$MISSING$400$213988$reduced_gg", 
-                "@name": "global_T399.grb"
-            }, 
-            {
-                "@id": "0$359$MISSING$256$88838$reduced_gg", 
-                "@name": "global_T255.grb"
-            }, 
-            {
-                "@id": "0$359$MISSING$1280$2140702$reduced_gg", 
-                "@name": "global_N640.grb"
-            }, 
-            {
-                "@id": "0$359$MISSING$640$542080$reduced_gg", 
-                "@name": "global_N320.grb"
-            }, 
-            {
-                "@id": "334$46$MISSING$270$84607$reduced_gg", 
-                "@name": "europe_N640.grb"
-            }, 
-            {
-                "@id": "334$46$MISSING$135$21489$reduced_gg", 
-                "@name": "europe_N320.grb"
-            }, 
-            {
-                "@id": "-12$14$306$258$78948$rotated_ll", 
-                "@name": "cosmos_geopotential.grib"
-            }, 
-            {
-                "@id": "37$47$101$111$11211$regular_ll", 
-                "@name": "africa_01_degrees.grb"
-            }, 
-            {
-                "@id": "-5$4$520$350$182000$rotated_ll", 
-                "@name": "imprints_ex_const_c2.grib1"
-            }, 
-            {
-                "@id": "-16$7$393$338$132834$rotated_ll", 
-                "@name": "imprints_ex_const_c7.grib1"
-            }, 
-            {
-                "@id": "-15.75$16.125$511$415$212065$rotated_ll", 
-                "@name": "cosmo7km.grb"
-            }, 
-            {
-                "@id": "350$40$201$161$32361$regular_ll", 
-                "@name": "dwd_gme_2004_72_i256_geo.grib2"
-            }, 
-            {
-                "@id": "-10$40$140$112$15680$regular_ll", 
-                "@name": "dwd_grib1_ispra_gmi_20110417.geo.grib"
-            }, 
-            {
-                "@id": "-18$23.5$665$657$436905$rotated_ll", 
-                "@name": "dwd_grib1_ispra_LME_2013051300"
-            }, 
-            {
-                "@id": "0$359$MISSING$1280$2140702$reduced_gg", 
-                "@name": "global_N640.grb"
-            }, 
-            {
-                "@id": "0$359.1667$432$325$140400$regular_ll", 
-                "@name": "geo_UKMO2.grb"
-            }, 
-            {
-                "@id": "0$359.955$MISSING$4000$20696844$reduced_gg", 
-                "@name": "T3999_corr.grb"
-            }, 
-            {
-                "@id": "0$359.718$MISSING$640$542080$reduced_gg", 
-                "@name": "T639.gph.grib"
-            }, 
-            {
-                "@id": "0$359.437$MISSING$320$138346$reduced_gg", 
-                "@name": "T319.gph.grib"
-            }
-        ]
-    }
+  "geopotentials": {
+    "geopotential": [
+      {
+        "@id": "-35$45$161$91$14651$regular_ll",
+        "@name": "europe_0.5_degree_T799.grb"
+      },
+      {
+        "@id": "-35$45$81$46$3726$regular_ll",
+        "@name": "europe_1_degree_T399.grb"
+      },
+      {
+        "@id": "0$359$MISSING$800$843490$reduced_gg",
+        "@name": "global_T799.grb"
+      },
+      {
+        "@id": "0$359$MISSING$400$213988$reduced_gg",
+        "@name": "global_T399.grb"
+      },
+      {
+        "@id": "0$359$MISSING$256$88838$reduced_gg",
+        "@name": "global_T255.grb"
+      },
+      {
+        "@id": "0$359$MISSING$1280$2140702$reduced_gg",
+        "@name": "global_N640.grb"
+      },
+      {
+        "@id": "0$359$MISSING$640$542080$reduced_gg",
+        "@name": "global_N320.grb"
+      },
+      {
+        "@id": "334$46$MISSING$270$84607$reduced_gg",
+        "@name": "europe_N640.grb"
+      },
+      {
+        "@id": "334$46$MISSING$135$21489$reduced_gg",
+        "@name": "europe_N320.grb"
+      },
+      {
+        "@id": "-12$14$306$258$78948$rotated_ll",
+        "@name": "cosmos_geopotential.grib"
+      },
+      {
+        "@id": "37$47$101$111$11211$regular_ll",
+        "@name": "africa_01_degrees.grb"
+      },
+      {
+        "@id": "-5$4$520$350$182000$rotated_ll",
+        "@name": "imprints_ex_const_c2.grib1"
+      },
+      {
+        "@id": "-16$7$393$338$132834$rotated_ll",
+        "@name": "imprints_ex_const_c7.grib1"
+      },
+      {
+        "@id": "-15.75$16.125$511$415$212065$rotated_ll",
+        "@name": "cosmo7km.grb"
+      },
+      {
+        "@id": "350$40$201$161$32361$regular_ll",
+        "@name": "dwd_gme_2004_72_i256_geo.grib2"
+      },
+      {
+        "@id": "-10$40$140$112$15680$regular_ll",
+        "@name": "dwd_grib1_ispra_gmi_20110417.geo.grib"
+      },
+      {
+        "@id": "-18$23.5$665$657$436905$rotated_ll",
+        "@name": "dwd_grib1_ispra_LME_2013051300"
+      },
+      {
+        "@id": "0$359$MISSING$1280$2140702$reduced_gg",
+        "@name": "global_N640.grb"
+      },
+      {
+        "@id": "0$359.1667$432$325$140400$regular_ll",
+        "@name": "geo_UKMO2.grb"
+      },
+      {
+        "@id": "0$359.955$MISSING$4000$20696844$reduced_gg",
+        "@name": "T3999_corr.grb"
+      },
+      {
+        "@id": "0$359.718$MISSING$640$542080$reduced_gg",
+        "@name": "T639.gph.grib"
+      },
+      {
+        "@id": "0$359.437$MISSING$320$138346$reduced_gg",
+        "@name": "T319.gph.grib"
+      },
+      {
+        "@id": "0$-176.915$MISSING$4000$10527626$reduced_gg",
+        "@name": "T3999.gph.grb"
+      },
+      {
+        "@id": "0$359.929$MISSING$2560$6599680$reduced_gg",
+        "@name": "lsmoro_cy41r2_O1280.grib"
+      },
+      {
+        "@id": "0$359.86$MISSING$1280$1661440$reduced_gg",
+        "@name": "lsmoro_cy41r2_O640.grib"
+      },
+      {
+        "@id": "0$359.722$MISSING$640$421120$reduced_gg",
+        "@name": "lsmoro_cy41r2_O320.grib"
+      }
+    ]
+  }
 }

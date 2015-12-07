@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": "ukmo_t24", 
-        "@name": "ukmo_t24", 
+        "@name": "ukmo_t24",
         "Aggregation": {
             "@step": 24, 
             "@type": "average"

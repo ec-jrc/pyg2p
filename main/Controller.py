@@ -53,6 +53,8 @@ class Controller:
     def second_res_manipulation(self, change_step, end_step, input_step, messages, mv_grib, type_of_param, values):
 
         # manipulation of second resolution messages
+        # import ipdb
+        # ipdb.set_trace()
         start_step2 = int(change_step.end_step) + int(self._ctx.get('aggregation.step'))
         m2 = Aggregator(aggr_step=self._ctx.get('aggregation.step'),
                         aggr_type=self._ctx.get('aggregation.type'),

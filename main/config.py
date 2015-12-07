@@ -11,7 +11,7 @@ from main.exceptions import (
     SHORTNAME_NOT_FOUND,
     CONVERSION_NOT_FOUND,
     NO_GEOPOTENTIAL,
-    NO_VAR_DEFINED)
+    NO_VAR_DEFINED, JSON_ERROR, EXISTING_GEOPOTENTIAL)
 from main.readers.grib import GRIBReader
 
 
@@ -76,7 +76,11 @@ class BaseConfiguration(object):
 
     def load(self):
         with open(self.config_file) as f:
-            return json.load(f)
+            try:
+                content = json.load(f)
+            except ValueError as e:
+                raise ApplicationException.get_programmatic_exc(JSON_ERROR, details='{} {}'.format(e, self.config_file))
+        return content
 
     def dump(self):
         with open(self.config_file, 'w') as fh:
@@ -109,10 +113,15 @@ class GeopotentialsConfiguration(BaseConfiguration):
     short_names = ['fis', 'z', 'FIS']
 
     def add(self, filepath):
-        util.files.copy(filepath, self.data_path)
+
         args = {'shortName': self.short_names}
         id_ = GRIBReader.get_id(filepath, reader_args=args)
+        for item in self.vars['geopotentials']['geopotential']:
+            if item['@id'] == id_:
+                name = item['@name']
+                raise ApplicationException.get_programmatic_exc(EXISTING_GEOPOTENTIAL, details='{} for file {}. File was not added: {}'.format(id_, name, filepath))
         name = util.files.file_name(filepath)
+        util.files.copy(filepath, self.data_path)
         self.vars['geopotentials']['geopotential'].append({'@id': id_, '@name': name})
         self.dump()
 

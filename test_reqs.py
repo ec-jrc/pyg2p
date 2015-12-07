@@ -1,27 +1,8 @@
-import os
+from util.generics import WARN, BOLD, FAIL, ENDC, GREEN
 
-OKGREEN = '\033[92m'
-WARNING = '\033[93m'
-FAIL = '\033[91m'
-ENDC = '\033[0m'
-BOLD = "\033[1m"
-
-print WARNING + BOLD + '=================> Testing application environment' + ENDC
+print WARN + BOLD + '=================> Testing application environment' + ENDC
 errs = []
 warns = []
-
-try:
-    import main
-    import util
-    import util.files
-    import main.exceptions
-except ImportError, e:
-    errs.append('=================XXXX> Core packages missing. Contact the developer soon!!!')
-
-try:
-    import datetime
-except ImportError, e:
-    errs.append('=================XXXX> datetime package missing')
 
 try:
     import numpy
@@ -61,13 +42,6 @@ except ImportError, e:
     warns.append('=================WARN> memory_profiler, you won''t be able to use test functionality')
 
 
-dir_ = os.path.abspath(os.path.dirname(__file__))
-if not (util.files.exists(dir_ + '/configuration/geopotentials', is_dir=True) and util.files.exists(dir_ + '/configuration/intertables', is_dir=True)):
-    errs.append('=================XXXX> Important configuration folders are missing (geopotentials or intertables)!!!')
-
-if not (util.files.exists(dir_ + '/configuration/geopotentials.xml') and util.files.exists(dir_+ '/configuration/parameters.xml') and util.files.exists(dir_+ '/configuration/logger-configuration.xml')):
-    errs.append('=================XXXX> Important configuration files are missing (geopotentials.xml or parameters.xml)!!!')
-
 if len(errs) > 0:
     print FAIL + BOLD + '=================> [ERROR] Some Requirements are missing!!!'
     import pprint as pp
@@ -75,9 +49,9 @@ if len(errs) > 0:
     print ENDC
 
 elif len(warns) > 0:
-    print WARNING + BOLD + '=================> [WARN] Some optional requirements are missing!!!'
+    print WARN + BOLD + '=================> [WARN] Some optional requirements are missing!!!'
     import pprint as pp
     pp.pprint(warns)
     print ENDC
 else:
-    print OKGREEN + BOLD + '=================> [GOOD] All Requirements satisfied!!!' + ENDC
+    print GREEN + BOLD + '=================> [GOOD] All Requirements satisfied!!!' + ENDC

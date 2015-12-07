@@ -47,12 +47,6 @@ class Aggregator(object):
                 self._usable_start = 0
         else:
             self._usable_start = self._start
-        log_message = 'Aggregation {} with step {} '\
-                      'for {} values from {} to {} '\
-                      '[real start: {}]'.format(self._aggregation, self._aggregation_step,
-                                                self._step_type, self._start,
-                                                self._end, self._usable_start)
-        self._log(log_message)
 
         # dict of functions. Substitutes "if then else" pattern in do_manipulation
         self._functs = {ACCUMULATION: self._cumulation,
@@ -67,6 +61,12 @@ class Aggregator(object):
         self._end = end_first_res
 
     def do_manipulation(self, values):
+        log_message = 'Aggregation {} with step {} '\
+                      'for {} values from {} to {} '\
+                      '[real start: {}]'.format(self._aggregation, self._aggregation_step,
+                                                self._step_type, self._start,
+                                                self._end, self._usable_start)
+        self._log(log_message, 'INFO')
         self._log('******** **** MANIPULATION **** *************')
         res = self._functs[self._aggregation](values)
         gc.collect()

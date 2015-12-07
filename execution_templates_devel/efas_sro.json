@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 100, 
-        "@name": "multi_sro", 
+        "@name": "multi_sro",
         "OutMaps": {
             "@cloneMap": "/dataset/maps/europe5km/dem.map", 
             "@fmap": 1, 

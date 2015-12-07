@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": "eue_r06_RA", 
-        "@name": "eue_r06_RA", 
+        "@name": "eue_r06_RA",
         "OutMaps": {
             "@cloneMap": "/dataset/maps/UKMO/dem0.map", 
             "@ext": 6, 

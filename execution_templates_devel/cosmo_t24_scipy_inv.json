@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 2, 
-        "@name": "cosmo_T24", 
+        "@name": "cosmo_T24",
         "Aggregation": {
             "@step": 24, 
             "@type": "average"

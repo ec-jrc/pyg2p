@@ -11,16 +11,9 @@ import pyg2p
 import util.files
 from main.readers.pcraster import PCRasterReader as pcraster_reader
 from main.testrunner.TestContext import TestContext
+from util.generics import GREEN, FAIL, WARN, YELLOW, ENDC
 from util.logger import Logger
 from util.strings import to_argv
-
-__author__ = 'dominik'
-ENDC = '\033[0m'
-BOLD = "\033[1m"
-GREEN = '\033[92m' + BOLD
-YELLOW = '\033[93m' + BOLD
-WARN = '\033[94m' + BOLD
-FAIL = '\033[91m' + BOLD
 
 
 class TestRunner(object):

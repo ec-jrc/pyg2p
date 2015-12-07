@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": "xx", 
-        "@name": "eue_r24_15d", 
+        "@name": "eue_r24_15d",
         "OutMaps": {
             "@cloneMap": "/dataset/15dayUngrib/dem05.map", 
             "@fmap": 1, 

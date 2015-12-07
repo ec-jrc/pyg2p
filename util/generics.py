@@ -1,6 +1,12 @@
 import datetime
 
 FALSE_STRINGS = ['FALSE', 'F', 'f', 'False', 'false', 'NO', 'no', 'No', '0']
+ENDC = '\033[0m'
+BOLD = '\033[1m'
+GREEN = '\033[92m' + BOLD
+YELLOW = '\033[93m' + BOLD
+WARN = '\033[94m' + BOLD
+FAIL = '\033[91m' + BOLD
 
 
 def now_string(fmt='%Y-%m-%d %H:%M'):

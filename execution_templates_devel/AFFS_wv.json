@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 1, 
-        "@name": "AFFS_WV24", 
+        "@name": "AFFS_WV24",
         "Aggregation": {
             "@step": 24, 
             "@type": "average"

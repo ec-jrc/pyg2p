@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 4, 
-        "@name": "dwd_rain_gsp", 
+        "@name": "dwd_rain_gsp",
         "Aggregation": {
             "@forceZeroArray": "yes", 
             "@step": 6, 

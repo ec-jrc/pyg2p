@@ -17,7 +17,7 @@ def main(*args):
     conf = Configuration()
     # read execution configuration (command.json, commandline arguments)
     exc_ctx = ExecutionContext(conf, args)
-
+    logger = Logger.get_logger(exc_ctx.get('logger.level'), exc_ctx.get('logger.dir'))
     try:
 
         if exc_ctx.convert_conf:
@@ -27,6 +27,7 @@ def main(*args):
         elif exc_ctx.add_geopotential:
             # add geopotential GRIB file to geopotentials.json
             conf.add_geopotential(exc_ctx.get('geopotential'))
+            logger.info('Added geopotential {} to configuration'.format(exc_ctx.get('geopotential')))
             return 0
         elif exc_ctx.run_tests:
             # comparison tests between grib2pcraster and pyg2p results
@@ -47,7 +48,7 @@ def main(*args):
 
     # normal execution flow
     _controller = None
-    logger = Logger.get_logger(exc_ctx.get('logger.level'), exc_ctx.get('logger.dir'))
+
     try:
         _controller = Controller(exc_ctx)
         _controller.log_execution_context()

@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 3, 
-        "@name": "cosmo_r06", 
+        "@name": "cosmo_r06",
         "Aggregation": {
             "@forceZeroArray": true, 
             "@step": 6, 

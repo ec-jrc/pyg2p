@@ -14,7 +14,7 @@
             "Interpolation": {
                 "@latMap": "/dataset/maps/europe5km/lat.map",
                 "@lonMap": "/dataset/maps/europe5km/long.map",
-                "@mode": "grib_nearest"
+                "@mode": "nearest"
             }
         }, 
         "Parameter": {

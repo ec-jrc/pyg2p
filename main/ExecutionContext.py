@@ -136,7 +136,6 @@ class ExecutionContext(object):
         exec_conf = u['Execution']
 
         self._vars['execution.name'] = exec_conf['@name']
-        self._vars['execution.id'] = exec_conf['@id']
 
         self._vars['parameter.shortName'] = exec_conf['Parameter']['@shortName']
         parameter = self._conf.parameters.get(self._vars['parameter.shortName'])
@@ -269,10 +268,10 @@ class ExecutionContext(object):
                 raise ApplicationException.get_programmatic_exc(4200, self._vars['correction.demMap'])
 
     def __str__(self):
-        mess = '\n\n\n============ grib-pcraster-pie: Execution parameters ' + now_string() + ' ================\n\n'
-
-        for par in sorted(self._vars.iterkeys()):
-            mess += '\n' + par + '=' + str(self._vars[par]) if self._vars[par] is not None and self._vars[par] else ''
+        mess = '\n\n============ pyg2p: Execution parameters: {} {} ============\n\n'.format(self._vars['execution.name'], now_string())
+        params = [par for par in sorted(self._vars.iterkeys()) if self._vars[par]]
+        for par in params:
+            mess += '\n{}={}'.format(par, self._vars[par])
         return mess
 
     @property
