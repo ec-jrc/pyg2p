@@ -53,21 +53,24 @@ class GRIBReader(object):
         reader = GRIBReader(grib_file)
         gribs_for_id = reader._get_gids(**reader_args)
         grid = GribGridDetails(gribs_for_id[0])
+        reader.close()
         return grid.getGridId()
 
     @staticmethod
     def _find(gid, **kwargs):
         for k, v in kwargs.iteritems():
-            # if k in ['shortName', 'perturbationNumber']: continue
-            if not gribapi.grib_is_defined(gid, k): return False
+            if not gribapi.grib_is_defined(gid, k):
+                return False
             # is v a "container-like" non-string object?
             iscontainer = utils.is_container(v)
             # is v callable?
             iscallable = utils.is_callable(v)
-            if not iscontainer and not iscallable and gribapi.grib_get(gid, k) == v: continue
-            elif iscontainer and gribapi.grib_get(gid, k) in v: continue  # v is a list.
-            elif iscallable and v(gribapi.grib_get(gid, k)): continue  # v a boolean function
-            else: return False
+            if (not iscontainer and not iscallable and gribapi.grib_get(gid, k) == v) or\
+                    (iscontainer and gribapi.grib_get(gid, k) in v) or \
+                    (iscallable and v(gribapi.grib_get(gid, k))):
+                continue
+            else:
+                return False
         return True
 
     def _log(self, message, level='DEBUG'):
@@ -85,11 +88,12 @@ class GRIBReader(object):
             self._file_handler.close()
             self._file_handler = None
 
-    # returns an array of GRIB selected messages as gribmessage objects
+    # returns an array of GRIB selected messages as Messages objects
 
     def scan_grib(self, gribs, kwargs):
         v_selected = kwargs['shortName']
         v_pert = kwargs.get('perturbationNumber', -1)
+        grib_append = gribs.append
         if not utils.is_container(v_selected):
             v_selected = [v_selected]
         if self._grbindx:
@@ -102,19 +106,20 @@ class GRIBReader(object):
                     if gid is None:
                         break
                     if GRIBReader._find(gid, **kwargs):
-                        gribs.append(gid)
+                        grib_append(gid)
                     else:
                         # release unused grib
                         gribapi.grib_release(gid)
         elif self._file_handler:
             while 1:
-                    gid = gribapi.grib_new_from_file(self._file_handler)
-                    if gid is None: break
-                    if GRIBReader._find(gid, **kwargs):
-                        gribs.append(gid)
-                    else:
-                        # release unused grib
-                        gribapi.grib_release(gid)
+                gid = gribapi.grib_new_from_file(self._file_handler)
+                if gid is None:
+                    break
+                if GRIBReader._find(gid, **kwargs):
+                    grib_append(gid)
+                else:
+                    # release unused grib
+                    gribapi.grib_release(gid)
 
     def _get_gids(self, **kwargs):
         gribs = []
@@ -129,7 +134,7 @@ class GRIBReader(object):
 
     def select_messages(self, **kwargs):
         self._selected_grbs = self._get_gids(**kwargs)
-        self._log("Selected " + str(len(self._selected_grbs)) + " grib messages")
+        self._log("Selected {} grib messages".format(len(self._selected_grbs)))
 
         if len(self._selected_grbs) > 0:
             self._gid_main_res = self._selected_grbs[0]
@@ -201,11 +206,11 @@ class GRIBReader(object):
                 change_step_at = '{}-{}'.format(ord_start_steps[i], ord_end_steps[i])
         return start_grib, end_grib, step, step2, change_step_at
 
-    def get_grib_info(self, readerArgs):
-        _gribs_for_utils = self._get_gids(**readerArgs)
+    def get_grib_info(self, select_args):
+        _gribs_for_utils = self._get_gids(**select_args)
         if len(_gribs_for_utils) > 0:
             radius = gribapi.grib_get(_gribs_for_utils[0], 'radius')
-            type_of_step = gribapi.grib_get(_gribs_for_utils[1], 'stepType')  # instant,avg,cumul
+            type_of_step = gribapi.grib_get(_gribs_for_utils[1], 'stepType')  # instant, avg, cumul
             self._mv = gribapi.grib_get_double(_gribs_for_utils[0], 'missingValue')
             start_grib, end_grib, self._step_grib, self._step_grib2, self._change_step_at = self._find_start_end_steps(_gribs_for_utils)
             self._log("Grib input step %d [type of step: %s]" % (self._step_grib, type_of_step))
@@ -222,7 +227,7 @@ class GRIBReader(object):
             return info
         # no messages found
         else:
-            raise ApplicationException.get_programmatic_exc(3000, details="using " + str(readerArgs))
+            raise ApplicationException.get_programmatic_exc(3000, details="using " + str(select_args))
 
     def get_gids_for_grib_intertable(self):
         # returns gids of messages to use to create interpolation tables

@@ -6,7 +6,6 @@ import numexpr as ne
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 
-from util.logger import Logger
 from util.numeric import mask_it
 from . import progress_step_and_backchar
 
@@ -15,13 +14,13 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
     p = 2
     z = mask_it(z, _mv_grib)
     if nnear == 1:
-        #for nnear=1 it doesn't care at this point if indexes come from intertable
-        #                                     # or were just queried from the tree
+        # for nnear=1 it doesn't care at this point if indexes come from intertable
+        # or were just queried from the tree
         result = z[ixs.astype(int, copy=False)]
     elif from_inter:
         result = np.einsum('ij,ij->i', distances, z[ixs.astype(int, copy=False)])
     else:
-        #no intertable found for inverse distance nnear = 8
+        # no intertable found for inverse distance nnear = 8
 
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
         jinterpol = 0
@@ -56,9 +55,6 @@ invdisttree.py: inverse-distance-weighted interpolation using KDTree
 
 # http://docs.scipy.org/doc/scipy/reference/spatial.html
 
-__date__ = "2010-11-09 Nov"  # weights, doc
-
-#...............................................................................
 
 def to_3d(lons, lats, r):
     lats = np.radians(lats)
@@ -124,7 +120,6 @@ is exceedingly sensitive to distance and to h.
         x, y, zz = to_3d(longrib, latgrib, self._radius)
         grib_locations = np.vstack((x.ravel(), y.ravel(), zz.ravel())).T
         assert len(grib_locations) == len(source_values), "len(coordinates) %d != len(values) %d" % (len(grib_locations), len(source_values))
-        self._logger = Logger.get_logger()
         self._mvEfas = mvEfas
         self._mvGrib = mvGrib
         self.tree = KDTree(grib_locations)  # build the tree
@@ -133,11 +128,7 @@ is exceedingly sensitive to distance and to h.
         self.wsum = None
         self.ixs = None
 
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
-
     def _invdst(self, efas_locations, nnear):
-        self._log('Querying tree of locations...', 'INFO')
         self.distances, self.ixs = self.tree.query(efas_locations, k=nnear)
         self.wsum = np.empty((len(self.distances),) + (nnear,))
         result = interpolate_invdist(self.z, self._mvGrib, self._mvEfas, self.distances, self.ixs, nnear, self.wsum)
