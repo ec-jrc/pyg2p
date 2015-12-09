@@ -50,15 +50,13 @@ class Controller:
         selector_params = self._ctx.create_select_cmd_for_reader(start_step, end_step)
         return grib_info, selector_params, end_step, m
 
-    def second_res_manipulation(self, change_step, end_step, input_step, messages, mv_grib, type_of_param, values):
+    def second_res_manipulation(self, start_step, end_step, input_step, messages, mv_grib, type_of_param, values):
 
         # manipulation of second resolution messages
-        # import ipdb
-        # ipdb.set_trace()
-        start_step2 = int(change_step.end_step) + int(self._ctx.get('aggregation.step'))
+
         m2 = Aggregator(aggr_step=self._ctx.get('aggregation.step'),
                         aggr_type=self._ctx.get('aggregation.type'),
-                        input_step=input_step, step_type=type_of_param, start_step=start_step2,
+                        input_step=input_step, step_type=type_of_param, start_step=start_step,
                         end_step=end_step, unit_time=self._ctx.get('outMaps.unitTime'), mv_grib=mv_grib,
                         force_zero_array=self._ctx.get('aggregation.forceZeroArray'))
         values2 = m2.do_manipulation(messages.second_resolution_values())
@@ -72,17 +70,17 @@ class Controller:
 
         if self._ctx.get('logger.level') == 'DEBUG':
             self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-                self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()), 'DEBUG')
-            self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep), 'DEBUG')
+                self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
+            self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep))
 
         if self._ctx.interpolate_with_grib():
             v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
-            if (self._reader is not None or self._reader2 is not None) and intertable_was_used:
+            if intertable_was_used and second_spatial_resolution:
                 # we don't need GRIB messages in memory any longer, at this point
-                if self._reader is not None and not second_spatial_resolution:
+                if self._reader:
                     self._reader.close()
                     self._reader = None
-                elif self._reader2 is not None and second_spatial_resolution:
+                elif self._reader2:
                     self._reader2.close()
                     self._reader2 = None
         else:
@@ -164,13 +162,14 @@ class Controller:
             change_res_step = messages.get_change_res_step()
             lats2 = None
             longs2 = None
+            start_step2 = int(change_res_step.end_step) + int(self._ctx.get('aggregation.step'))
             if not self._ctx.interpolate_with_grib():
                 # we need GRIB lats and lons for scipy interpolation
                 lats2, longs2 = messages.latlons_2nd
             grid_id2 = messages.grid2_id
-            if self._ctx.must_do_aggregation:
+            if self._ctx.must_do_aggregation and end_step > start_step2:
                 # second resolution manipulation
-                change_res_step, values = self.second_res_manipulation(change_res_step, end_step, input_step, messages,
+                change_res_step, values = self.second_res_manipulation(start_step2, end_step, input_step, messages,
                                                                        mv_grib, type_of_param, values)
 
         if self._ctx.must_do_conversion and converter.must_cut_off:

@@ -31,14 +31,16 @@ def grib_nearest(gid, target_lats, target_lons, mv, result):
                 write_to_console('{}Interpolation progress: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
                 flush()
             try:
+                # import ipdb
+                # ipdb.set_trace()
                 n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]))
                 x_append(x)
                 y_append(y)
                 idx_append(n_nearest[0]['index'])
-            except gribapi.GribInternalError:
+            except gribapi.GribInternalError as e:
                 outs += 1
     write_to_console('{}{}'.format(back_char, ' ' * 100))
-    write_to_console('{}Interpolation progress: {}/{} (100%)\n'.format(back_char, i, num_cells))
+    write_to_console('{}Interpolation progress: {}/{}  [out of grid:{}] (100%)\n'.format(back_char, i, num_cells, outs))
     flush()
     return np.asarray(xs), np.asarray(ys), np.asarray(idxs)
 
@@ -114,7 +116,7 @@ def grib_invdist(gid, target_lats, target_lons, mv, result):
                 # tipically "out of grid" error
                 outs += 1
     write_to_console('{}{}'.format(back_char, ' ' * 100))
-    write_to_console('{}Interpolation progress: {}/{} (100%)\n'.format(back_char, i, num_cells))
+    write_to_console('{}Interpolation progress: {}/{}  [out of grid:{}] (100%)\n'.format(back_char, i, num_cells, outs))
     flush()
     return np.asarray(xs), np.asarray(ys), \
         np.asarray(idxs1), np.asarray(idxs2), np.asarray(idxs3), np.asarray(idxs4), \

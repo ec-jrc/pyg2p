@@ -77,7 +77,7 @@ class GRIBReader(object):
         self._logger.log(message, level)
 
     def close(self):
-        self._log("Closing " + self._grib_file)
+        self._log('Closing gribs messages from {}'.format(self._grib_file))
         for g in self._selected_grbs:
             gribapi.grib_release(g)
         self._selected_grbs = None

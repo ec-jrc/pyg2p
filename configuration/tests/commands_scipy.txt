@@ -64,3 +64,7 @@
  p94@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
  z94@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
 
+ p104@ -l ERROR -B -m 8 -e 240 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ z104@ -l ERROR -B -m 8 -e 240 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+

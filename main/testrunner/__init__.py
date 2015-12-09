@@ -133,7 +133,7 @@ class TestRunner(object):
                 elapsed_pyg2p_scipy = time.time() - a
                 avg_mem_scipy = sum(mem_usage) / len(mem_usage)
                 max_mem_scipy = max(mem_usage)
-                z_num_maps, z_maps = self._count_maps('g', test_.out_dir)
+                z_num_maps, z_maps = self._count_maps('z', test_.out_dir)
 
             print 'Running pyg2p...'
             a = time.time()

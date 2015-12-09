@@ -30,15 +30,20 @@ class Corrector(object):
         self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
         self._formula = ctx.get('correction.formula')
         self._gem_formula = ctx.get('correction.gemFormula')
-        self._numexpr_eval = 'where((dem!=mv)&(p!=mv)&(gem!=mv),' + self._formula + ', mv)'
-        self._numexpr_eval_gem = 'where(z!=mv,' + self._gem_formula + ', mv)'
-        self._log('Reading dem:{}, geopotential:{} for correction (using: {})'.format(dem_map, geo_file_, self._formula))
+        self._numexpr_eval = 'where((dem!=mv)&(p!=mv)&(gem!=mv),{}, mv)'.format(self._formula)
+        self._numexpr_eval_gem = 'where(z!=mv,{}, mv)'.format(self._gem_formula)
+        log_message = """
+        Correction
+        Reading dem:{}
+        geopotential:{}
+        formula: {}
+        """.format(dem_map, geo_file_, self._formula.replace('gem', self._gem_formula))
+        self._log(log_message, 'INFO')
         interpolator = Interpolator(ctx)
 
         self._gem_missing_value, self._gem_values = self._read_geo(geo_file_, interpolator, ctx.interpolate_with_grib())
 
     def correct(self, values):
-
         with np.errstate(over='ignore'):
             # variables below are used by numexpr evaluation namespace
             dem = self._dem_values

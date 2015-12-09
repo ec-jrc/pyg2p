@@ -34,7 +34,9 @@ def main(*args):
             try:
                 import memory_profiler
                 from main.testrunner import TestRunner
+                logger.reset_logger()
                 TestRunner(exc_ctx.get('test.json')).run()
+                logger.close()
                 return 0
             except ImportError:
                 print 'memory_profiler module is missing'
@@ -60,7 +62,8 @@ def main(*args):
         return 1
     finally:
         _controller.close()
-        logger.close()
+        if not exc_ctx.run_tests:
+            logger.close()
     return 0
 
 if __name__ == "__main__":

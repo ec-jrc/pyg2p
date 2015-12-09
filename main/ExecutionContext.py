@@ -31,8 +31,6 @@ class ExecutionContext(object):
         # check numbers, existing dirs and files, supported options, semantics etc.
         try:
             self._check_exec_params()
-        except ApplicationException, err:
-            raise err
         except ValueError, err:
             raise ApplicationException(err, None, str(err))
         except Exception, exc:
@@ -69,7 +67,7 @@ class ExecutionContext(object):
         parser.add_argument('-B', '--createIntertable', help='create intertable file', action='store_true', default=False)
 
         parser.add_argument('-g', '--addGeopotential', help='''</path/to/geopotential/grib/file
-        \nAdd the file to geopotentials.xml configuration file, to use for correction.
+        \nAdd the file to geopotentials.json configuration file, to use for correction.
         \nThe file will be copied into the right folder (configuration/geopotentials)
         \nNote: shortName of geopotential must be "fis" or "z"''')
 
@@ -258,7 +256,7 @@ class ExecutionContext(object):
             self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else DEFAULT_VALUES['outMaps.unitTime']
 
             # check tstart<=tend
-            if not self._vars.get('parameter.tstart', 0) <= self._vars.get('parameter.tend', 1):
+            if self._vars['parameter.tstart'] and self._vars['parameter.tend'] and not self._vars['parameter.tstart'] <= self._vars['parameter.tend']:
                 raise ApplicationException.get_programmatic_exc(1500)
 
             # check both correction params are present

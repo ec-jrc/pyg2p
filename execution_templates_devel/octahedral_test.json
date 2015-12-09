@@ -20,7 +20,7 @@
         "Parameter": {
             "@applyConversion": "k2c",
             "@correctionFormula": "p+gem-dem*0.0065",
-            "@demMap": "/dataset/maps/europe5km/dem.map",
+            "@demMap": "{DEM_MAP}",
             "@gem": "(z/9.81)*0.0065",
             "@shortName": "2t"
         }
