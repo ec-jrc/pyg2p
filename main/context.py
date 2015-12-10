@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 
+import sys
+
 import util.files
 import util.strings
 from main.exceptions import ApplicationException
@@ -36,13 +38,19 @@ class ExecutionContext(object):
         except Exception, exc:
             raise ApplicationException(exc, None, str(exc))
 
+    @property
     def interpolate_with_grib(self):
         return self._vars['interpolation.mode'].startswith('grib_')  # in ['grib_invdist', 'grib_nearest']
 
     def _define_input_args(self, argv):
-        # import ipdb
-        # ipdb.set_trace()
-        parser = argparse.ArgumentParser(description='''Execute the grib to pcraster conversion using parameters from the input xml configuration.
+
+        class ParserHelpOnError(argparse.ArgumentParser):
+            def error(self, message):
+                self.print_help()
+                sys.stderr.write('Argument error: {}\n'.format(message))
+                sys.exit(1)
+
+        parser = ParserHelpOnError(description='''Execute the grib to pcraster conversion using parameters from the input xml configuration.
                                                         \n Read user and configuration manuals''')
 
         parser.add_argument('-c', '--commandsFile', help='/path/to/input/xml')
@@ -80,6 +88,9 @@ class ExecutionContext(object):
         parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1)
         parser.add_argument('-n', '--namePrefix', help='Prefix name for maps')
         parser.add_argument('-C', '--convert_to_v2', help='Convert old xml configuration to new json format')
+        if len(sys.argv) == 1:
+            parser.print_help()
+            sys.exit(0)
 
         parsed_args = vars(parser.parse_args(argv))
 
@@ -267,10 +278,8 @@ class ExecutionContext(object):
 
     def __str__(self):
         mess = '\n\n============ pyg2p: Execution parameters: {} {} ============\n\n'.format(self._vars['execution.name'], now_string())
-        params = [par for par in sorted(self._vars.iterkeys()) if self._vars[par]]
-        for par in params:
-            mess += '\n{}={}'.format(par, self._vars[par])
-        return mess
+        params_str = ['{}={}'.format(par, self._vars[par]) for par in sorted(self._vars.iterkeys()) if self._vars[par]]
+        return '{}{}'.format(mess, '\n'.join(params_str))
 
     @property
     def add_geopotential(self):

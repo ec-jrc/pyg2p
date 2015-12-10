@@ -3,7 +3,7 @@ from sys import stdout
 import gribapi
 import numpy as np
 
-from . import progress_step_and_backchar
+from util.generics import progress_step_and_backchar
 
 
 def grib_nearest(gid, target_lats, target_lons, mv, result):
@@ -21,23 +21,24 @@ def grib_nearest(gid, target_lats, target_lons, mv, result):
     num_cells = result.size
     back_char, progress_step = progress_step_and_backchar(num_cells)
 
+    outs = 0
     write_to_console('{}Interpolation progress: 0/{} [out:0] (0%)'.format(back_char, num_cells))
     flush()
-    outs = 0
-    for (x, y), val in np.ndenumerate(target_lons):
+    for (x, y), lon_value in np.ndenumerate(target_lons):
         i += 1
-        if not target_lons[x, y] == mv and not target_lons[x, y] <= -1.0e+10:
-            if i % progress_step == 0:
-                write_to_console('{}Interpolation progress: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
-                flush()
+        if i % progress_step == 0:
+            write_to_console('{}Interpolation progress: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
+            flush()
+        if not (lon_value <= -1.0e+10 or lon_value == mv):
             try:
                 # import ipdb
                 # ipdb.set_trace()
-                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]))
+                # TODO CHECK IF asscalar is really needed here
+                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(lon_value))
                 x_append(x)
                 y_append(y)
                 idx_append(n_nearest[0]['index'])
-            except gribapi.GribInternalError as e:
+            except gribapi.GribInternalError:
                 outs += 1
     write_to_console('{}{}'.format(back_char, ' ' * 100))
     write_to_console('{}Interpolation progress: {}/{}  [out of grid:{}] (100%)\n'.format(back_char, i, num_cells, outs))
@@ -76,15 +77,18 @@ def grib_invdist(gid, target_lats, target_lons, mv, result):
     write_to_console('{}Interpolation progress: 0/{} [out:0] (0%)'.format(back_char, num_cells))
     flush()
     outs = 0
-    for (x, y), valuesgg in np.ndenumerate(target_lons):
+    for (x, y), lon_value in np.ndenumerate(target_lons):
         i += 1
-        if not target_lons[x, y] == mv and not target_lons[x, y] < -1.0e+10:
-            if i % progress_step == 0:
-                write_to_console('{}Interpolation progress: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
-                flush()
+        if i % progress_step == 0:
+            write_to_console('{}Interpolation progress: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
+            flush()
+        if not (lon_value < -1.0e+10 or lon_value == mv):
+
             try:
                 exact_position = False
-                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(target_lons[x, y]), npoints=4)
+                exact_position_idx = - 1
+                # TODO CHECK IF asscalar is really needed here
+                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(target_lats[x, y]), np.asscalar(lon_value), npoints=4)
                 x_append(x)
                 y_append(y)
                 for ig in xrange(4):

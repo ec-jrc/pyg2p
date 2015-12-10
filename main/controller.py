@@ -5,7 +5,7 @@ import numpy as np
 
 from main.manipulation.conversion import Converter
 from main.manipulation.correction import Corrector
-from main.interpolation.Interpolation import Interpolator
+from main.interpolation import Interpolator
 from main.readers.grib import GRIBReader
 from main.writers.pcraster import PCRasterWriter
 from main.manipulation.aggregator import Aggregator
@@ -33,7 +33,7 @@ class Controller:
         self._reader = GRIBReader(self._ctx.get('input.file'), w_perturb=self._ctx.has_perturbation_number())
         grib_info = self._reader.get_grib_info(self._ctx.create_select_cmd_for_aggregation_attrs())
         self._interpolator = Interpolator(self._ctx, radius=grib_info.radius)
-        self._mv_efas = self._interpolator.mv_output()
+        self._mv_efas = self._interpolator.mv_output
         self._interpolator.set_mv_input(grib_info.mv)
         self._pcraster_writer = PCRasterWriter(self._ctx.get('outMaps.clone'))
 
@@ -68,12 +68,12 @@ class Controller:
     def create_out_map(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
                        second_spatial_resolution=False):
 
-        if self._ctx.get('logger.level') == 'DEBUG':
+        if self._logger.is_debug:
             self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
             self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep))
 
-        if self._ctx.interpolate_with_grib():
+        if self._ctx.interpolate_with_grib:
             v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
             if intertable_was_used and second_spatial_resolution:
                 # we don't need GRIB messages in memory any longer, at this point
@@ -87,7 +87,7 @@ class Controller:
             # interpolating gridded data with scipy kdtree
             v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
 
-        if self._ctx.get('logger.level') == 'DEBUG':
+        if self._logger.is_debug:
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mv_efas]), v[v != self._mv_efas].min(),
                 v[v != self._mv_efas].max()))
@@ -96,7 +96,7 @@ class Controller:
             corrector = Corrector.get_instance(self._ctx, grid_id)
             v = corrector.correct(v)
 
-        if self._ctx.get('logger.level') == 'DEBUG':
+        if self._logger.is_debug:
             self._log("Final Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mv_efas]), v[v != self._mv_efas].min(),
                 v[v != self._mv_efas].max()))
@@ -132,7 +132,7 @@ class Controller:
 
         # Grib lats/lons are used for interpolation methods nearest, invdist.
         # Not for grib_nearest and grib_invdist
-        if not self._ctx.interpolate_with_grib():
+        if not self._ctx.interpolate_with_grib:
             lats, longs = messages.latlons
         else:
             # these "aux" values are used by grib interpolation methods to create tables on disk
@@ -163,7 +163,7 @@ class Controller:
             lats2 = None
             longs2 = None
             start_step2 = int(change_res_step.end_step) + int(self._ctx.get('aggregation.step'))
-            if not self._ctx.interpolate_with_grib():
+            if not self._ctx.interpolate_with_grib:
                 # we need GRIB lats and lons for scipy interpolation
                 lats2, longs2 = messages.latlons_2nd
             grid_id2 = messages.grid2_id

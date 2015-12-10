@@ -183,6 +183,26 @@
  g103@ -i /dataset/AFFS/FCACC.20141031.T319.10.grb -o /dataset/AFFS/out/lsp -p 142.128 -m 10 --ma 2 -n glsp --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=/dataset/AFFS/intertableAfrica_320.txt
  p103@ -l ERROR -B -i /dataset/AFFS/FCACC.20141031.T639.10.grb -I /dataset/AFFS/FCACC.20141031.T319.10.grb -n plsp -o /dataset/AFFS/out/lsp -c /pyg2p_git/execution_templates_devel/AFFS_lsp.json -m 10 -s 0 -e 360
 
- # OCTAHEDRAL GRID
- p104@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
- z104@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ #### OCTAHEDRAL GRID
+ # scipy
+ p104@ -l ERROR -B -m 8 -e 264 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ z104@ -l ERROR -B -m 8 -e 264 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ p105@ -l ERROR -B -m 8 -e 48 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/grib_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ z105@ -l ERROR -B -m 8 -e 48 -c execution_templates_devel/octahedral_test_scipy_global.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ p106@ -l ERROR -B -m 8 -e 240 -c execution_templates_devel/octahedral_test_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ z106@ -l ERROR -B -m 8 -e 240 -c execution_templates_devel/octahedral_test_scipy_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ p106@ -l ERROR -B -m 8 -s 240 -e 360 -c execution_templates_devel/octahedral_test_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ z106@ -l ERROR -B -m 8 -s 240 -e 360 -c execution_templates_devel/octahedral_test_scipy_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ # grib2pcraster
+ g107@ -i /dataset/octahedral/2015081000_ensemble/8.grb -o /dataset/octahedral/out/cgrib_pygrib/ta -p 167.128 -m 8 --ma 1 -n t2 --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=interplookup/octahedral_europe.1.txt --interlookup2=interplookup/octahedral_europe.2.txt
+ g107@ -i /dataset/octahedral/2015081000_ensemble/8.grb -o /dataset/octahedral/out/cgrib_pygrib/ta -p 167.128 -m 8 --ma 1 -n t2 --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=interplookup/octahedral_europe.2.txt
+ p107@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/cgrib_pygrib/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ # grib2pcraster global
+ g108@ -i /dataset/octahedral/2015081000_ensemble/9.grb -o /dataset/octahedral/out/cgrib_pygrib/global/ta -p 167.128 -m 9 --ma 1 -n t2 --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=interplookup/octahedral_global.1.txt --interlookup2=interplookup/octahedral_global.2.txt
+ g108@ -i /dataset/octahedral/2015081000_ensemble/9.grb -o /dataset/octahedral/out/cgrib_pygrib/global/ta -p 167.128 -m 9 --ma 1 -n t2 --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=interplookup/octahedral_global.2.txt
+ p108@ -l ERROR -B -m 9 -e 360 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/cgrib_pygrib/global/ta -i /dataset/octahedral/2015081000_ensemble/9.grb

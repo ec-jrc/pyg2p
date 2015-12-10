@@ -1,6 +1,6 @@
 from main.interpolation.latlong import DemBuffer
 from main.readers.grib import GRIBReader
-from main.interpolation.Interpolation import Interpolator
+from main.interpolation import Interpolator
 import numpy as np
 import numexpr as ne
 from main.config import GeopotentialsConfiguration
@@ -41,7 +41,7 @@ class Corrector(object):
         self._log(log_message, 'INFO')
         interpolator = Interpolator(ctx)
 
-        self._gem_missing_value, self._gem_values = self._read_geo(geo_file_, interpolator, ctx.interpolate_with_grib())
+        self._gem_missing_value, self._gem_values = self._read_geo(geo_file_, interpolator, ctx.interpolate_with_grib)
 
     def correct(self, values):
         with np.errstate(over='ignore'):

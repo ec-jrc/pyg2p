@@ -10,7 +10,7 @@ from memory_profiler import memory_usage
 import pyg2p
 import util.files
 from main.readers.pcraster import PCRasterReader as pcraster_reader
-from main.testrunner.TestContext import TestContext
+from main.testrunner.context import TestContext
 from util.generics import GREEN, FAIL, WARN, YELLOW, ENDC
 from util.logger import Logger
 from util.strings import to_argv

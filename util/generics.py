@@ -1,4 +1,5 @@
 import datetime
+from sys import stdout
 
 FALSE_STRINGS = ['FALSE', 'F', 'f', 'False', 'false', 'NO', 'no', 'No', '0']
 ENDC = '\033[0m'
@@ -32,3 +33,13 @@ def is_container(a):
 
 def is_callable(v):
     return hasattr(v, '__call__')
+
+
+def progress_step_and_backchar(num_cells):
+    progress_step = num_cells / 1000
+    back_char = '\r'
+    if not stdout.isatty():
+        # out is being redirected
+        back_char = '\n'
+        progress_step *= 10
+    return back_char, progress_step

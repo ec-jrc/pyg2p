@@ -3,9 +3,9 @@ import os
 import gribapi
 
 import util.generics as utils
-from main.domain.GribGridDetails import GribGridDetails
-from main.domain.Key import Key
-from main.domain.Messages import Messages
+from main.domain.grid_details import GribGridDetails
+from main.domain.key import Key
+from main.domain.messages import Messages
 from main.exceptions import ApplicationException, NO_MESSAGES
 from util.logger import Logger
 
@@ -54,7 +54,7 @@ class GRIBReader(object):
         gribs_for_id = reader._get_gids(**reader_args)
         grid = GribGridDetails(gribs_for_id[0])
         reader.close()
-        return grid.getGridId()
+        return grid.grid_id
 
     @staticmethod
     def _find(gid, **kwargs):
@@ -166,7 +166,7 @@ class GRIBReader(object):
 
                 key = Key(start_step, end_step, points_meridian, input_step)
 
-                if points_meridian != grid.getNumberOfPointsAlongMeridian() and grid.get_2nd_resolution() is None:
+                if points_meridian != grid.num_points_along_meridian and grid.get_2nd_resolution() is None:
                     # found second resolution messages
                     grid2 = GribGridDetails(g)
                     self._gid_ext_res = g
@@ -174,7 +174,7 @@ class GRIBReader(object):
                 values = gribapi.grib_get_double_array(g, 'values')
                 if grid2 is None:
                     allValues[key] = values
-                elif points_meridian != grid.getNumberOfPointsAlongMeridian():
+                elif points_meridian != grid.num_points_along_meridian:
                     allValues2ndRes[key] = values
 
             if grid2 is not None:

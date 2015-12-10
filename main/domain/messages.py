@@ -33,11 +33,11 @@ class Messages(object):
 
     @property
     def grid_id(self):
-        return self.grid_details.getGridId()
+        return self.grid_details.grid_id
 
     @property
     def grid2_id(self):
-        return self.grid_details.get_2nd_resolution().getGridId()
+        return self.grid_details.get_2nd_resolution().grid_id
 
     @property
     def latlons(self):

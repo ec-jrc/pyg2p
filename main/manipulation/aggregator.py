@@ -5,7 +5,7 @@ import gc
 import numexpr as ne
 import numpy as np
 
-from main.domain.Key import Key
+from main.domain.key import Key
 from main.exceptions import ApplicationException
 from util.logger import Logger
 from util.numeric import mask_it
@@ -61,7 +61,7 @@ class Aggregator(object):
         self._end = end_first_res
 
     def do_manipulation(self, values):
-        log_message = 'Aggregation {} with step {} '\
+        log_message = '\nAggregation {} with step {} '\
                       'for {} values from {} to {} '\
                       '[real start: {}]'.format(self._aggregation, self._aggregation_step,
                                                 self._step_type, self._start,
@@ -98,8 +98,10 @@ class Aggregator(object):
                 originalts = v_ord.keys()[ind_originalts]
                 v_ots_ma = mask_it(v_ord[originalts], self._mv_grib)
 
-                self._log('Message {} not in {}.'.format((iter_, str(v_ord.keys()))))
-                self._log('Creating grib[{}] as grib[{}]+(grib[{}]-grib[{}])*(({}-{})/({}-{}))'.format(iter_, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
+                if self._logger.is_debug:
+                    self._log('Message {} not in {}.'.format((iter_, str(v_ord.keys()))))
+                    self._log('Creating grib[{}] as grib[{}]+(grib[{}]-grib[{}])*(({}-{})/({}-{}))'.format(iter_, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
+
                 v_out = ne.evaluate("v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))")
                 v_ord[iter_] = mask_it(v_out, self._mv_grib)
 
@@ -108,7 +110,9 @@ class Aggregator(object):
                 next_ts = v_ord.keys()[ind_next_ts]
 
                 if iter_ - self._aggregation_step == 0:
-                    self._log('Message 0 not in dataset. Creating it as zero values array')
+                    if self._logger.is_debug:
+                        self._log('Message 0 not in dataset. Creating it as zero values array')
+
                     v_ord[0] = mask_it(np.zeros(shape_iter), self._mv_grib, shape_iter)
                     originalts = 0
                     created_zero_array = True
@@ -121,7 +125,8 @@ class Aggregator(object):
                     # variables needed for numexpr evaluator namespace
                     v_ots_ma = mask_it(v_ord[originalts], self._mv_grib)
 
-                    self._log('Creating message grib[{}] as grib[{}]+(grib[{}]-grib[{}])*(({}-{})/({}-{}))'.format(iter_ - self._aggregation_step, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
+                    if self._logger.is_debug:
+                        self._log('Creating message grib[{}] as grib[{}]+(grib[{}]-grib[{}])*(({}-{})/({}-{}))'.format(iter_ - self._aggregation_step, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
 
                     v_out = ne.evaluate("v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))")
                     v_ord[iter_ - self._aggregation_step] = mask_it(v_out, self._mv_grib)
@@ -135,7 +140,7 @@ class Aggregator(object):
                 # if 0 step is not present in the grib dataset (see line 117)
                 v_iter_1_ma = mask_it(v_ord[iter_ - self._aggregation_step], self._mv_grib)
 
-            # variables needed for numexpr evaluator namespace
+            # variables needed for numexpr evaluator namespace. DO NOT DELETE!!!
             # need to create the out array first as zero array, for issue in missing values for certain gribs
             v_iter_ma = mask_it(np.zeros(shape_iter), self._mv_grib, shape_iter)
             v_iter_ma += mask_it(v_ord[iter_], self._mv_grib)
@@ -143,7 +148,9 @@ class Aggregator(object):
             _unit_time = self._unit_time
             _aggr_step = self._aggregation_step
             key = Key(iter_ - self._aggregation_step, iter_, resolution, self._aggregation_step)
-            self._log('out[{}] = (grib[{}] - grib[{}])  * ({}/{}))'.format(key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
+            if self._logger.is_debug:
+                self._log('out[{}] = (grib[{}] - grib[{}])  * ({}/{}))'.format(key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
+
             out_value = mask_it(ne.evaluate("(v_iter_ma-v_iter_1_ma)*_unit_time/_aggr_step"), self._mv_grib)
             out_values[key] = out_value
 
@@ -152,8 +159,8 @@ class Aggregator(object):
     def _average(self, values):
 
         if self._step_type in [PARAM_CUM]:
-            raise ApplicationException.get_programmatic_exc(6100, details="{} for parameter type: {}".format(self._aggregation, self._step_type))
-        elif self._step_type in [PARAM_INSTANT, PARAM_AVG]:
+            raise ApplicationException.get_programmatic_exc(6100, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
+        else:
 
             out_values = {}
 
@@ -168,7 +175,7 @@ class Aggregator(object):
             else:
                 iter_start = 0
 
-            for iter_ in range(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
+            for iter_ in xrange(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
 
                 if self._start == 0:
                     iter_from = iter_ + 1
@@ -177,27 +184,32 @@ class Aggregator(object):
                     iter_from = iter_
                     iter_to = iter_ + self._aggregation_step
 
+                # TODO CHECK: maybe we don't need to mask here
                 temp_sum = mask_it(np.zeros(shape_iter), self._mv_grib, shape_iter)
 
-                for iterator_avg in range(iter_from, iter_to, 1):
+                for iterator_avg in xrange(iter_from, iter_to, 1):
 
                     if iterator_avg in v_ord.keys():
-                        self._log('temp_sum += grib[{}]'.format(iterator_avg))
+                        if self._logger.is_debug:
+                            self._log('temp_sum += grib[{}]'.format(iterator_avg))
+                        # TODO CHECK: maybe we don't need to mask here
                         v_ma = mask_it(v_ord[iterator_avg], self._mv_grib)
                         temp_sum += v_ma
                     else:
                         ind_next_ = bisect.bisect_left(v_ord.keys(), iterator_avg)
                         next_ = v_ord.keys()[ind_next_]
-                        self._log('temp_sum += grib[{}] from -> grib[{}]'.format(iterator_avg, next_))
+                        if self._logger.is_debug:
+                            self._log('temp_sum += grib[{}] from -> grib[{}]'.format(iterator_avg, next_))
+                        # TODO CHECK: maybe we don't need to mask here
                         v_ma = mask_it(v_ord[next_], self._mv_grib)
                         temp_sum += v_ma
 
-                _aggregation_step = self._aggregation_step
                 key = Key(iter_, iter_ + self._aggregation_step, resolution_1, self._aggregation_step)
-                self._log('out[{}] = temp_sum/{}'.format(key, self._aggregation_step))
-
-                result_iter_avg = mask_it(ne.evaluate("temp_sum/_aggregation_step"), self._mv_grib)
-                out_values[key] = result_iter_avg
+                if self._logger.is_debug:
+                    self._log('out[{}] = temp_sum/{}'.format(key, self._aggregation_step))
+                _aggregation_step = self._aggregation_step  # used with numexpress. DO NOT DELETE!
+                # TODO CHECK: maybe we don't need to mask here
+                out_values[key] = mask_it(ne.evaluate("temp_sum/_aggregation_step"), self._mv_grib)
 
             return out_values
 
@@ -209,8 +221,8 @@ class Aggregator(object):
 
     def _instantaneous(self, values):
         if self._step_type in [PARAM_CUM]:
-            raise ApplicationException.get_programmatic_exc(6100, details="Manipulation %d for parameter type: %s"%(self._aggregation, self._step_type))
-        elif self._step_type in [PARAM_INSTANT, PARAM_AVG]:
+            raise ApplicationException.get_programmatic_exc(6100, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
+        else:
             out_values = {}
             start = self._find_start()
             resolution_1 = values.keys()[0].resolution
@@ -223,17 +235,22 @@ class Aggregator(object):
                 res_inst = mask_it(np.zeros(shape_iter), self._mv_grib, shape_iter)
                 key = Key(iter_, iter_, resolution_1, self._aggregation_step)
                 if iter_ in v_ord.keys():
-                    self._log('out[{}] = grib[{}]'.format(key, iter_))
+                    if self._logger.is_debug:
+                        self._log('out[{}] = grib[{}]'.format(key, iter_))
+                    # TODO CHECK: maybe we don't need to mask here
                     res_inst += mask_it(v_ord[iter_], self._mv_grib)
                 else:
                     if iter_ == 0:
                         # left out as zero arrays if 0 step is not in the grib
-                        self._log('out[{}] = zeros'.format(key))
+                        if self._logger.is_debug:
+                            self._log('out[{}] = zeros'.format(key))
                         pass
                     else:
                         ind_next_ = bisect.bisect_right(v_ord.keys(), iter_)
                         next_ = v_ord.keys()[ind_next_]
-                        self._log('out[%s] = grib:%d' % (key, next_))
+                        if self._logger.is_debug:
+                            self._log('out[{}] = grib[{}]'.format((key, next_)))
+                        # TODO CHECK: maybe we don't need to mask here
                         res_inst += mask_it(v_ord[next_], self._mv_grib)
                 out_values[key] = res_inst
 

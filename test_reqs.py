@@ -15,9 +15,14 @@ except ImportError, e:
     errs.append('=================XXXX> numexpr package missing')
 
 try:
-    import scipy.interpolate
+    import scipy
 except ImportError, e:
     errs.append('=================XXXX> scipy package missing')
+else:
+    try:
+        from scipy.spatial import cKDTree
+    except ImportError, e:
+        errs.append('=================XXXX> scipy spatial cKDTree package missing')
 
 try:
 
@@ -30,11 +35,6 @@ try:
     import gribapi
 except ImportError, e:
     errs.append('=================XXXX> gribapi python extension missing')
-
-try:
-    from scipy.spatial import cKDTree
-except ImportError, e:
-    errs.append('=================XXXX> scipy spatial cKDTree package missing')
 
 try:
     import memory_profiler

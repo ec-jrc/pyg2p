@@ -1,6 +1,6 @@
 # Managed grid types:
 # regular_gg, regular_ll
-# reduced_ll, reduced_gg
+# reduced_ll, reduced_gg (include octahedral grid)
 # rotated_ll, rotated_gg
 
 import gribapi
@@ -10,6 +10,23 @@ from util.logger import Logger
 
 
 class GribGridDetails(object):
+
+    def __init__(self, gid):
+
+        self._logger = Logger.get_logger()
+        self._gid = gid
+        self._geo_keys = self._extract_info_keys(gid)
+        self._grid_type = self._geo_keys.get('gridType')
+        self._points_meridian = self._geo_keys.get('Nj')
+        self._missing_value = self._geo_keys.get('missingValue')
+        # lazy computation
+        self._lats = None
+        self._longs = None
+
+        self._grid_id = self._build_id(gid, self._grid_type)
+
+        self._grid_details_2nd = None
+        self._change_resolution_step = None
 
     @staticmethod
     def _build_id(gid, grid_type):
@@ -24,43 +41,12 @@ class GribGridDetails(object):
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
-    def _getShape(self):
-        nx = ny = 0
-        if self._grid_type in ('regular_gg', 'regular_ll', 'rotated_ll', 'rotated_gg'):  # regular lat/lon grid
-            nx = self._geo_keys.get('Ni')
-            ny = self._geo_keys.get('Nj')
-        elif self._grid_type in ('reduced_gg', 'reduced_ll'):  # reduced global gaussian grid
-            ny = self._geo_keys.get('Nj')
-            nx = self._geo_keys.get('numberOfValues') / ny
-
-        shape = (nx, ny)
-        return shape
-
-    def __init__(self, gid):
-
-        self._lats = self._longs = None
-        self._logger = Logger.get_logger()
-        self._gid = gid
-        self._geo_keys = self._extract_info_keys(gid)
-        self._grid_type = self._geo_keys.get('gridType')
-        self._points_meridian = self._geo_keys.get('Nj')
-        self._missing_value = self._geo_keys.get('missingValue')
-        self._shape = self._getShape()
-        # lazy computation
-        self._lats = None
-        self._longs = None
-
-        self._grid_id = self._build_id(gid, self._grid_type)
-
-        self._grid_details_2nd = None
-        self._change_resolution_step = None
-
     def set_2nd_resolution(self, grid2nd, step_range_):
         self._log('Grib resolution changes at key ' + str(step_range_))
         self._grid_details_2nd = grid2nd
         self._change_resolution_step = step_range_
         # change of points along meridian!
-        self._points_meridian = grid2nd.getNumberOfPointsAlongMeridian()
+        self._points_meridian = grid2nd.num_points_along_meridian
 
     def get_2nd_resolution(self):
         return self._grid_details_2nd
@@ -68,7 +54,8 @@ class GribGridDetails(object):
     def get_change_res_step(self):
         return self._change_resolution_step
 
-    def _compute_latlongs(self, gid):
+    @staticmethod
+    def _compute_latlongs(gid):
 
         # method to use with scipy interpolation methods
         # in this case, lats/lons of reduced grids will be expanded
@@ -120,14 +107,10 @@ class GribGridDetails(object):
 
         return working_keys
 
-    def getShape(self):
-        return self._lats.shape
-
-    def getGridType(self):
-        return self._grid_type
-
-    def getGridId(self):
+    @property
+    def grid_id(self):
         return self._grid_id
 
-    def getNumberOfPointsAlongMeridian(self):
+    @property
+    def num_points_along_meridian(self):
         return self._points_meridian

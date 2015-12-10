@@ -7,11 +7,12 @@ import numpy as np
 from scipy.spatial import cKDTree as KDTree
 
 from util.numeric import mask_it
-from . import progress_step_and_backchar
+from util.generics import progress_step_and_backchar
 
 
 def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None, from_inter=False):
     p = 2
+    # TODO CHECK: maybe we don't need to mask here
     z = mask_it(z, _mv_grib)
     if nnear == 1:
         # for nnear=1 it doesn't care at this point if indexes come from intertable
@@ -25,13 +26,14 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
         jinterpol = 0
         num_cells = result.size
+
         back_char, progress_step = progress_step_and_backchar(num_cells)
 
-        stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
+        stdout.write('{}Interpolation progress:{}/{} (0%)'.format(back_char, jinterpol, num_cells))
         stdout.flush()
         for dist, ix in zip(distances, ixs):
             if jinterpol % progress_step == 0:
-                stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)' % (jinterpol, num_cells, jinterpol * 100. / num_cells))
+                stdout.write('{}Interpolation progress: {}/{} ({:.2f}%)'.format(back_char, jinterpol, num_cells, jinterpol * 100. / num_cells))
                 stdout.flush()
 
             if dist[0] > 1e-10:
@@ -44,7 +46,7 @@ def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None,
             result[jinterpol] = wz
             jinterpol += 1
         stdout.write(back_char + ' ' * 100)
-        stdout.write(back_char + 'Interpolation progress: %d/%d (%.2f%%)\n' % (jinterpol, num_cells, 100))
+        stdout.write('{}Interpolation progress: {}/{} (100%)\n'.format(back_char, jinterpol, num_cells))
         stdout.flush()
     return result
 
@@ -119,7 +121,7 @@ is exceedingly sensitive to distance and to h.
         self._radius = radius
         x, y, zz = to_3d(longrib, latgrib, self._radius)
         grib_locations = np.vstack((x.ravel(), y.ravel(), zz.ravel())).T
-        assert len(grib_locations) == len(source_values), "len(coordinates) %d != len(values) %d" % (len(grib_locations), len(source_values))
+        assert len(grib_locations) == len(source_values), "len(coordinates) {} != len(values) {}".format(len(grib_locations), len(source_values))
         self._mvEfas = mvEfas
         self._mvGrib = mvGrib
         self.tree = KDTree(grib_locations)  # build the tree

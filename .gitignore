@@ -6,5 +6,6 @@ intertables_backup/
 configuration/alternate_intertables
 configuration/intertables
 configuration/geopotentials
+logs/
 
 

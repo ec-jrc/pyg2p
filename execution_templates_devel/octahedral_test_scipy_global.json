@@ -1,0 +1,28 @@
+{
+    "Execution": {
+        "@name": "Octahedral test 1",
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/global/dem.map",
+            "@ext": 1, 
+            "@fmap": 1, 
+            "@namePrefix": "t2",
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/global/lat.map",
+                "@lonMap": "/dataset/maps/global/long.map",
+                "@mode": "nearest"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "k2c",
+            "@correctionFormula": "p+gem-dem*0.0065",
+            "@demMap": "/dataset/maps/global/dem.map",
+            "@gem": "(z/9.81)*0.0065",
+            "@shortName": "2t"
+        }
+    }
+}

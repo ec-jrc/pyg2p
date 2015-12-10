@@ -1,5 +1,5 @@
-scipy==0.14.0
-GDAL==1.9.1
-numexpr==2.4
-numpy==1.8.1
 xmljson
+numpy>=1.8.0
+numexpr>=2.4.6
+scipy>=0.14.0
+GDAL

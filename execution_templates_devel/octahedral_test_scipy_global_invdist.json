@@ -1,0 +1,25 @@
+{
+    "Execution": {
+        "@name": "Octahedral test 1",
+        "Aggregation": {
+            "@step": 24, 
+            "@type": "accumulation"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/global/dem.map",
+            "@ext": 1, 
+            "@fmap": 1, 
+            "@namePrefix": "tp",
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/global/lat.map",
+                "@lonMap": "/dataset/maps/global/long.map",
+                "@mode": "invdist"
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "tomm",
+            "@shortName": "tp"
+        }
+    }
+}

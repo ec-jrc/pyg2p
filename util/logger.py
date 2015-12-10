@@ -33,6 +33,10 @@ class Logger(object):
         self._logger.propagate = False
         self._logger.setLevel(self._level)
 
+    @property
+    def is_debug(self):
+        return self._level == 'DEBUG'
+
     def error(self, message):
         return self.log(message, 'ERROR')
 

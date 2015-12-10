@@ -2,8 +2,8 @@
 
 import sys
 from util.logger import Logger
-from main.Controller import Controller
-from main.ExecutionContext import ExecutionContext
+from main.controller import Controller
+from main.context import ExecutionContext
 from main.config import Configuration
 from main import exceptions as appexcmodule
 

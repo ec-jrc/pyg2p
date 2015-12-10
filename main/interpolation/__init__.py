@@ -1,13 +1,211 @@
-from sys import stdout
+import os
+
+import numpy as np
+
+import util.files
+from main.exceptions import ApplicationException, NO_INTERTABLE_CREATED
+from main.interpolation import scipy_interpolation_lib as ID
+from main.interpolation.grib_interpolation_lib import grib_nearest, grib_invdist
+from main.interpolation.latlong import LatLong
+from main.interpolation.scipy_interpolation_lib import InverseDistance
+from util.logger import Logger
+from util.numeric import mask_it
 
 
-def progress_step_and_backchar(num_cells):
-    progress_step = num_cells / 1000
-    back_char = '\r'
-    if not stdout.isatty():
-        # out is being redirected
-        back_char = '\n'
-        progress_step *= 10
-    return back_char, progress_step
+class Interpolator:
 
-__all__ = ['Interpolation', 'LatLongDem']
+    tabname_scipy = '_scipy_'
+    _prefix = 'I'
+
+    scipy_modes_nnear = {'nearest': 1, 'invdist': 8}
+
+    def __init__(self, exec_ctx, radius=6367470.0):
+        self._mode = exec_ctx.get('interpolation.mode')
+        self._logger = Logger.get_logger()
+        self._intertable_dir = exec_ctx.get('interpolation.dir')
+        if self._mode in self.scipy_modes_nnear.iterkeys():
+            self._radius = radius
+        self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
+        self._mv_efas = self._target_coords.missing_value
+        self._mv_grib = -1
+
+        # values used for interpolation table computation
+        self._aux_val = None
+        self._aux_gid = None
+        self._aux_2nd_res_gid = None
+        self._aux_2nd_res_val = None
+
+        self.create_if_missing = exec_ctx.get('interpolation.create')
+        self.grib_methods = {'grib_nearest': self.grib_nearest, 'grib_invdist': self.grib_inverse_distance}
+
+    @staticmethod
+    def _read_intertable(intertable_name):
+        intertable = np.load(intertable_name)
+        if intertable_name.endswith('_nn.npy'):
+            # nearest neighbour table
+            return intertable[0], intertable[1], intertable[2]
+        elif intertable_name.endswith('_inv.npy'):
+            # inverse distance table
+            return intertable[0], intertable[1], intertable[2], intertable[3], intertable[4], intertable[5], intertable[6], intertable[7], intertable[8], intertable[9]
+        elif Interpolator.tabname_scipy in intertable_name:
+            # return w/distances, indexes
+            return intertable[0], intertable[1]
+
+    def interpolate_scipy(self, latgrib, longrib, f, grid_id, log_intertable=False):
+
+        lonefas = self._target_coords.longs
+        latefas = self._target_coords.lats
+        intertable_name = self._intertable_name(grid_id, suffix=self.tabname_scipy + self._mode)
+
+        orig_shape = lonefas.shape
+        # parameters
+        nnear = self.scipy_modes_nnear[self._mode]
+
+        if util.files.exists(intertable_name):
+            if log_intertable:
+                # first interpolation: we want to log filename
+                self._log('Using interpolation table: {}'.format(intertable_name), 'INFO')
+            dists, indexes = self._read_intertable(intertable_name)
+            result = ID.interpolate_invdist(f, self._mv_grib, self._mv_efas, dists, indexes, nnear, from_inter=True)
+            grid_data = result.reshape(orig_shape)
+
+        elif self.create_if_missing:
+            if not (latgrib and longrib):
+                self._log('Trying to interpolate without grib lat/lons. Probably a geopotential grib!', 'ERROR')
+                raise ApplicationException.get_programmatic_exc(5000)
+
+            self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
+            invdisttree = InverseDistance(longrib, latgrib, self._radius, f.ravel(), self._mv_efas, self._mv_grib)
+            result, dists, indexes = invdisttree(lonefas, latefas, nnear)
+            # saving interpolation lookup table
+            np.save(intertable_name, np.array([dists, indexes], dtype=np.float64))
+            # reshape to target (e.g. efas, glofas...)
+            grid_data = result.reshape(orig_shape)
+
+        else:
+            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
+
+        return grid_data
+
+    # #### GRIB API INTERPOLATION ####################
+    def interpolate_grib(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
+        return self.grib_methods[self._mode](v, gid, grid_id,
+                                             log_intertable=log_intertable,
+                                             second_spatial_resolution=second_spatial_resolution)
+        # if self._mode == 'grib_nearest':
+        #     return self.grib_nearest(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
+        # elif self._mode == 'grib_invdist':
+        #     return self.grib_inverse_distance(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
+
+    def grib_nearest(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
+        intertable_name = self._intertable_name(grid_id, suffix='_nn')
+        existing_intertable = False
+
+        # TODO CHECK these double call of masked values/fill
+        result = np.empty(self._target_coords.longs.shape)
+        result.fill(self._mv_efas)
+        result = mask_it(result, self._mv_efas)
+
+        if gid == -1 and not util.files.exists(intertable_name):
+            # aux_gid and aux_values are only used to create the interlookuptable
+            if second_spatial_resolution:
+                self.grib_nearest(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
+            else:
+                self.grib_nearest(self._aux_val, self._aux_gid, grid_id)
+
+        if util.files.exists(intertable_name):
+            # interpolation using intertables
+            existing_intertable = True
+            if log_intertable:
+                # first interpolation: we want to log filename
+                self._log('Using interpolation table: {}'.format(intertable_name), 'INFO')
+
+            xs, ys, idxs = self._read_intertable(intertable_name)
+
+            # TODO CHECK: maybe we don't need to mask here
+            v = mask_it(v, self._mv_grib)
+
+        elif self.create_if_missing:
+            # assert...
+            if gid == -1:
+                raise ApplicationException.get_programmatic_exc(6000)
+            self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
+            xs, ys, idxs = grib_nearest(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value, result)
+            intertable = np.asarray([xs, ys, idxs])
+            np.save(intertable_name, intertable)
+        else:
+            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
+
+        result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
+        return result, existing_intertable
+
+    def grib_inverse_distance(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
+        intertable_name = self._intertable_name(grid_id, suffix='_inv')
+
+        # TODO CHECK these double call of masked values
+        result = np.empty(self._target_coords.longs.shape)
+        result.fill(self._mv_efas)
+        result = np.ma.masked_array(data=result, fill_value=self._mv_efas, copy=False)
+
+        # TODO CHECK: maybe we don't need to mask here
+        v = mask_it(v, self._mv_grib)
+
+        existing_intertable = False
+        # check if gid is due to the recursive call
+        if gid == -1 and not util.files.exists(intertable_name):
+            # aux_gid and aux_values are only used to create the interlookuptable
+            # since manipulated values messages don't have gid reference to grib file any longer
+            if second_spatial_resolution:
+                self.grib_inverse_distance(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
+            else:
+                self.grib_inverse_distance(self._aux_val, self._aux_gid, grid_id)
+
+        if util.files.exists(intertable_name):
+            # interpolation using intertables
+            existing_intertable = True
+            if log_intertable:
+                # first interpolation: we want to log filename
+                self._log('Using interpolation table: {}'.format(intertable_name), 'INFO')
+            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = self._read_intertable(intertable_name)
+        elif self.create_if_missing:
+            # assert...
+            if gid == -1:
+                raise ApplicationException.get_programmatic_exc(6000)
+            self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
+            lonefas = self._target_coords.longs
+            latefas = self._target_coords.lats
+            mv = self._target_coords.missing_value
+            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = grib_invdist(gid, latefas, lonefas, mv, result)
+            intertable = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4])
+            # saving interpolation lookup table
+            np.save(intertable_name, intertable)
+        else:
+            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
+
+        result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs1.astype(int, copy=False)] * coeffs1 + v[idxs2.astype(int, copy=False)] * coeffs2 + \
+            v[idxs3.astype(int, copy=False)] * coeffs3 + v[idxs4.astype(int, copy=False)] * coeffs4
+        return result, existing_intertable
+
+    def _intertable_name(self, grid_id, suffix):
+        name = '{}{}_{}{}.npy'.format(self._prefix, grid_id.replace('$', '_'), self._target_coords.identifier, suffix)
+        return os.path.normpath(os.path.join(self._intertable_dir, name))
+
+    # set aux gids for grib interlookup creation
+    def aux_for_intertable_generation(self, aux_g, aux_v, aux_g2, aux_v2):
+        self._aux_gid = aux_g
+        self._aux_val = aux_v
+        self._aux_2nd_res_gid = aux_g2
+        self._aux_2nd_res_val = aux_v2
+
+    def set_radius(self, r):
+        self._radius = r
+
+    def set_mv_input(self, mv):
+        self._mv_grib = mv
+
+    @property
+    def mv_output(self):
+        return self._mv_efas
+
+    def _log(self, message, level='DEBUG'):
+        self._logger.log(message, level)
