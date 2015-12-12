@@ -41,7 +41,7 @@ class TestRunner(object):
             print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
 
             reader_ = pcraster_reader(test_.out_dir + diff_map)
-            diff_values = reader_.getValues()
+            diff_values = reader_.values()
             diff_values = diff_values[diff_values != reader_.missing_value]
             # returns true if all elements are absolute(diff) <= atol
             all_ok = np.allclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))

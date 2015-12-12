@@ -84,6 +84,7 @@ class InverseDistance(object):
             efas_locations = np.array([efas_locations])
 
         distances, indexes = self.tree.query(efas_locations, k=nnear)
+        # weights = np.empty((len(distances),) + (nnear,))
         if nnear == 1:
             # weights = np.empty((len(distances),) + (nnear,))
             weights = np.empty((len(distances),))  # weights are not used when nnear =  1

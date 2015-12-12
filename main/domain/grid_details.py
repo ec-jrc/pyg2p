@@ -76,6 +76,22 @@ class GribGridDetails(object):
         lats = gribapi.grib_get_double_array(gid, 'latitudes')
         lons = gribapi.grib_get_double_array(gid, 'longitudes')
         return lats, lons
+        # iterid = gribapi.grib_iterator_new(gid, 0)
+        # lats = []
+        # lons = []
+        # while 1:
+        #     result = gribapi.grib_iterator_next(iterid)
+        #     if not result:
+        #         break
+        #     (lat, lon, value) = result
+        #     lats.append(lat)
+        #     lons.append(lon)
+        # gribapi.grib_iterator_delete(iterid)
+        # latsf = np.asarray(lats)
+        # lonsf = np.asarray(lons)
+        # lats = lons = None
+        # return latsf, lonsf
+        # # return lats, lons
 
     @property
     def latlons(self):

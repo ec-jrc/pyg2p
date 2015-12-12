@@ -117,6 +117,8 @@ class Controller:
 
     def execute(self):
         converter = None
+        lats = None
+        longs = None
         grib_info, grib_select_cmd, end_step, manipulator = self.init_execution()
         mv_grib = grib_info.mv
         input_step = grib_info.input_step
@@ -140,8 +142,6 @@ class Controller:
             # aux (gid and its values array) are read by GRIBReader which uses the first message selected
             aux_g, aux_v, aux_g2, aux_v2 = self._reader.get_gids_for_grib_intertable()
             self._interpolator.aux_for_intertable_generation(aux_g, aux_v, aux_g2, aux_v2)
-            lats = None
-            longs = None
 
         # Conversion
         if self._ctx.must_do_conversion:

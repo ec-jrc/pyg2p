@@ -12,13 +12,13 @@ class LatLong(object):
         self._log('Reading latitudes values from: {}'.format(self._lat_map))
         reader = PCRasterReader(self._lat_map)
         self._missing_value = reader.missing_value
-        self._latMapValues = reader.getValues()
+        self._latMapValues = reader.values()
 
         self._log('Reading longitudes values from: {}'.format(self._long_map))
         reader2 = PCRasterReader(self._long_map)
-        self._lonMapValues = reader2.getValues()
+        self._lonMapValues = reader2.values()
 
-        self._id = '{}_{}'.format(reader.getId(), reader2.getId())
+        self._id = '{}_{}'.format(reader.identifier(), reader2.identifier())
 
         reader.close()
         reader2.close()
@@ -52,7 +52,7 @@ class DemBuffer(object):
         self._log('Reading altitude values from: {}'.format(dem_map))
         reader = PCRasterReader(self._dem_map)
         self._missing_value = reader.missing_value
-        self._values = reader.getValues()
+        self._values = reader.values()
         reader.close()
 
     @property
