@@ -24,6 +24,11 @@ def main(*args):
             # convert old XML configurations to JSON
             Configuration.convert_to_v2(exc_ctx.get('path_to_convert'))
             return 0
+        elif exc_ctx.copy_conf:
+            # add geopotential GRIB file to geopotentials.json
+            conf.copy_source_configuration()
+            logger.info('Source configuration copied to {}'.format(conf.user.user_conf_dir))
+            return 0
         elif exc_ctx.add_geopotential:
             # add geopotential GRIB file to geopotentials.json
             conf.add_geopotential(exc_ctx.get('geopotential'))
@@ -50,21 +55,25 @@ def main(*args):
 
     # normal execution flow
     _controller = None
-
-    try:
-        _controller = Controller(exc_ctx)
-        _controller.log_execution_context()
-        _controller.execute()
-    except appexcmodule.ApplicationException, err:
-        logger.log('\n\nError: {}'.format(str(err)), 'ERROR')
-        if err.get_code() == appexcmodule.NO_MESSAGES:
-            return 0
+    if not conf.configuration_mode:
+        try:
+            _controller = Controller(exc_ctx)
+            _controller.log_execution_context()
+            _controller.execute()
+        except appexcmodule.ApplicationException, err:
+            logger.log('\n\nError: {}'.format(str(err)), 'ERROR')
+            if err.get_code() == appexcmodule.NO_MESSAGES:
+                return 0
+            return 1
+        finally:
+            _controller.close()
+            if not exc_ctx.run_tests:
+                logger.close()
+        return 0
+    else:
+        logger.log('\n\nConfiguration Error: some json files are missing and you need to copy configuration from source,'
+                   'or create your own json files before to continue. To copy configuration use option -P', 'ERROR')
         return 1
-    finally:
-        _controller.close()
-        if not exc_ctx.run_tests:
-            logger.close()
-    return 0
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

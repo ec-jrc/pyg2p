@@ -17,7 +17,7 @@ class Converter:
             if self._function_str == 'x=x':
                 self._identity = True
             else:
-                self._numexpr_eval = 'where(x!=mv, ' + self._function_str.replace('x=', '') + ', mv)'
+                self._numexpr_eval = 'where(x!=mv, {}, mv)'.format(self._function_str.replace('x=', ''))
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
@@ -41,8 +41,8 @@ class Converter:
 
     def cut_off_negative(self, xs):
         self._log('Cutting off negative values...')
-        for k, x in xs.iteritems():
-            xs[k] = ne.evaluate("where(x<0, 0, x)")
+        for timestep, values in xs.iteritems():
+            xs[timestep] = ne.evaluate('where(values<0, 0, values)')
         return xs
 
     def __str__(self):

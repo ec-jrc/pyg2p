@@ -41,6 +41,9 @@ class Controller:
         start_step = self._ctx.get('parameter.tstart', 0)
         end_step = self._ctx.get('parameter.tend', grib_info.end)
 
+        if self._ctx.must_do_correction and self._reader.has_geopotential():
+            self._ctx.input_file_has_geopotential()
+
         if self._ctx.must_do_aggregation:
             m = Aggregator(aggr_step=self._ctx.get('aggregation.step'), aggr_type=self._ctx.get('aggregation.type'),
                            input_step=grib_info.input_step, step_type=grib_info.type_of_param, start_step=start_step,
@@ -68,11 +71,13 @@ class Controller:
     def create_out_map(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
                        second_spatial_resolution=False):
 
+        # TODO Remove all debug messages. no more useful
         if self._logger.is_debug:
-            self._log("GRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
+            self._log("\nGRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
-            self._log("Interpolating values for step range/resolution/original timestep: " + str(timestep))
+            self._log('Interpolating values for step range/resolution/original timestep: {}'.format(timestep))
 
+        # FIXME this if else should go into interpolator class
         if self._ctx.interpolate_with_grib:
             v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
             if intertable_was_used and second_spatial_resolution:
@@ -80,7 +85,7 @@ class Controller:
                 if self._reader:
                     self._reader.close()
                     self._reader = None
-                elif self._reader2:
+                if self._reader2:
                     self._reader2.close()
                     self._reader2 = None
         else:
@@ -103,16 +108,12 @@ class Controller:
 
         self._pcraster_writer.write(self._name_map(i), v, self._mv_efas)
 
-    def read_2nd_res_messages(self, commandArgs, messages):
+    def read_2nd_res_messages(self, cmd_args, messages):
         # append messages
         self._reader2 = GRIBReader(self._ctx.get('input.file2'), w_perturb=self._ctx.has_perturbation_number())
         # messages.change_resolution() will return true after this append
-        mess_2nd_res, shortName = self._reader2.select_messages(**commandArgs)
+        mess_2nd_res, short_name = self._reader2.select_messages(**cmd_args)
         messages.append_2nd_res_messages(mess_2nd_res)
-
-        ########################################################
-        #                   execute method                     #
-        ########################################################
 
     def execute(self):
         converter = None

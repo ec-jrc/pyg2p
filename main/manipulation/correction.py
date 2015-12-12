@@ -50,17 +50,17 @@ class Corrector(object):
             p = values
             gem = self._gem_values
             mv = self._dem_missing_value
-            values_corrected = ne.evaluate(self._numexpr_eval)
-
-        return values_corrected
+            ne.evaluate(self._numexpr_eval, out=values)
+        return values
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
     def _read_geo(self, grib_file, interpolator, is_grib_interpolation):
-
+        # import ipdb
+        # ipdb.set_trace()
         reader = GRIBReader(grib_file)
-        kwargs = {'shortName': GeopotentialsConfiguration.short_names}
+        kwargs = {'shortName': GeopotentialsConfiguration.short_names, 'startStep': 0, 'endStep': 0}
         messages, short_name = reader.select_messages(**kwargs)
         aux_g, aux_v, aux_g2, aux_v2 = reader.get_gids_for_grib_intertable()
         interpolator.aux_for_intertable_generation(aux_g, aux_v, aux_g2, aux_v2)
@@ -71,17 +71,17 @@ class Corrector(object):
         # variables below are used by numexpr evaluation namespace
         mv = missing
         z = values
-        values_corrected = ne.evaluate(self._numexpr_eval_gem)
+        ne.evaluate(self._numexpr_eval_gem, out=values)
 
         if is_grib_interpolation:
-            values_resampled, intertable_was_used = interpolator.interpolate_grib(values_corrected, -1, messages.grid_id)
+            values_resampled, intertable_was_used = interpolator.interpolate_grib(values, -1, messages.grid_id)
         else:
             # FOR GEOPOTENTIALS, SOME GRIBS COME WITHOUT LAT/LON GRIDS!
             # lat, lon = messages.getLatLons()
             # interpolation of geopotentials always with intertable!
             # lat and lons grib are None here and interpolation should find an intertable
             lats, lons = messages.latlons
-            values_resampled = interpolator.interpolate_scipy(lats, lons, values_corrected, messages.grid_id)
+            values_resampled = interpolator.interpolate_scipy(lats, lons, values, messages.grid_id)
         reader.close()
         return missing, values_resampled
 

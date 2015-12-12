@@ -30,7 +30,7 @@ class UserConfiguration(object):
 
     def __init__(self):
         self.vars = {}
-        if not util.files.exists(self.user_conf_dir, is_dir=True):
+        if not util.files.exists(self.user_conf_dir, is_folder=True):
             util.files.create_dir(self.user_conf_dir)
         for f in os.listdir(self.user_conf_dir):
             filepath = os.path.join(self.user_conf_dir, f)
@@ -69,10 +69,14 @@ class BaseConfiguration(object):
     data_path_ = ''
 
     def __init__(self, user_configuration):
+        self.configuration_mode = False
         self.user_configuration = user_configuration
         self.config_file = os.path.join(user_configuration.user_conf_dir, self.config_filename)
         self.data_path = os.path.join(user_configuration.user_conf_dir, self.data_path_)
-        self.vars = self.load()
+        if util.files.exists(self.config_file):
+            self.vars = self.load()
+        else:
+            self.configuration_mode = True
 
     def load(self):
         with open(self.config_file) as f:
@@ -142,10 +146,13 @@ class GeopotentialsConfiguration(BaseConfiguration):
 class Configuration(object):
 
     def __init__(self):
+        self.configuration_mode = False
         self.user = UserConfiguration()
         self.parameters = ParametersConfiguration(self.user)
         self.geopotentials = GeopotentialsConfiguration(self.user)
         self.default_interpol_dir = os.path.join(self.user.user_conf_dir, 'intertables')
+        if self.parameters.configuration_mode or self.geopotentials.configuration_mode:
+            self.configuration_mode = True
 
     def add_geopotential(self, filepath):
         self.geopotentials.add(filepath)
@@ -166,3 +173,16 @@ class Configuration(object):
                     new_file_ = open(new_file, 'w')
                     new_file_.write(json.dumps(res, sort_keys=True, indent=4))
                     new_file_.close()
+
+    def copy_source_configuration(self):
+        target_dir = self.user.user_conf_dir
+        source_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../configuration')
+        geopotentials_json = os.path.join(source_dir, GeopotentialsConfiguration.config_filename)
+        geopotentials_data = os.path.join(source_dir, GeopotentialsConfiguration.data_path_)
+        parameters_json = os.path.join(source_dir, ParametersConfiguration.config_filename)
+        tests_conf_dir = os.path.join(source_dir, 'tests')
+
+        util.files.copy(geopotentials_json, target_dir)
+        util.files.copy_dir(geopotentials_data, os.path.join(target_dir, GeopotentialsConfiguration.data_path_))
+        util.files.copy(parameters_json, target_dir)
+        util.files.copy_dir(tests_conf_dir, os.path.join(target_dir, 'tests'), recreate=True)

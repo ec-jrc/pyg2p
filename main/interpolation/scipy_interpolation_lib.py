@@ -6,68 +6,14 @@ import numexpr as ne
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 
+from main.exceptions import ApplicationException, WEIRD_STUFF
 from util.numeric import mask_it
 from util.generics import progress_step_and_backchar
-
-
-def interpolate_invdist(z, _mv_grib, _mv_efas, distances, ixs, nnear, wsum=None, from_inter=False):
-    p = 2
-    # TODO CHECK: maybe we don't need to mask here
-    z = mask_it(z, _mv_grib)
-    if nnear == 1:
-        # for nnear=1 it doesn't care at this point if indexes come from intertable
-        # or were just queried from the tree
-        result = z[ixs.astype(int, copy=False)]
-    elif from_inter:
-        result = np.einsum('ij,ij->i', distances, z[ixs.astype(int, copy=False)])
-    else:
-        # no intertable found for inverse distance nnear = 8
-
-        result = mask_it(np.empty((len(distances),) + np.shape(z[0])), _mv_efas, 1)
-        jinterpol = 0
-        num_cells = result.size
-
-        back_char, progress_step = progress_step_and_backchar(num_cells)
-
-        stdout.write('{}Interpolation progress:{}/{} (0%)'.format(back_char, jinterpol, num_cells))
-        stdout.flush()
-        for dist, ix in zip(distances, ixs):
-            if jinterpol % progress_step == 0:
-                stdout.write('{}Interpolation progress: {}/{} ({:.2f}%)'.format(back_char, jinterpol, num_cells, jinterpol * 100. / num_cells))
-                stdout.flush()
-
-            if dist[0] > 1e-10:
-                w = 1 / dist ** p
-                w /= np.sum(w)  # this must be saved into intertables..not distance!
-                wz = np.dot(w, z[ix.astype(int)])  # weighted values (result)
-                wsum[jinterpol] = w
-            else:
-                wz = z[ix[0]]  # take exactly the point, weight = 1
-            result[jinterpol] = wz
-            jinterpol += 1
-        stdout.write(back_char + ' ' * 100)
-        stdout.write('{}Interpolation progress: {}/{} (100%)\n'.format(back_char, jinterpol, num_cells))
-        stdout.flush()
-    return result
-
-
-"""
-invdisttree.py: inverse-distance-weighted interpolation using KDTree
-"""
 
 # http://docs.scipy.org/doc/scipy/reference/spatial.html
 
 
-def to_3d(lons, lats, r):
-    lats = np.radians(lats)
-    lons = np.radians(lons)
-    z = ne.evaluate('r * sin(lats)')
-    x = ne.evaluate('r * cos(lons) * cos(lats)')
-    y = ne.evaluate('r * sin(lons) * cos(lats)')
-    return x, y, z
-
-
-class InverseDistance:
+class InverseDistance(object):
     """ inverse-distance-weighted interpolation using KDTree:
 invdisttree = Invdisttree( X, z )  -- data points, values
 interpol = invdisttree( q, nnear=3, eps=0, p=1, weights=None, stat=0 )
@@ -117,31 +63,78 @@ is exceedingly sensitive to distance and to h.
 
     """
 
-    def __init__(self, longrib, latgrib, radius, source_values, mvEfas, mvGrib):
+    def __init__(self, longrib, latgrib, radius, source_values, mv_target, mv_source):
         self._radius = radius
-        x, y, zz = to_3d(longrib, latgrib, self._radius)
+        x, y, zz = self.to_3d(longrib, latgrib, self._radius)
         grib_locations = np.vstack((x.ravel(), y.ravel(), zz.ravel())).T
-        assert len(grib_locations) == len(source_values), "len(coordinates) {} != len(values) {}".format(len(grib_locations), len(source_values))
-        self._mvEfas = mvEfas
-        self._mvGrib = mvGrib
+        try:
+            assert len(grib_locations) == len(source_values), "len(coordinates) {} != len(values) {}".format(len(grib_locations), len(source_values))
+        except AssertionError as e:
+            ApplicationException.get_programmatic_exc(WEIRD_STUFF, details=str(e))
+        self._mv_target = mv_target
+        self._mv_source = mv_source
         self.tree = KDTree(grib_locations)  # build the tree
-        # self.tree = KDTree(grib_locations, leaf_size=10, p=2)
         self.z = source_values
-        self.wsum = None
-        self.ixs = None
 
-    def _invdst(self, efas_locations, nnear):
-        self.distances, self.ixs = self.tree.query(efas_locations, k=nnear)
-        self.wsum = np.empty((len(self.distances),) + (nnear,))
-        result = interpolate_invdist(self.z, self._mvGrib, self._mvEfas, self.distances, self.ixs, nnear, self.wsum)
-        return result
+    @staticmethod
+    def to_3d(lons, lats, r):
+        lats = np.radians(lats)
+        lons = np.radians(lons)
+        z = ne.evaluate('r * sin(lats)')
+        x = ne.evaluate('r * cos(lons) * cos(lats)')
+        y = ne.evaluate('r * sin(lons) * cos(lats)')
+        return x, y, z
 
-    def __call__(self, lonefas, latefas, nnear=1):
-        x, y, z = to_3d(lonefas, latefas, self._radius)
+    def _build_weights(self, distances, indexes, nnear):
+
+        # TODO CHECK: maybe we don't need to mask here
+        z = mask_it(self.z, self._mv_source)
+        # no intertable found for inverse distance nnear = 8
+        # TODO CHECK if we need mask here
+        result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
+        jinterpol = 0
+        num_cells = result.size
+
+        back_char, progress_step = progress_step_and_backchar(num_cells)
+
+        stdout.write('{}Inverse distance interpolation (scipy):{}/{} (0%)'.format(back_char, jinterpol, num_cells))
+        stdout.flush()
+        # wsum will be saved in intertable
+        wsum = np.empty((len(distances),) + (nnear,))
+        for dist, ix in zip(distances, indexes):
+            if jinterpol % progress_step == 0:
+                stdout.write('{}Inverse distance interpolation (scipy): {}/{} ({:.2f}%)'.format(back_char, jinterpol, num_cells, jinterpol * 100. / num_cells))
+                stdout.flush()
+
+            if dist[0] > 1e-10:
+                w = ne.evaluate('1 / dist ** 2')
+                w /= ne.evaluate('sum(w)')
+                wz = np.dot(w, z[ix.astype(int, copy=False)])  # weighted values (result)
+                wsum[jinterpol] = w
+            else:
+                wz = z[ix[0]]  # take exactly the point, weight = 1
+            result[jinterpol] = wz
+            jinterpol += 1
+
+        stdout.write(back_char + ' ' * 100)
+        stdout.write('{}Inverse distance interpolation (scipy): {}/{} (100%)\n'.format(back_char, jinterpol, num_cells))
+        stdout.flush()
+        return result, wsum
+
+    def interpolate(self, lonefas, latefas, nnear):
+        x, y, z = self.to_3d(lonefas, latefas, self._radius)
         efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
         qdim = efas_locations.ndim
-        efasefas_locations_ma = mask_it(efas_locations, self._mvEfas)
+        # TODO CHECK if mask_it is needed
+        efas_locations_ma = mask_it(efas_locations, self._mv_target)
         if qdim == 1:
-            efas_locations = np.array([efasefas_locations_ma])
-        result = self._invdst(efas_locations, nnear)
-        return result, self.wsum, self.ixs
+            efas_locations = np.array([efas_locations_ma])
+
+        distances, indexes = self.tree.query(efas_locations, k=nnear)
+        if nnear == 1:
+            weights = np.empty((len(distances),))  # weights are not used when nnear =  1
+            result = self.z[indexes.astype(int, copy=False)]
+        else:
+            result, weights = self._build_weights(distances, indexes, nnear)
+        return result, weights, indexes
+

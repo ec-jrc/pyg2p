@@ -19,12 +19,13 @@ class ExecutionContext(object):
         self._conf = user_conf
         self._input_args = {}
         self._to_add_geopotential = False
+        self.input_file_with_geopotential = None
         self._vars = {}
 
         try:
             # read cli input args (commands file path, input files, output dir, or shows help and exit)
             self._define_input_args(argv)
-            if not (self.add_geopotential or self.run_tests or self.convert_conf):
+            if not (self.add_geopotential or self.run_tests or self.convert_conf or self.copy_conf):
                 # read config files and define execuition parameters (set defaults also)
                 self._define_exec_params()
         except Exception, err:
@@ -37,6 +38,9 @@ class ExecutionContext(object):
             raise ApplicationException(err, None, str(err))
         except Exception, exc:
             raise ApplicationException(exc, None, str(exc))
+
+    def input_file_has_geopotential(self):
+        self.input_file_with_geopotential = self.get('input.file')
 
     @property
     def interpolate_with_grib(self):
@@ -72,7 +76,8 @@ class ExecutionContext(object):
                             choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'])
         parser.add_argument('-d', '--outLogDir', help='output logs dir', default='./logs/')
         parser.add_argument('-N', '--intertableDir', help='interpolation tables dir')
-        parser.add_argument('-B', '--createIntertable', help='create intertable file', action='store_true', default=False)
+        parser.add_argument('-B', '--createIntertable', help='create intertable file',
+                            action='store_true', default=False)
 
         parser.add_argument('-g', '--addGeopotential', help='''</path/to/geopotential/grib/file
         \nAdd the file to geopotentials.json configuration file, to use for correction.
@@ -88,6 +93,8 @@ class ExecutionContext(object):
         parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1)
         parser.add_argument('-n', '--namePrefix', help='Prefix name for maps')
         parser.add_argument('-C', '--convert_to_v2', help='Convert old xml configuration to new json format')
+        parser.add_argument('-P', '--copy_conf', help='Copy configuration from source to user folder (except intertables)',
+                            action='store_true', default=False)
         if len(sys.argv) == 1:
             parser.print_help()
             sys.exit(0)
@@ -116,6 +123,7 @@ class ExecutionContext(object):
         self._to_add_geopotential = bool(self._vars['geopotential'])
         self._vars['path_to_convert'] = parsed_args['convert_to_v2']
         self._vars['test.json'] = parsed_args['test']
+        self._vars['copy_configuration'] = parsed_args['copy_conf']
 
     def get(self, param, default=None):
         return self._vars.get(param, default) or default
@@ -232,8 +240,10 @@ class ExecutionContext(object):
             if not util.files.exists(self._vars['geopotential']):
                 raise ApplicationException.get_programmatic_exc(7001, self._vars['geopotential'])
         elif self.convert_conf:
-            if not util.files.exists(self._vars['path_to_convert'], is_dir=True):
+            if not util.files.exists(self._vars['path_to_convert'], is_folder=True):
                 raise ApplicationException.get_programmatic_exc(7002, self._vars['path_to_convert'])
+        elif self.copy_conf:
+            pass
         else:
 
             if not self._vars.get('input.file'):
@@ -250,12 +260,12 @@ class ExecutionContext(object):
                 if self._vars['outMaps.outDir'] != './':
                     if not self._vars['outMaps.outDir'].endswith('/'):
                         self._vars['outMaps.outDir'] += '/'
-                    if not util.files.exists(self._vars['outMaps.outDir'], is_dir=True):
+                    if not util.files.exists(self._vars['outMaps.outDir'], is_folder=True):
                         util.files.create_dir(self._vars['outMaps.outDir'])
             except Exception, exc:
                 raise ApplicationException(exc, None, str(exc))
 
-            if self._vars.get('interpolation.dir') and not util.files.exists(self._vars['interpolation.dir'], is_dir=True):
+            if self._vars.get('interpolation.dir') and not util.files.exists(self._vars['interpolation.dir'], is_folder=True):
                 raise ApplicationException.get_programmatic_exc(1320, self._vars['interpolation.dir'])
 
             # check all numbers
@@ -329,5 +339,10 @@ class ExecutionContext(object):
     def convert_conf(self):
         return bool(self._vars.get('path_to_convert'))
 
+    @property
+    def copy_conf(self):
+        return bool(self._vars.get('copy_configuration'))
+
     def geo_file(self, grid_id):
-        return self._conf.geopotentials.get_filepath(grid_id)
+        return self.input_file_with_geopotential or self._conf.geopotentials.get_filepath(grid_id)
+        # return self._conf.geopotentials.get_filepath(grid_id)

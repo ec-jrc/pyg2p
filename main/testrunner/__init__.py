@@ -114,6 +114,7 @@ class TestRunner(object):
             num_tests += 1
             elapsed_g2p = elapsed_pyg2p_scipy = None
             self._print_colored(YELLOW, "\n\n =====================> Running Test " + str(test_))
+            util.files.delete_files_from_dir(test_.out_dir)
 
             if test_.g2p_command:
                 util.files.create_dir(test_.out_dir, recreate=True)

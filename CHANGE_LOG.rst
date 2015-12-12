@@ -13,9 +13,10 @@ v 2.0
     var = /path/to/my/data
 
 * **57** Improvement (major)
-    Configuration in JSON and placed under ~/.pyg2p/ user folder.
-    Write code to convert XML file into JSON.
-    Dismiss XML config and convert all XML config files into JSON.
+    Configuration is in JSON format and placed under ~/.pyg2p/ user folder.
+    Added a command line option to copy source configuration to user folder.
+    The command copies json files and geopotentials.
+    Dismiss XML config and convert all XML config files into JSON using --convert_to_v2 command argument.
 
 v 1.3.5
 -------
