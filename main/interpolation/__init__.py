@@ -23,8 +23,7 @@ class Interpolator:
         self._mode = exec_ctx.get('interpolation.mode')
         self._logger = Logger.get_logger()
         self._intertable_dir = exec_ctx.get('interpolation.dir')
-        if self._mode in self.scipy_modes_nnear.iterkeys():
-            self._radius = radius
+        self._radius = radius
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
         self._mv_efas = self._target_coords.missing_value
         self._mv_grib = -1
@@ -48,7 +47,7 @@ class Interpolator:
             # grib inverse distance table
             return intertable[0], intertable[1], intertable[2], intertable[3], intertable[4], intertable[5], intertable[6], intertable[7], intertable[8], intertable[9]
         elif Interpolator._suffix_scipy in intertable_name:
-            # return weighted distances, indexes
+            # return weighted distances (only used with nnear=8) and indexes
             return intertable[0], intertable[1]
 
     @staticmethod
@@ -87,6 +86,8 @@ class Interpolator:
                 raise ApplicationException.get_programmatic_exc(5000)
 
             self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
+            # import ipdb
+            # ipdb.set_trace()
             invdisttree = InverseDistance(longrib, latgrib, self._radius, z.ravel(), self._mv_efas, self._mv_grib)
             result, weights, indexes = invdisttree.interpolate(lonefas, latefas, nnear)
             # saving interpolation lookup table
