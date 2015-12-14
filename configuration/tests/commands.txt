@@ -131,20 +131,20 @@
  p31@ -l ERROR -B -c /pyg2p_git/execution_templates_devel/glofas_ssro_scipy_nn.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50
 
  ## COMPARISON TESTS BETWEEN GRIB_API and SCIPY interpolation methods in pyg2p
- p90@ -l ERROR -B -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_g.json -m 0
- z90@ -l ERROR -B -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_scipy_nn.json -m 0
+ p32@ -l ERROR -B -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_g.json -m 0
+ z32@ -l ERROR -B -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_scipy_nn.json -m 0
 
- p91@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_g.json -m 0
- z91@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_scipy_inv.json -m 0
+ p33@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_g.json -m 0
+ z33@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_scipy_inv.json -m 0
 
- p92@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_g.json -m 0
- z92@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_scipy_inv.json -m 0
+ p34@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_g.json -m 0
+ z34@ -l ERROR -B -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_scipy_inv.json -m 0
 
- p93@ -l ERROR -B -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_g.json -s 24 -e 360 -m 09 --fmap=1
- z93@ -l ERROR -B -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_scipy_nn.json -s 24 -e 360 -m 09 --fmap=1
+ p35@ -l ERROR -B -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_g.json -s 24 -e 360 -m 09 --fmap=1
+ z35@ -l ERROR -B -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_scipy_nn.json -s 24 -e 360 -m 09 --fmap=1
 
- p94@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
- z94@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+ p36@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+ z36@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
 
  #p95@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
  #z95@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523

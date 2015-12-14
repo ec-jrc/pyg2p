@@ -9,9 +9,9 @@ from memory_profiler import memory_usage
 
 import pyg2p
 import util.files
-from main.readers.pcraster import PCRasterReader as pcraster_reader
+from main.readers.pcraster import PCRasterReader
 from main.testrunner.context import TestContext
-from util.generics import GREEN, FAIL, WARN, YELLOW, ENDC
+from util.generics import GREEN, FAIL, WARN, YELLOW, ENDC, DEFAULT
 from util.logger import Logger
 from util.strings import to_argv
 
@@ -34,20 +34,18 @@ class TestRunner(object):
             comm = [diff_exec, diff_map_cmd]
             fnull = open(os.devnull, 'w')
             self._run_job(comm, cwd=test_.out_dir, stdout=fnull, stderr=STDOUT)
-
-            diff_map_path = os.path.join(test_.out_dir, diff_map)
-            g_map_path = os.path.join(test_.out_dir, g_map)
-            p_map_path = os.path.join(test_.out_dir, p_map)
-            print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
-
-            reader_ = pcraster_reader(test_.out_dir + diff_map)
+            reader_ = PCRasterReader(test_.out_dir + diff_map)
             diff_values = reader_.values()
             diff_values = diff_values[diff_values != reader_.missing_value]
             # returns true if all elements are absolute(diff) <= atol
             all_ok = np.allclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
-            if all_ok:
-                self._print_colored(GREEN, '[GOOD] All values are good!')
-            else:
+            # if all_ok:
+            #     self._print_colored(GREEN, '[GOOD] All values are good!')
+            if not all_ok:
+                diff_map_path = os.path.join(test_.out_dir, diff_map)
+                g_map_path = os.path.join(test_.out_dir, g_map)
+                p_map_path = os.path.join(test_.out_dir, p_map)
+                print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
                 array_ok = np.isclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
                 perc_wrong = float(array_ok[array_ok == False].size * 100) / float(diff_values.size)
                 if perc_wrong > 5:  # more than 5% of differences
@@ -63,6 +61,7 @@ class TestRunner(object):
         elif problematic:
             return '2'
         else:
+            self._print_colored(GREEN, '[GOOD]')
             return '0'
 
     def _print_time_diffs(self, elapsed_counter_part, elapsed_pyg2p, test_, from_scipy=False):
@@ -113,7 +112,7 @@ class TestRunner(object):
             # Logger.reset_logger()
             num_tests += 1
             elapsed_g2p = elapsed_pyg2p_scipy = None
-            self._print_colored(YELLOW, "\n\n =====================> Running Test " + str(test_))
+            self._print_colored(DEFAULT, '\n\n =====================> Running Test {}'.format(test_))
             util.files.delete_files_from_dir(test_.out_dir)
 
             if test_.g2p_command:
@@ -168,7 +167,7 @@ class TestRunner(object):
             self._print_colored(FAIL, 'Number of maps are different p: {} g: {}'.format(p_num_maps, o_num_maps))
             results['1'].append(test_.id)
         else:
-            print '\n\n====> Producing pcraster diff maps. Copy and paste aguila commands to compare them.'
+            print '\n\n====> Producing pcraster diff maps. If values are not identical, will print aguila commands to compare them.'
             res = self.do_pcdiffs(self._ctx.get('pcrasterdiff.exec'), test_, o_maps)
             results[res].append(test_.id)
 

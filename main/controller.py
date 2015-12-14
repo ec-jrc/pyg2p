@@ -68,8 +68,7 @@ class Controller:
         change_step = sorted(values2.iterkeys(), key=lambda k: int(k.end_step))[0]
         return change_step, values
 
-    def create_out_map(self, grid_id, i, lats, longs, timestep, v, geodetic_info=None, log_intertable=False, gid=-1,
-                       second_spatial_resolution=False):
+    def create_out_map(self, grid_id, i, lats, longs, timestep, v, geodetic_info=None, gid=-1, second_spatial_resolution=False):
 
         # TODO Remove all debug messages. no more useful
         if self._logger.is_debug:
@@ -79,7 +78,7 @@ class Controller:
 
         # FIXME this if else should go into interpolator class
         if self._ctx.interpolate_with_grib:
-            v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, log_intertable=log_intertable, second_spatial_resolution=second_spatial_resolution)
+            v, intertable_was_used = self._interpolator.interpolate_grib(v, gid, grid_id, second_spatial_resolution=second_spatial_resolution)
             if intertable_was_used and second_spatial_resolution:
                 # we don't need GRIB messages in memory any longer, at this point
                 if self._reader:
@@ -90,7 +89,7 @@ class Controller:
                     self._reader2 = None
         else:
             # interpolating gridded data with scipy kdtree
-            v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, geodetic_info, log_intertable=log_intertable)
+            v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, geodetic_info)
 
         if self._logger.is_debug:
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
@@ -183,12 +182,10 @@ class Controller:
         self._log('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
 
         i = 0
-        changed_res = False
         second_resolution = False
         # Ordering values happens only here now - 12/04/2015
         values = collections.OrderedDict(sorted(values.iteritems(), key=lambda (k, v_): (int(k.end_step), v_)))
-        for timestep in values.keys():
-            log_it = False
+        for timestep, v in values.iteritems():
             # writing map i
             i += 1
             if messages.have_change_resolution() and timestep == change_res_step:
@@ -198,19 +195,14 @@ class Controller:
                 longs = longs2
                 grid_id = grid_id2
                 geodetic_info = geodetic_info2
-                changed_res = True
                 second_resolution = True
-            v = values[timestep]
-            values[timestep] = None
-            del values[timestep]
-            if i == 1 or changed_res:
-                # log the interpolation table name only on first map or at the first extended resolution map
-                log_it = True
-            self.create_out_map(grid_id, i, lats, longs, timestep, v, geodetic_info, log_intertable=log_it, gid=-1, second_spatial_resolution=second_resolution)
-            v = None
-            del v
-            gc.collect()
-            changed_res = False
+            # v = values[timestep]
+            # values[timestep] = None
+            # del values[timestep]
+            self.create_out_map(grid_id, i, lats, longs, timestep, v, geodetic_info, second_spatial_resolution=second_resolution)
+            # v = None
+            # del v
+            # gc.collect()
 
     def close(self):
         if self._reader:
