@@ -1,5 +1,4 @@
 import gribapi
-import numpy as np
 
 from util.logger import Logger
 
@@ -15,7 +14,9 @@ class GribGridDetails(object):
 
     keys = (('gridType', 'string'), ('radius', 'double'), ('numberOfValues', 'long'),
             ('Ni', 'long'), ('Nj', 'long'), ('missingValue', 'double'),
-            ('longitudeOfFirstGridPointInDegrees', 'double'), ('longitudeOfLastGridPointInDegrees', 'double'),)
+            ('longitudeOfFirstGridPointInDegrees', 'double'), ('longitudeOfLastGridPointInDegrees', 'double'),
+            ('latitudeOfSouthernPoleInDegrees', 'double'), ('longitudeOfSouthernPoleInDegrees', 'double'),
+            ('angleOfRotationInDegrees', 'double'))
     check_for_missing_keys = ('Ni', 'Nj',)
 
     def __init__(self, gid):
@@ -71,27 +72,9 @@ class GribGridDetails(object):
     @staticmethod
     def _compute_latlongs(gid):
 
-        # method to use with scipy interpolation methods
-        # in this case, lats/lons of reduced grids will be expanded
         lats = gribapi.grib_get_double_array(gid, 'latitudes')
         lons = gribapi.grib_get_double_array(gid, 'longitudes')
         return lats, lons
-        # iterid = gribapi.grib_iterator_new(gid, 0)
-        # lats = []
-        # lons = []
-        # while 1:
-        #     result = gribapi.grib_iterator_next(iterid)
-        #     if not result:
-        #         break
-        #     (lat, lon, value) = result
-        #     lats.append(lat)
-        #     lons.append(lon)
-        # gribapi.grib_iterator_delete(iterid)
-        # latsf = np.asarray(lats)
-        # lonsf = np.asarray(lons)
-        # lats = lons = None
-        # return latsf, lonsf
-        # # return lats, lons
 
     @property
     def latlons(self):
@@ -108,3 +91,8 @@ class GribGridDetails(object):
     @property
     def num_points_along_meridian(self):
         return self._points_meridian
+
+    def get(self, geo_key):
+        if geo_key not in self._geo_keys:
+            raise Exception
+        return self._geo_keys[geo_key]

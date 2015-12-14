@@ -38,6 +38,7 @@ class ApplicationException(Exception):
         7000: 'JSON configuration file for tests was not found',
         7001: 'Geopotential grib file was not found',
         7002: 'Path to old xml configuration was not found',
+        7003: 'Path to grib api intertables was not found',
         NO_VAR_DEFINED: 'Variable was not found in any .conf files. Please add it in ~/.pyg2p/<myconffile>.conf',
         NO_INTERTABLE_CREATED: 'Interpolation table was not found and -B, --createIntertable was not set on command line.',
         JSON_ERROR: 'Error in configuration file.',

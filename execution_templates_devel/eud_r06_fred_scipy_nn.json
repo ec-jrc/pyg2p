@@ -13,7 +13,7 @@
             "Interpolation": {
                 "@latMap": "/dataset/maps/fredrik/latitude_5km_resampled.map", 
                 "@lonMap": "/dataset/maps/fredrik/longitude_5km_resampled.map", 
-                "@mode": "invdist"
+                "@mode": "nearest"
             }
         }, 
         "Parameter": {

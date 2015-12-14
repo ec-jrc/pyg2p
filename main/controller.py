@@ -32,7 +32,7 @@ class Controller:
 
         self._reader = GRIBReader(self._ctx.get('input.file'), w_perturb=self._ctx.has_perturbation_number())
         grib_info = self._reader.get_grib_info(self._ctx.create_select_cmd_for_aggregation_attrs())
-        self._interpolator = Interpolator(self._ctx, radius=grib_info.radius)
+        self._interpolator = Interpolator(self._ctx)
         self._mv_efas = self._interpolator.mv_output
         self._interpolator.set_mv_input(grib_info.mv)
         self._pcraster_writer = PCRasterWriter(self._ctx.get('outMaps.clone'))
@@ -68,7 +68,7 @@ class Controller:
         change_step = sorted(values2.iterkeys(), key=lambda k: int(k.end_step))[0]
         return change_step, values
 
-    def create_out_map(self, grid_id, i, lats, longs, timestep, v, log_intertable=False, gid=-1,
+    def create_out_map(self, grid_id, i, lats, longs, timestep, v, geodetic_info=None, log_intertable=False, gid=-1,
                        second_spatial_resolution=False):
 
         # TODO Remove all debug messages. no more useful
@@ -90,7 +90,7 @@ class Controller:
                     self._reader2 = None
         else:
             # interpolating gridded data with scipy kdtree
-            v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, log_intertable=log_intertable)
+            v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, geodetic_info, log_intertable=log_intertable)
 
         if self._logger.is_debug:
             self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
@@ -119,6 +119,7 @@ class Controller:
         converter = None
         lats = None
         longs = None
+        geodetic_info = None
         grib_info, grib_select_cmd, end_step, manipulator = self.init_execution()
         mv_grib = grib_info.mv
         input_step = grib_info.input_step
@@ -137,6 +138,7 @@ class Controller:
         # Not for grib_nearest and grib_invdist
         if not self._ctx.interpolate_with_grib:
             lats, longs = messages.latlons
+            geodetic_info = messages.grid_details
         else:
             # these "aux" values are used by grib interpolation methods to create tables on disk
             # aux (gid and its values array) are read by GRIBReader which uses the first message selected
@@ -163,10 +165,12 @@ class Controller:
             change_res_step = messages.get_change_res_step()
             lats2 = None
             longs2 = None
+            geodetic_info2 = None
             start_step2 = int(change_res_step.end_step) + int(self._ctx.get('aggregation.step'))
             if not self._ctx.interpolate_with_grib:
                 # we need GRIB lats and lons for scipy interpolation
                 lats2, longs2 = messages.latlons_2nd
+                geodetic_info2 = messages.grid_details.get_2nd_resolution()
             grid_id2 = messages.grid2_id
             if self._ctx.must_do_aggregation and end_step > start_step2:
                 # second resolution manipulation
@@ -193,6 +197,7 @@ class Controller:
                 lats = lats2
                 longs = longs2
                 grid_id = grid_id2
+                geodetic_info = geodetic_info2
                 changed_res = True
                 second_resolution = True
             v = values[timestep]
@@ -201,7 +206,7 @@ class Controller:
             if i == 1 or changed_res:
                 # log the interpolation table name only on first map or at the first extended resolution map
                 log_it = True
-            self.create_out_map(grid_id, i, lats, longs, timestep, v, log_intertable=log_it, gid=-1, second_spatial_resolution=second_resolution)
+            self.create_out_map(grid_id, i, lats, longs, timestep, v, geodetic_info, log_intertable=log_it, gid=-1, second_spatial_resolution=second_resolution)
             v = None
             del v
             gc.collect()

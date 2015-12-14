@@ -25,7 +25,7 @@ class ExecutionContext(object):
         try:
             # read cli input args (commands file path, input files, output dir, or shows help and exit)
             self._define_input_args(argv)
-            if not (self.add_geopotential or self.run_tests or self.convert_conf or self.copy_conf):
+            if not (self.add_geopotential or self.run_tests or self.convert_conf or self.copy_conf or self.convert_intertables):
                 # read config files and define execuition parameters (set defaults also)
                 self._define_exec_params()
         except Exception, err:
@@ -92,8 +92,9 @@ class ExecutionContext(object):
         parser.add_argument('-f', '--fmap', help='First map number', type=int, default=1)
         parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1)
         parser.add_argument('-n', '--namePrefix', help='Prefix name for maps')
-        parser.add_argument('-C', '--convert_to_v2', help='Convert old xml configuration to new json format')
-        parser.add_argument('-P', '--copy_conf', help='Copy configuration from source to user folder (except intertables)',
+        parser.add_argument('-C', '--convertConf', help='Convert old xml configuration to new json format')
+        parser.add_argument('-z', '--convertIntertables', help='Convert old pyg2p intertables to new version (will overwrite!')
+        parser.add_argument('-P', '--copyConf', help='Copy configuration from source to user folder (except intertables)',
                             action='store_true', default=False)
         if len(sys.argv) == 1:
             parser.print_help()
@@ -121,9 +122,10 @@ class ExecutionContext(object):
         self._vars['input.two_resolution'] = bool(self._vars['input.file2'])
         self._vars['geopotential'] = parsed_args['addGeopotential']
         self._to_add_geopotential = bool(self._vars['geopotential'])
-        self._vars['path_to_convert'] = parsed_args['convert_to_v2']
+        self._vars['path_to_convert'] = parsed_args['convertConf']
+        self._vars['path_to_intertables_to_convert'] = parsed_args['convertIntertables']
         self._vars['test.json'] = parsed_args['test']
-        self._vars['copy_configuration'] = parsed_args['copy_conf']
+        self._vars['copy_configuration'] = parsed_args['copyConf']
 
     def get(self, param, default=None):
         return self._vars.get(param, default) or default
@@ -244,6 +246,9 @@ class ExecutionContext(object):
                 raise ApplicationException.get_programmatic_exc(7002, self._vars['path_to_convert'])
         elif self.copy_conf:
             pass
+        elif self.convert_intertables:
+            if not util.files.exists(self._vars['path_to_intertables_to_convert'], is_folder=True):
+                raise ApplicationException.get_programmatic_exc(7003, self._vars['path_to_intertables_to_convert'])
         else:
 
             if not self._vars.get('input.file'):
@@ -338,6 +343,10 @@ class ExecutionContext(object):
     @property
     def convert_conf(self):
         return bool(self._vars.get('path_to_convert'))
+
+    @property
+    def convert_intertables(self):
+        return bool(self._vars.get('path_to_intertables_to_convert'))
 
     @property
     def copy_conf(self):

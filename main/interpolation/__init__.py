@@ -12,18 +12,17 @@ from util.logger import Logger
 from util.numeric import mask_it
 
 
-class Interpolator:
+class Interpolator(object):
 
     _suffix_scipy = '_scipy_'
     _prefix = 'I'
 
     scipy_modes_nnear = {'nearest': 1, 'invdist': 8}
 
-    def __init__(self, exec_ctx, radius=6367470.0):
+    def __init__(self, exec_ctx):
         self._mode = exec_ctx.get('interpolation.mode')
         self._logger = Logger.get_logger()
         self._intertable_dir = exec_ctx.get('interpolation.dir')
-        self._radius = radius
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
         self._mv_efas = self._target_coords.missing_value
         self._mv_grib = -1
@@ -63,7 +62,7 @@ class Interpolator:
             result = np.einsum('ij,ij->i', weights, z[indexes.astype(int, copy=False)])
         return result
 
-    def interpolate_scipy(self, latgrib, longrib, z, grid_id, log_intertable=False):
+    def interpolate_scipy(self, latgrib, longrib, z, grid_id, grid_details=None, log_intertable=False):
 
         lonefas = self._target_coords.longs
         latefas = self._target_coords.lats
@@ -81,6 +80,7 @@ class Interpolator:
             grid_data = result.reshape(orig_shape)
 
         elif self.create_if_missing:
+            assert grid_details is not None
             if latgrib is None:
                 self._log('Trying to interpolate without grib lat/lons. Probably a geopotential grib!', 'ERROR')
                 raise ApplicationException.get_programmatic_exc(5000)
@@ -88,7 +88,7 @@ class Interpolator:
             self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
             # import ipdb
             # ipdb.set_trace()
-            invdisttree = InverseDistance(longrib, latgrib, self._radius, z.ravel(), self._mv_efas, self._mv_grib)
+            invdisttree = InverseDistance(longrib, latgrib, grid_details, z.ravel(), self._mv_efas, self._mv_grib)
             result, weights, indexes = invdisttree.interpolate(lonefas, latefas, nnear)
             # saving interpolation lookup table
             np.save(intertable_name, np.asarray([weights, indexes], dtype=np.float64))
@@ -150,7 +150,7 @@ class Interpolator:
         else:
             raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
-        result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs.astype(int, copy=False)]
+        result[xs, ys] = v[idxs]
         return result, existing_intertable
 
     def grib_inverse_distance(self, v, gid, grid_id, log_intertable=False, second_spatial_resolution=False):
@@ -195,8 +195,8 @@ class Interpolator:
             np.save(intertable_name, intertable)
         else:
             raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
-        result[xs.astype(int, copy=False), ys.astype(int, copy=False)] = v[idxs1.astype(int, copy=False)] * coeffs1 + v[idxs2.astype(int, copy=False)] * coeffs2 + \
-            v[idxs3.astype(int, copy=False)] * coeffs3 + v[idxs4.astype(int, copy=False)] * coeffs4
+        result[xs, ys] = v[idxs1] * coeffs1 + v[idxs2] * coeffs2 + \
+            v[idxs3] * coeffs3 + v[idxs4] * coeffs4
         return result, existing_intertable
 
     def _intertable_name(self, grid_id, suffix):
@@ -209,9 +209,6 @@ class Interpolator:
         self._aux_val = aux_v
         self._aux_2nd_res_gid = aux_g2
         self._aux_2nd_res_val = aux_v2
-
-    def set_radius(self, r):
-        self._radius = r
 
     def set_mv_input(self, mv):
         self._mv_grib = mv

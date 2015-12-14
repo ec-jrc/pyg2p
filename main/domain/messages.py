@@ -4,16 +4,16 @@ import gc
 
 class Messages(object):
 
-    def __init__(self, values_, missing_, unit_, type_of_level_, type_of_step_, grid_details_, val_2nd=None):
+    def __init__(self, values, mv, unit, type_of_level, type_of_step, grid_details, val_2nd=None):
         self._logger = Logger.get_logger()
-        self.values_first_or_single_res = values_
+        self.values_first_or_single_res = values
         self.values_second_res = val_2nd or {}
-        self.type_of_step = type_of_step_
-        self.type_of_level = type_of_level_
-        self.unit = unit_
-        self.missing_value = missing_
+        self.type_of_step = type_of_step
+        self.type_of_level = type_of_level
+        self.unit = unit
+        self.missing_value = mv
 
-        self.grid_details = grid_details_
+        self.grid_details = grid_details
         # order key list to get first step
         self.first_step_range = sorted(self.values_first_or_single_res.keys(), key=lambda k: (int(k.end_step)))[0]
 

@@ -19,7 +19,7 @@
         "Parameter": {
             "@applyConversion": "tomm", 
             "@shortName": "tp", 
-            "@tend": 240, 
+            "@tend": 24,
             "@tstart": 6
         }
     }

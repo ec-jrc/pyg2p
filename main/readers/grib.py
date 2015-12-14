@@ -16,7 +16,6 @@ from util.logger import Logger
 
 class GRIBInfo(object):
     def __init__(self, **kwargs):
-        self.radius = kwargs.get('radius')
         self.input_step = kwargs.get('input_step')
         self.input_step2 = kwargs.get('input_step2')
         self.change_step_at = kwargs.get('change_step_at')
@@ -232,7 +231,6 @@ class GRIBReader(object):
     def get_grib_info(self, select_args):
         _gribs_for_utils = self._get_gids(**select_args)
         if len(_gribs_for_utils) > 0:
-            radius = grib_get(_gribs_for_utils[0], 'radius')
             type_of_step = grib_get(_gribs_for_utils[1], 'stepType')  # instant, avg, cumul
             self._mv = grib_get_double(_gribs_for_utils[0], 'missingValue')
             start_grib, end_grib, self._step_grib, self._step_grib2, self._change_step_at = self._find_start_end_steps(_gribs_for_utils)
@@ -244,7 +242,7 @@ class GRIBReader(object):
             del _gribs_for_utils
             import gc
             gc.collect()
-            info = GRIBInfo(radius=radius, input_step=self._step_grib, input_step2=self._step_grib2,
+            info = GRIBInfo(input_step=self._step_grib, input_step2=self._step_grib2,
                             change_step_at=self._change_step_at, type_of_param=type_of_step,
                             start=start_grib, end=end_grib, mv=self._mv)
             return info

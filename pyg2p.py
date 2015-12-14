@@ -24,6 +24,12 @@ def main(*args):
             # convert old XML configurations to JSON
             Configuration.convert_to_v2(exc_ctx.get('path_to_convert'))
             return 0
+        elif exc_ctx.convert_intertables:
+            # convert old XML configurations to JSON
+            path_to_intertables = exc_ctx.get('path_to_intertables_to_convert')
+            Configuration.convert_intertables_to_v2(path_to_intertables)
+            logger.info('Intertables in path {} were updated to version 2'.format(path_to_intertables))
+            return 0
         elif exc_ctx.copy_conf:
             # add geopotential GRIB file to geopotentials.json
             conf.copy_source_configuration()

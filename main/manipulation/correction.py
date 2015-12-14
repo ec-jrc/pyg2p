@@ -81,7 +81,7 @@ class Corrector(object):
             # interpolation of geopotentials always with intertable!
             # lat and lons grib are None here and interpolation should find an intertable
             lats, lons = messages.latlons
-            values_resampled = interpolator.interpolate_scipy(lats, lons, values, messages.grid_id)
+            values_resampled = interpolator.interpolate_scipy(lats, lons, values, messages.grid_id, messages.grid_details)
         reader.close()
         return missing, values_resampled
 
