@@ -9,19 +9,18 @@ from util.logger import Logger
 
 class Corrector(object):
 
-    LOADED_GEOMS = []
     INSTANCES = {}
 
     @classmethod
     def get_instance(cls, ctx, grid_id):
         geo_file_ = ctx.geo_file(grid_id)
-        if geo_file_ in Corrector.LOADED_GEOMS:
+        dem_map = ctx.get('correction.demMap')
+        key = '{}{}'.format(geo_file_, dem_map)
+        if key in Corrector.INSTANCES:
             return Corrector.INSTANCES[geo_file_]
         else:
-
             instance = Corrector(ctx, geo_file_)
             Corrector.INSTANCES[geo_file_] = instance
-            Corrector.LOADED_GEOMS.append(geo_file_)
             return instance
 
     def __init__(self, ctx, geo_file_):
@@ -30,8 +29,8 @@ class Corrector(object):
         self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
         self._formula = ctx.get('correction.formula')
         self._gem_formula = ctx.get('correction.gemFormula')
-        self._numexpr_eval = 'where((dem!=mv)&(p!=mv)&(gem!=mv),{}, mv)'.format(self._formula)
-        self._numexpr_eval_gem = 'where(z!=mv,{}, mv)'.format(self._gem_formula)
+        self._numexpr_eval = 'where((dem!=mv) & (p!=mv) & (gem!=mv), {}, mv)'.format(self._formula)
+        self._numexpr_eval_gem = 'where(z != mv, {}, mv)'.format(self._gem_formula)
         log_message = """
         Correction
         Reading dem:{}

@@ -8,6 +8,7 @@ GREEN = '\033[92m' + BOLD
 YELLOW = '\033[93m' + BOLD
 WARN = '\033[94m' + BOLD
 FAIL = '\033[91m' + BOLD
+DEFAULT = BOLD
 
 
 def now_string(fmt='%Y-%m-%d %H:%M'):
@@ -25,7 +26,7 @@ def is_callable(v):
 
 
 def progress_step_and_backchar(num_cells):
-    progress_step = num_cells / 500
+    progress_step = num_cells / 250
     back_char = '\r'
     if not stdout.isatty():
         # out is being redirected

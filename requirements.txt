@@ -5,3 +5,7 @@ GDAL
 memory_profiler
 # numexpr
 # pip install numexpr separately otherwise won't find numpy
+
+# dask packages for parallel interpolation
+dask[array]
+dask[bag]

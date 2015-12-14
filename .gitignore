@@ -4,8 +4,13 @@
 *.*~
 intertables_backup/
 configuration/alternate_intertables
-configuration/intertables
-configuration/geopotentials
+configuration/intertables/I*
+configuration/geopotentials/*.grib
+configuration/geopotentials/*.grib2
+configuration/geopotentials/*.grb
+configuration/geopotentials/*.grib1
+configuration/geopotentials/*_LME_*
+configuration/geopotentials/*_gmi20_*
 logs/
 
 

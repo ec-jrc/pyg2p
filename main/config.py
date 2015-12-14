@@ -175,22 +175,33 @@ class Configuration(object):
                     ys = intertable[1].astype(int, copy=False)
                     indexes = intertable[2].astype(int, copy=False)
                     intertable = np.asarray([xs, ys, indexes])
+                    np.save(filepath, intertable)
+                    print '{} converted'.format(filepath)
                 elif filepath.endswith('_inv.npy'):
                     # convert grib invdist
                     intertable = np.load(filepath)
-                    xs = intertable[0].astype(int, copy=False)
-                    ys = intertable[1].astype(int, copy=False)
-                    idxs1 = intertable[2].astype(int, copy=False)
-                    idxs2 = intertable[3].astype(int, copy=False)
-                    idxs3 = intertable[4].astype(int, copy=False)
-                    idxs4 = intertable[5].astype(int, copy=False)
-                    coeffs1 = intertable[6]
-                    coeffs2 = intertable[7]
-                    coeffs3 = intertable[8]
-                    coeffs4 = intertable[9]
-                    intertable = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4])
-                np.save(filepath, intertable)
-                print '{} converted'.format(filepath)
+                    try:
+                        indexes = intertable['indexes']
+                    except:
+                        xs = intertable[0].astype(int, copy=False)
+                        ys = intertable[1].astype(int, copy=False)
+                        idxs1 = intertable[2].astype(int, copy=False)
+                        idxs2 = intertable[3].astype(int, copy=False)
+                        idxs3 = intertable[4].astype(int, copy=False)
+                        idxs4 = intertable[5].astype(int, copy=False)
+                        coeffs1 = intertable[6]
+                        coeffs2 = intertable[7]
+                        coeffs3 = intertable[8]
+                        coeffs4 = intertable[9]
+                        indexes = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4])
+                        coeffs = np.asarray([coeffs1, coeffs2, coeffs3, coeffs4, np.zeros(coeffs1.shape), np.zeros(coeffs1.shape)])
+                        intertable = np.rec.fromarrays((indexes, coeffs), names=('indexes', 'coeffs'))
+                        np.save(filepath, intertable)
+                        print '{} converted'.format(filepath)
+                    else:
+                        # already in new format
+                        pass
+
 
     @classmethod
     def convert_to_v2(cls, path):
