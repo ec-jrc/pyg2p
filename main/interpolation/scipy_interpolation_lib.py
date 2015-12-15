@@ -9,7 +9,7 @@ from scipy.spatial import cKDTree as KDTree
 
 from main.exceptions import ApplicationException, WEIRD_STUFF
 from util.numeric import mask_it
-from util.generics import progress_step_and_backchar
+from util.generics import progress_step_and_backchar, now_string
 import gribapi
 # http://docs.scipy.org/doc/scipy/reference/spatial.html
 
@@ -21,6 +21,7 @@ class InverseDistance(object):
     def __init__(self, longrib, latgrib, grid_details, source_values, mv_target, mv_source):
 
         self.geodetic_info = grid_details
+        stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         x, y, zz = self.to_3d(longrib, latgrib, rotate='rotated' in grid_details.get('gridType'))
         source_locations = np.vstack((x.ravel(), y.ravel(), zz.ravel())).T
         try:
@@ -65,13 +66,13 @@ class InverseDistance(object):
 
         back_char, progress_step = progress_step_and_backchar(num_cells)
 
-        stdout.write('{}Inverse distance interpolation (scipy):{}/{} (0%)'.format(back_char, jinterpol, num_cells))
+        stdout.write('{}Building coeffs:{}/{} (0%)'.format(back_char, jinterpol, num_cells))
         stdout.flush()
         # wsum will be saved in intertable
         weights = np.empty((len(distances),) + (nnear,))
         for dist, ix in zip(distances, indexes):
             if jinterpol % progress_step == 0:
-                stdout.write('{}Inverse distance interpolation (scipy): {}/{} ({:.2f}%)'.format(back_char, jinterpol, num_cells, jinterpol * 100. / num_cells))
+                stdout.write('{}Building coeffs: {}/{} ({:.2f}%)'.format(back_char, jinterpol, num_cells, jinterpol * 100. / num_cells))
                 stdout.flush()
 
             if dist[0] > 1e-10:
@@ -85,7 +86,8 @@ class InverseDistance(object):
             jinterpol += 1
 
         stdout.write(back_char + ' ' * 100)
-        stdout.write('{}Inverse distance interpolation (scipy): {}/{} (100%)\n'.format(back_char, jinterpol, num_cells))
+        stdout.write('{}Building coeffs: {}/{} (100%)\n'.format(back_char, jinterpol, num_cells))
+        stdout.write('End scipy interpolation: {}\n'.format(now_string()))
         stdout.flush()
         return result, weights
 

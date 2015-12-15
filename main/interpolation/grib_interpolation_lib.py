@@ -84,6 +84,7 @@ def grib_invdist(gid, target_lats, target_lons, mv):
     flush()
     i = 0
     outs = 0
+
     for lat, lon in itertools.izip(target_lats.flat, target_lons.flat):
         if i % progress_step == 0:
             write_to_console('{}Inverse distance interpolation: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
@@ -99,16 +100,9 @@ def grib_invdist(gid, target_lats, target_lons, mv):
                 xs[i] = int_fill_value
                 ys[i] = int_fill_value
             else:
-                inv1, inv2, inv3, inv4, idx1, idx2, idx3, idx4 = _compute_coeffs_and_idxs(n_nearest)
-                idxs1[i] = idx1
-                idxs2[i] = idx2
-                idxs3[i] = idx3
-                idxs4[i] = idx4
-                invs1[i] = inv1
-                invs2[i] = inv2
-                invs3[i] = inv3
-                invs4[i] = inv4
+                invs1[i], invs2[i], invs3[i], invs4[i], idxs1[i], idxs2[i], idxs3[i], idxs4[i] = _compute_coeffs_and_idxs(n_nearest)
         i += 1
+
     invs1 = invs1[~np.isnan(invs1)]
     invs2 = invs2[~np.isnan(invs2)]
     invs3 = invs3[~np.isnan(invs3)]
@@ -169,18 +163,15 @@ def nearest_parallel_step(chunk, gid, mv):
 
 
 def grib_nearest_parallel(gid, target_lats, target_lons, mv):
-    nchunks = 250
+    nchunks = target_lats.shape[0]
     apply_to_chunk_part = partial(apply_nearest_to_chunk, gid=gid, mv=mv)
     result = init_parallel(apply_to_chunk_part, mv, nchunks, target_lats, target_lons)
     progress = ProgressBar(dt=10)
     with progress:
-        result = result.compute()
-    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
-    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
-    idxs = np.concatenate([result[i][2] for i in xrange(nchunks)])
-    xs = xs[xs != int_fill_value]
-    ys = ys[ys != int_fill_value]
-    idxs = idxs[idxs != int_fill_value]
+        result = np.concatenate(result.compute())
+    xs = result[0][result[0] != int_fill_value]
+    ys = result[1][result[1] != int_fill_value]
+    idxs = result[2][result[2] != int_fill_value]
     return xs, ys, idxs
 
 
@@ -209,34 +200,26 @@ def invdist_parallel_step(chunk, gid, mv):
 
 
 def grib_invdist_parallel(gid, target_lats, target_lons, mv):
+
     apply_to_chunk_part = partial(apply_invdist_to_chunk, gid=gid, mv=mv)
-    nchunks = 250
+    nchunks = target_lats.shape[0]
     result = init_parallel(apply_to_chunk_part, mv, nchunks, target_lats, target_lons)
+
     progress = ProgressBar(dt=10)
     with progress:
-        result = result.compute()
-    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
-    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
-    idxs1 = np.concatenate([result[i][2] for i in xrange(nchunks)])
-    idxs2 = np.concatenate([result[i][3] for i in xrange(nchunks)])
-    idxs3 = np.concatenate([result[i][4] for i in xrange(nchunks)])
-    idxs4 = np.concatenate([result[i][5] for i in xrange(nchunks)])
+        result = np.concatenate(result.compute())
 
-    invs1 = np.concatenate([result[i][6] for i in xrange(nchunks)])
-    invs2 = np.concatenate([result[i][7] for i in xrange(nchunks)])
-    invs3 = np.concatenate([result[i][8] for i in xrange(nchunks)])
-    invs4 = np.concatenate([result[i][9] for i in xrange(nchunks)])
-    xs = xs.astype(int, copy=False)
-    ys = ys.astype(int, copy=False)
-    idxs1 = idxs1.astype(int, copy=False)
-    idxs2 = idxs2.astype(int, copy=False)
-    idxs3 = idxs3.astype(int, copy=False)
-    idxs4 = idxs4.astype(int, copy=False)
-
-    invs1 = invs1[~np.isnan(invs1)]
-    invs2 = invs2[~np.isnan(invs2)]
-    invs3 = invs3[~np.isnan(invs3)]
-    invs4 = invs4[~np.isnan(invs4)]
+    # arrays come as float from dask because stacked with coeffs
+    xs = result[0].astype(int, copy=False)
+    ys = result[1].astype(int, copy=False)
+    idxs1 = result[2].astype(int, copy=False)
+    idxs2 = result[3].astype(int, copy=False)
+    idxs3 = result[4].astype(int, copy=False)
+    idxs4 = result[5].astype(int, copy=False)
+    invs1 = result[6][~np.isnan(result[6])]
+    invs2 = result[7][~np.isnan(result[7])]
+    invs3 = result[8][~np.isnan(result[8])]
+    invs4 = result[9][~np.isnan(result[9])]
 
     sums = ne.evaluate('invs1 + invs2 + invs3 + invs4')
     coeffs1 = ne.evaluate('invs1 / sums')
@@ -249,17 +232,19 @@ def grib_invdist_parallel(gid, target_lats, target_lons, mv):
     idxs1 = idxs1[idxs1 != int_fill_value]
     idxs2 = idxs2[idxs2 != int_fill_value]
     idxs3 = idxs3[idxs3 != int_fill_value]
-    idxs4 = idxs3[idxs4 != int_fill_value]
+    idxs4 = idxs4[idxs4 != int_fill_value]
+
     return xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4
 
 
 def init_parallel(apply_to_chunk_part, mv, nchunks, target_lats, target_lons):
     indices = np.indices(target_lons.shape)
-    valid_target_coords = (target_lons > -1.0e+10) & (target_lons != mv)
-    xs = np.where(valid_target_coords, indices[0], int_fill_value).ravel()
-    ys = np.where(valid_target_coords, indices[1], int_fill_value).ravel()
+    npartitions = max(100, int(nchunks / 10))
+    valid_coords_mask = (target_lons > -1.0e+10) & (target_lons != mv)
+    xs = np.where(valid_coords_mask, indices[0], int_fill_value).ravel()
+    ys = np.where(valid_coords_mask, indices[1], int_fill_value).ravel()
     stack = np.stack((target_lats.flat, target_lons.flat, xs.flat, ys.flat))
     chunks = np.array_split(stack, nchunks, axis=1)
-    nearest_bag = bag.from_sequence(chunks, npartitions=16)
+    nearest_bag = bag.from_sequence(chunks, npartitions=npartitions)
     result = nearest_bag.map(apply_to_chunk_part)
     return result

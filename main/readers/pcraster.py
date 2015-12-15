@@ -9,7 +9,7 @@ class PCRasterReader(object):
 
     def __init__(self, pcr_map):
         self._logger = Logger.get_logger()
-        self._log('Reading ' + pcr_map)
+        self._log('Reading {}'.format(pcr_map))
 
         self._driver = gdal.GetDriverByName(self.FORMAT)
         i = self._driver.Register()
@@ -21,7 +21,6 @@ class PCRasterReader(object):
         self._origY = self._getTransform[3]
         self._pxlW = self._getTransform[1]
         self._pxlH = self._getTransform[5]
-        self._area_extent = (self._origX, self._origX + (self._pxlW * self._cols), self._origY - (self._pxlH * self._rows), self._origY)
 
         self._band = self._dataset.GetRasterBand(1)
         self._min = self._band.GetMinimum()
@@ -43,5 +42,7 @@ class PCRasterReader(object):
         self._dataset = None
 
     def identifier(self):
-        return "%d_%d_%d_%d_%.2f_%.2f" % (self._origX, self._origY, self._pxlW, self._pxlH, self._min, self._max)
+        return '{}_{}_{}_{}_{:.2f}_{:.2f}'.format(self._origX, self._origY,
+                                                  self._pxlW, self._pxlH,
+                                                  self._min, self._max)
 

@@ -19,7 +19,7 @@ class LatLong(object):
         self._lonMapValues = reader2.values()
 
         self._id = '{}_{}'.format(reader.identifier(), reader2.identifier())
-
+        # TODO Add lat/lon info (min_lat, min_lon, max_lat, max_lon, grid shape)
         reader.close()
         reader2.close()
 
