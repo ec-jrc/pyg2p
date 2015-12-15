@@ -45,14 +45,16 @@ class TestRunner(object):
                 diff_map_path = os.path.join(test_.out_dir, diff_map)
                 g_map_path = os.path.join(test_.out_dir, g_map)
                 p_map_path = os.path.join(test_.out_dir, p_map)
-                print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
+
                 array_ok = np.isclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
                 perc_wrong = float(array_ok[array_ok == False].size * 100) / float(diff_values.size)
                 if perc_wrong > 5:  # more than 5% of differences
                     failed = True
+                    print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
                     self._print_colored(FAIL, '[ERROR] {:3.4f}% of values are too different!'.format(perc_wrong))
                 elif 0.5 <= perc_wrong <= 5:
                     problematic = True
+                    print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
                     self._print_colored(WARN, '[WARN] values are very similar but with {:3.4f}% of differences!'.format(perc_wrong))
         if failed:
             return '1'
@@ -83,8 +85,8 @@ class TestRunner(object):
         if elapsed_g2p:
             self._print_time_diffs(elapsed_g2p, elapsed_pyg2p, test_)
         elif elapsed_pyg2p_scipy:
-            self._print_time_diffs(elapsed_pyg2p_scipy, elapsed_pyg2p, test_, from_scipy=True)
             self._print_colored(YELLOW, 'pyg2p memory usage with scipy: max {:6.2f}MB, avg {:6.2f}MB '.format(max_mem_scipy, avg_mem_scipy))
+            self._print_time_diffs(elapsed_pyg2p_scipy, elapsed_pyg2p, test_, from_scipy=True)
         self._print_colored(YELLOW, '============= END ================')
 
     def print_test_suite_summary(self, elapsed_test, num_tests, results):
@@ -107,7 +109,6 @@ class TestRunner(object):
         elapsed_test = time.time()
 
         for key_, test_ in ordered_tests.iteritems():
-            # Logger.reset_logger()
             num_tests += 1
             elapsed_g2p = elapsed_pyg2p_scipy = None
             self._print_colored(DEFAULT, '\n\n =====================> Running Test {}'.format(test_))

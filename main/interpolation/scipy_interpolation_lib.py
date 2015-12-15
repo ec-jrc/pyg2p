@@ -9,7 +9,7 @@ from scipy.spatial import cKDTree as KDTree
 
 from main.exceptions import ApplicationException, WEIRD_STUFF
 from util.numeric import mask_it
-from util.generics import progress_step_and_backchar
+from util.generics import progress_step_and_backchar, now_string
 import gribapi
 # http://docs.scipy.org/doc/scipy/reference/spatial.html
 
@@ -64,7 +64,7 @@ class InverseDistance(object):
         num_cells = result.size
 
         back_char, progress_step = progress_step_and_backchar(num_cells)
-
+        stdout.write('Start interpolation: {}\n'.format(now_string()))
         stdout.write('{}Inverse distance interpolation (scipy):{}/{} (0%)'.format(back_char, jinterpol, num_cells))
         stdout.flush()
         # wsum will be saved in intertable
@@ -86,6 +86,7 @@ class InverseDistance(object):
 
         stdout.write(back_char + ' ' * 100)
         stdout.write('{}Inverse distance interpolation (scipy): {}/{} (100%)\n'.format(back_char, jinterpol, num_cells))
+        stdout.write('End interpolation: {}\n\n'.format(now_string()))
         stdout.flush()
         return result, weights
 

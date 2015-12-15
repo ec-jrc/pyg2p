@@ -1,6 +1,7 @@
 """
 Grib interpolation utils.
-For global target grids it takes two days on Intel(R) Core(TM) i7-3610QM CPU @ 2.30GHz
+For global target grids it takes 3 days on Intel(R) Core(TM) i7-3610QM CPU @ 2.30GHz.
+Parallelized versions gives 3x gain at least.s
 """
 
 from __future__ import division
@@ -249,7 +250,7 @@ def grib_invdist_parallel(gid, target_lats, target_lons, mv):
     idxs1 = idxs1[idxs1 != int_fill_value]
     idxs2 = idxs2[idxs2 != int_fill_value]
     idxs3 = idxs3[idxs3 != int_fill_value]
-    idxs4 = idxs3[idxs4 != int_fill_value]
+    idxs4 = idxs4[idxs4 != int_fill_value]
     return xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4
 
 
