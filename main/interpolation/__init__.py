@@ -5,7 +5,7 @@ import numpy as np
 import util.files
 from main.exceptions import ApplicationException, NO_INTERTABLE_CREATED
 from main.interpolation import scipy_interpolation_lib as ID
-from main.interpolation.grib_interpolation_lib import grib_nearest, grib_invdist
+from main.interpolation import grib_interpolation_lib
 from main.interpolation.latlong import LatLong
 from main.interpolation.scipy_interpolation_lib import InverseDistance
 from util.logger import Logger
@@ -26,6 +26,7 @@ class Interpolator(object):
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
         self._mv_efas = self._target_coords.missing_value
         self._mv_grib = -1
+        self.parallel = exec_ctx.get('interpolation.parallel')
 
         # values used for interpolation table computation
         self._aux_val = None
@@ -137,7 +138,8 @@ class Interpolator(object):
             except AssertionError as e:
                 raise ApplicationException.get_programmatic_exc(6000, details=str(e))
             self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
-            xs, ys, idxs = grib_nearest(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value)
+            # xs, ys, idxs = grib_nearest(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value)
+            xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value)
             intertable = np.asarray([xs, ys, idxs])
             np.save(intertable_name, intertable)
             self._LOADED_INTERTABLES[intertable_name] = intertable
@@ -180,9 +182,8 @@ class Interpolator(object):
             lonefas = self._target_coords.longs
             latefas = self._target_coords.lats
             mv = self._target_coords.missing_value
-            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = grib_invdist(gid, latefas, lonefas, mv)
-            # import ipdb
-            # ipdb.set_trace()
+            xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = getattr(grib_interpolation_lib, 'grib_invdist{}'.format('' if not self.parallel else '_parallel'))(gid, latefas, lonefas, mv)
+
             indexes = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4])
             coeffs = np.asarray([coeffs1, coeffs2, coeffs3, coeffs4, np.zeros(coeffs1.shape), np.zeros(coeffs1.shape)])
             # intertable = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4])

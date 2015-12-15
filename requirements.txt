@@ -9,3 +9,4 @@ memory_profiler
 # dask packages for parallel interpolation
 dask[array]
 dask[bag]
+toolz

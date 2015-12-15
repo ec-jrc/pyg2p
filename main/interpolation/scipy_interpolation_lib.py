@@ -97,7 +97,7 @@ class InverseDistance(object):
         # efas_locations_ma = mask_it(efas_locations, self._mv_target)
         if qdim == 1:
             efas_locations = np.array([efas_locations])
-        stdout.write('Finding indexes for nearest neighbour k=1\n')
+        stdout.write('Finding indexes for nearest neighbour k={}\n'.format(nnear))
         distances, indexes = self.tree.query(efas_locations, k=nnear)
         # weights = np.empty((len(distances),) + (nnear,))
         if nnear == 1:

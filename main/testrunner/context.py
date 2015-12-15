@@ -5,24 +5,21 @@ from util.strings import to_argv
 
 
 class Test(object):
+    _pyg2p_exe = 'pyg2p.py'
 
-    def __init__(self, pyg2p_exe, grib2pcraster_exe):
+    def __init__(self):
         self.id = ''
         self.out_dir = ''
         self.pyg2p_command = ''
         self.pyg2p_scipy_command = ''
         self.g2p_command = []  # can be two consecutive executions for multiresolution
-        self._pyg2p_exe = pyg2p_exe
-        self._grib2pcraster_exe = grib2pcraster_exe
 
     def __str__(self):
-        if len(self.g2p_command) > 0:
-            self_str = self.id + '\n\t' + self.pyg2p_command + '\n\t' + self._grib2pcraster_exe + ' ' + str(self.g2p_command) + '\n\t- out dir' + self.out_dir
-        elif self.pyg2p_scipy_command:
-            self_str = self.id + '\n\t' + self.pyg2p_command + '\n\t' +  self.pyg2p_command + ' ' + str(self.pyg2p_scipy_command) + '\n\t- out dir' + self.out_dir
+        if self.pyg2p_scipy_command:
+            res = '{}\n\t{} {}\n\t{} {}'.format(self.id, self._pyg2p_exe, self.pyg2p_command, self._pyg2p_exe, self.pyg2p_scipy_command)
         else:
-            self_str = self.id + '\n\t' + self.pyg2p_command + '\n\t- out dir' + self.out_dir
-        return self_str
+            res = '{}\n\t{} {}\n\t{}'.format(self.id, self._pyg2p_exe, self.pyg2p_command, ' '.join(self.g2p_command))
+        return res
 
 
 class TestContext(object):
@@ -58,7 +55,7 @@ class TestContext(object):
             if id_ in self._params['tests']:
                 test_ = self._params['tests'][id_]
             else:
-                test_ = Test('pyg2p.py', test_conf['g2p']['@exec'])
+                test_ = Test()
                 test_.id = id_
                 test_.out_dir = out_dir_
                 if not test_.out_dir.endswith('/') and not test_.out_dir == '.':

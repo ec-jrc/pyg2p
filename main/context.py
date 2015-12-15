@@ -79,6 +79,11 @@ class ExecutionContext(object):
         parser.add_argument('-B', '--createIntertable', help='create intertable file',
                             action='store_true', default=False)
 
+        parser.add_argument('-X', '--interpolationParallel', help='Use parallelization tools to make interpolation faster.'
+                                                                  'If -B option is not passed or intertable already exists'
+                                                                  ' it does not have any effect.',
+                            action='store_true', default=False)
+
         parser.add_argument('-g', '--addGeopotential', help='''</path/to/geopotential/grib/file
         \nAdd the file to geopotentials.json configuration file, to use for correction.
         \nThe file will be copied into the right folder (configuration/geopotentials)
@@ -113,6 +118,7 @@ class ExecutionContext(object):
         self._vars['parameter.dataDate'] = parsed_args['dataDate']
         self._vars['interpolation.dir'] = parsed_args['intertableDir']
         self._vars['interpolation.create'] = parsed_args['createIntertable']
+        self._vars['interpolation.parallel'] = parsed_args['interpolationParallel']
         self._vars['outMaps.fmap'] = parsed_args['fmap']
         self._vars['outMaps.ext'] = parsed_args['ext']
         self._vars['outMaps.namePrefix'] = parsed_args['namePrefix']

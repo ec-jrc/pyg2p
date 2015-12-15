@@ -54,8 +54,6 @@ class TestRunner(object):
                 elif 0.5 <= perc_wrong <= 5:
                     problematic = True
                     self._print_colored(WARN, '[WARN] values are very similar but with {:3.4f}% of differences!'.format(perc_wrong))
-                else:
-                    self._print_colored(GREEN, '[GOOD] Almost all values are good [{:3.4f}% of differences]!'.format(perc_wrong))
         if failed:
             return '1'
         elif problematic:
@@ -66,7 +64,7 @@ class TestRunner(object):
 
     def _print_time_diffs(self, elapsed_counter_part, elapsed_pyg2p, test_, from_scipy=False):
         txt_ = 'pyg2p with scipy interpol ' if from_scipy else 'grib2pcraster'
-        msg = '{} test {}  executed in {}'.format(txt_, test_.id, str(datetime.timedelta(seconds=elapsed_counter_part)))
+        msg = '{} test {} executed in {}'.format(txt_, test_.id, str(datetime.timedelta(seconds=elapsed_counter_part)))
         self._print_colored(YELLOW, msg)
         differ_elaps = elapsed_pyg2p - elapsed_counter_part
         color_code = WARN
@@ -80,7 +78,7 @@ class TestRunner(object):
     def print_test_summary(self, avg_mem, avg_mem_scipy, elapsed_g2p, elapsed_pyg2p, elapsed_pyg2p_scipy, max_mem,
                            max_mem_scipy, test_):
         self._print_colored(YELLOW, '\n\n =========== SUMMARY ==============')
-        self._print_colored(YELLOW, '\npyg2p test ' + test_.id + ' executed in ' + str(datetime.timedelta(seconds=elapsed_pyg2p)))
+        self._print_colored(YELLOW, '\nTest {} executed in {}'.format(test_.id, str(datetime.timedelta(seconds=elapsed_pyg2p))))
         self._print_colored(YELLOW, 'pyg2p memory usage: max {:6.2f}MB, avg {:6.2f}MB '.format(max_mem, avg_mem))
         if elapsed_g2p:
             self._print_time_diffs(elapsed_g2p, elapsed_pyg2p, test_)

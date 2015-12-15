@@ -5,17 +5,17 @@
  p9@ -l ERROR -B -c /pyg2p_git/execution_templates_devel/cosmo_t24_scipy_inv.json -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24 -m 10
  ############# CURRENT FEW TESTS (OCTAHEDRAL) ######################
 
- # p104@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z104@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # p104@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # z104@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
 
- # p105@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/grib_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z105@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # p105@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/grib_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # z105@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
 
- # p106@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z106@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # p106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # z106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
 
- # p106@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z106@ -l ERROR -B -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # p106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # z106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
 
 
 #167.128 2t

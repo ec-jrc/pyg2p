@@ -16,11 +16,11 @@ class Corrector(object):
         geo_file_ = ctx.geo_file(grid_id)
         dem_map = ctx.get('correction.demMap')
         key = '{}{}'.format(geo_file_, dem_map)
-        if key in Corrector.INSTANCES:
-            return Corrector.INSTANCES[geo_file_]
+        if key in cls.INSTANCES:
+            return cls.INSTANCES[key]
         else:
             instance = Corrector(ctx, geo_file_)
-            Corrector.INSTANCES[geo_file_] = instance
+            cls.INSTANCES[key] = instance
             return instance
 
     def __init__(self, ctx, geo_file_):

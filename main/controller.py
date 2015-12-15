@@ -70,7 +70,6 @@ class Controller:
 
     def create_out_map(self, grid_id, i, lats, longs, timestep, v, geodetic_info=None, gid=-1, second_spatial_resolution=False):
 
-        # TODO Remove all debug messages. no more useful
         if self._logger.is_debug:
             self._log("\nGRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
                 self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
