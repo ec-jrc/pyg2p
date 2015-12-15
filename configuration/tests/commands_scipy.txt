@@ -1,66 +1,81 @@
- ###SCIPY###
+ ### TEST OF COMPARISONS BETWEEN GRIB and Scipy interpolation routines in pyg2p ###
+
  # EUE
- g18@ -p 167.128 -n gT24 -t 24 --fmap=1 -m 10 --ext=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueT24
- p18@ -l ERROR -c /pyg2p_git/execution_templates_devel/eue_t24_scipy_nn.json -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueT24 -m 10
+ g1@ -p 167.128 -n gT24 -t 24 --fmap=1 -m 10 --ext=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueT24
+ p1@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/eue_t24_scipy_nn.json -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueT24 -m 10
 
- g19@ -p 182.128 -n gE24 -t 24 --fmap=1 -m 10 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueE24
- p19@ -l DEBUG -c /pyg2p_git/execution_templates_devel/eue_e24_scipy_nn.json -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueE24 -m 10
+ g2@ -p 182.128 -n gE24 -t 24 --fmap=1 -m 10 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueE24
+ p2@ -l DEBUG -c /pyg2p_git/execution_templates_devel/eue_e24_scipy_nn.json -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueE24 -m 10
 
- g20@ -p 228.128 -n gR24 -t 24 --fmap=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueR24 -m 10
- p20@ -l ERROR -c /pyg2p_git/execution_templates_devel/eue_r24_scipy_nn.json -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueR24 -m 10
+ g3@ -p 228.128 -n gR24 -t 24 --fmap=1 -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueR24 -m 10
+ p3@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/eue_r24_scipy_nn.json -i /dataset/test_2013330702/EpsN320-2013063000.grb -o /dataset/testdiffmaps/scipy_interpol/eueR24 -m 10
 
 # DWD
- g21@  -p 102.201 -n gR06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdR06
- p21@  -l ERROR -c /pyg2p_git/execution_templates_devel/dwd_r06_scipy_inv.json -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdR06
+ g4@  -p 102.201 -n gR06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdR06
+ p4@  -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/dwd_r06_scipy_inv.json -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdR06
 
- g22@ -p 121.2 -n gE06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdE06
- p22@ -l ERROR -c /pyg2p_git/execution_templates_devel/dwd_e06_scipy_nn.json -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdE06
+ g5@ -p 121.2 -n gE06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdE06
+ p5@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/dwd_e06_scipy_nn.json -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdE06
 
- g23@ -p 11.2 -n gT24 -t 24 --fmap=1 -e 30 --ext=4 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdT24
- p23@ -l ERROR -c /pyg2p_git/execution_templates_devel/dwd_t24_scipy_nn.json -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdT24
+ g6@ -p 11.2 -n gT24 -t 24 --fmap=1 -e 30 --ext=4 -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdT24
+ p6@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/dwd_t24_scipy_nn.json -i /dataset/dwd/grib/dwd_grib1_ispra_LME_2012111900 -o /dataset/testdiffmaps/scipy_interpol/dwdT24
 
  #COSMO
- g24@ -p 61.2 -n gR06 -t 06 --fmap=1 -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoR06 -m 10
- p24@ -l ERROR -c /pyg2p_git/execution_templates_devel/cosmo_r06_scipy_nn.json -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoR06 -m 10
+ g7@ -p 61.2 -n gR06 -t 06 --fmap=1 -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoR06 -m 10
+ p7@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/cosmo_r06_scipy_nn.json -i /dataset/cosmo/2012111912_pf10_tp.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoR06 -m 10
 
- g25@ -p 121.2 -n gE06 -t 06 --fmap=1 -m 10 -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoE06
- p25@ -l ERROR -c /pyg2p_git/execution_templates_devel/cosmo_e06_scipy_nn.json -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoE06 -m 10
+ g8@ -p 121.2 -n gE06 -t 06 --fmap=1 -m 10 -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoE06
+ p8@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/cosmo_e06_scipy_nn.json -i /dataset/cosmo/2012111912_pf10_slhf.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoE06 -m 10
 
- g26@ -p 11.2 -n gT24 -t 24 --fmap=1 -m 10 --ext=4 -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24
- p26@ -l ERROR -c /pyg2p_git/execution_templates_devel/cosmo_t24_scipy_inv.json -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24 -m 10
+ g9@ -p 11.2 -n gT24 -t 24 --fmap=1 -m 10 --ext=4 -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24
+ p9@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/cosmo_t24_scipy_inv.json -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24 -m 10
 
  #EUD
- g27@ -p 228.128 -n gR06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudR06
- p27@ -l ERROR -c /pyg2p_git/execution_templates_devel/eud_r06_scipy_nn.json -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudR06
+ g10@ -p 228.128 -n gR06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudR06
+ p10@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/eud_r06_scipy_nn.json -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudR06
 
- g28@ -p 182.128 -n gE06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudE06
- p28@ -l ERROR -c /pyg2p_git/execution_templates_devel/eud_e06_scipy_nn.json -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudE06
+ g11@ -p 182.128 -n gE06 -t 06 --fmap=1 -s 12 -e 18 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudE06
+ p11@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/eud_e06_scipy_nn.json -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudE06
 
- g29@ -p 167.128 -n gT24 -t 24 --fmap=1 -s 30 -e 30 --ext=4 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudT24
- p29@ -l ERROR -c /pyg2p_git/execution_templates_devel/eud_t24_scipy_nn.json -s 30 -e 30 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudT24
+ g12@ -p 167.128 -n gT24 -t 24 --fmap=1 -s 30 -e 30 --ext=4 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudT24
+ p12@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/eud_t24_scipy_nn.json -s 30 -e 30 -i /dataset/eud/DetN640-2012112000.grb -o /dataset/testdiffmaps/scipy_interpol/eudT24
 
  #GLOFAS
  #glofas commands. grib2pcraster needs two executions for each pyg2p command
- g30@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
- g30@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
- p30@ -c /pyg2p_git/execution_templates_devel/glofas_sro_scipy_nn.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -m 50 -l ERROR
+ g13@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
+ g13@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
+ p13@ -c /pyg2p_git/execution_templates_devel/glofas_sro_scipy_nn.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSRO -m 50 -l ERROR -B -X
 
- g31@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
- g31@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
- p31@ -l ERROR -c /pyg2p_git/execution_templates_devel/glofas_ssro_scipy_nn.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50
+ g14@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
+ g14@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
+ p14@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/glofas_ssro_scipy_nn.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/scipy_interpol/multires/multiresSSRO -m 50
 
- p90@ -l ERROR -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_g.json -m 0
- z90@ -l ERROR -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_scipy_nn.json -m 0
+ p15@ -l ERROR -B -X -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_g.json -m 0
+ z15@ -l ERROR -B -X -i /dataset/UKMO/UKMO_20121218.grib -o /dataset/testdiffmaps/scipy_interpol/UKMOt24/ -c /pyg2p_git/execution_templates_devel/UKMO_t24_LA_scipy_nn.json -m 0
 
- p91@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_g.json -m 0
- z91@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_scipy_inv.json -m 0
+ p16@ -l ERROR -B -X -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_g.json -m 0
+ z16@ -l ERROR -B -X -i /dataset/ungrib_20130804/EUE_2013073100_cv.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOcv/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_CV_scipy_inv.json -m 0
 
- p92@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_g.json -m 0
- z92@ -l ERROR -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_scipy_inv.json -m 0
+ p17@ -l ERROR -B -X -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_g.json -m 0
+ z17@ -l ERROR -B -X -i /dataset/ungrib_20130804/EUE_2013073100_mean.grb -o /dataset/testdiffmaps/scipy_interpol/UKMOmean/ -c /pyg2p_git/execution_templates_devel/EUE_RainAnim_scipy_inv.json -m 0
 
- p93@ -l ERROR -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_g.json -s 24 -e 360 -m 09 --fmap=1
- z93@ -l ERROR -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_scipy_nn.json -s 24 -e 360 -m 09 --fmap=1
+ p18@ -l ERROR -B -X -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_g.json -s 24 -e 360 -m 09 --fmap=1
+ z18@ -l ERROR -B -X -i /dataset/15dayUngrib/EpsN320-2012010800.grb -o /dataset/testdiffmaps/scipy_interpol/15days/ -c /pyg2p_git/execution_templates_devel/eue_r24_15days_scipy_nn.json -s 24 -e 360 -m 09 --fmap=1
 
- p94@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
- z94@ -l ERROR -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+ p19@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+ z19@ -l ERROR -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+
+ #### OCTAHEDRAL GRID
+ p20@ -l ERROR -B -X -m 8 -e 264 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ z20@ -l ERROR -B -X -m 8 -e 264 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ # p21@ -l ERROR -B -X -m 8 -e 48 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/grib_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # z21@ -l ERROR -B -X -m 8 -e 48 -c execution_templates_devel/octahedral_test_scipy_global.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ p22@ -l ERROR -B -X -m 8 -e 240 -c execution_templates_devel/octahedral_test_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ z22@ -l ERROR -B -X -m 8 -e 240 -c execution_templates_devel/octahedral_test_scipy_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+ # p23@ -l ERROR -B -X -m 8 -s 240 -e 360 -c execution_templates_devel/octahedral_test_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+ # z23@ -l ERROR -B -X -m 8 -s 240 -e 360 -c execution_templates_devel/octahedral_test_scipy_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+
 

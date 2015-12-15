@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 100, 
-        "@name": "multi_sro", 
+        "@name": "multi_sro",
         "Aggregation": {
             "@step": 24, 
             "@type": "accumulation"

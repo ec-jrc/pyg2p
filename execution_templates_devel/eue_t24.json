@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": "eue_2t", 
-        "@name": "eue_t24", 
+        "@name": "eue_t24",
         "Aggregation": {
             "@step": 24, 
             "@type": "average"

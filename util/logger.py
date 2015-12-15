@@ -5,6 +5,7 @@ import gribapi
 import sys
 
 import util.files
+from main.exceptions import ApplicationException
 
 LOGGERS_REGISTER = {}
 
@@ -32,6 +33,10 @@ class Logger(object):
         self._logger.propagate = False
         self._logger.setLevel(self._level)
 
+    @property
+    def is_debug(self):
+        return self._level == 'DEBUG'
+
     def error(self, message):
         return self.log(message, 'ERROR')
 
@@ -49,16 +54,18 @@ class Logger(object):
 
     def log(self, message, level='DEBUG'):
         trace_it = 0
-        message = self._caller_info() + " " + str(message)
+        if level == 'ERROR':
+            message = '\033[91m' + '\033[1m' + message + '\033[0m'
+        message = '{} {}'.format(self._caller_info(), message)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         if isinstance(exc_obj, gribapi.GribInternalError):
             pass
-        elif exc_type is not None and not hasattr(exc_obj, 'get_code'):
+        elif exc_type and not isinstance(exc_obj, ApplicationException):
             print str(exc_obj)
             trace_it = 1
-        elif exc_type is not None and exc_obj.get_code() != 3000:  # no tracestack when no messages exception
-            trace_it = 1
-        self._logger.log(self._get_int_level(level), self._logger.name + ' - ' + str(message), exc_info=trace_it)
+        # elif exc_type and exc_obj.get_code() != 3000:  # no tracestack when no messages exception
+        #     trace_it = 1
+        self._logger.log(self._get_int_level(level), message, exc_info=trace_it)
 
     def close(self):
         for i in xrange(len(self._logger.handlers)):

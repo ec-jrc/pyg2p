@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 1, 
-        "@name": "AFFS_LSP24", 
+        "@name": "AFFS_LSP24",
         "Aggregation": {
             "@step": 24, 
             "@type": "accumulation"

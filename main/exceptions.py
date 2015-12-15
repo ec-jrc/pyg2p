@@ -3,7 +3,10 @@ CONVERSION_NOT_FOUND = 1200
 NO_MESSAGES = 3000
 NO_GEOPOTENTIAL = 4000
 NO_VAR_DEFINED = 8000
-
+NO_INTERTABLE_CREATED = 8100
+JSON_ERROR = 8200
+EXISTING_GEOPOTENTIAL = 8300
+WEIRD_STUFF = 9000
 
 class ApplicationException(Exception):
 
@@ -35,7 +38,12 @@ class ApplicationException(Exception):
         7000: 'JSON configuration file for tests was not found',
         7001: 'Geopotential grib file was not found',
         7002: 'Path to old xml configuration was not found',
-        NO_VAR_DEFINED: 'Variable was not found in any .conf files. Please add it in ~/.pyg2p/<myconffile>.conf'
+        7003: 'Path to grib api intertables was not found',
+        NO_VAR_DEFINED: 'Variable was not found in any .conf files. Please add it in ~/.pyg2p/<myconffile>.conf',
+        NO_INTERTABLE_CREATED: 'Interpolation table was not found and -B, --createIntertable was not set on command line.',
+        JSON_ERROR: 'Error in configuration file.',
+        EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
+        WEIRD_STUFF: 'Cannot continue: weird stuff happening',
     }
 
     @staticmethod
@@ -53,7 +61,7 @@ class ApplicationException(Exception):
         self.__innerException = inner
         self._code = code
         if isinstance(error, basestring):
-            self.message = 'Application Error: ' + error
+            self.message = error
 
     def __str__(self):
         return self.message

@@ -5,6 +5,7 @@ from util.strings import to_argv
 
 
 class Test(object):
+    _pyg2p_exe = 'pyg2p.py'
 
     def __init__(self):
         self.id = ''
@@ -14,14 +15,11 @@ class Test(object):
         self.g2p_command = []  # can be two consecutive executions for multiresolution
 
     def __str__(self):
-        if len(self.g2p_command) > 0:
-
-            self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- g2p comms ' + str(self.g2p_command) + '\n\t- out dir' + self.out_dir
-        elif self.pyg2p_scipy_command:
-            self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- pyg2p scipy interpol ' + str(self.pyg2p_scipy_command) + '\n\t- out dir' + self.out_dir
+        if self.pyg2p_scipy_command:
+            res = '{}\n\t{} {}\n\t{} {}'.format(self.id, self._pyg2p_exe, self.pyg2p_command, self._pyg2p_exe, self.pyg2p_scipy_command)
         else:
-            self_str = self.id + '\n\t- pyg2p comm' + self.pyg2p_command + '\n\t- out dir' + self.out_dir
-        return self_str
+            res = '{}\n\t{} {}\n\t{}'.format(self.id, self._pyg2p_exe, self.pyg2p_command, ' '.join(self.g2p_command))
+        return res
 
 
 class TestContext(object):
@@ -41,14 +39,19 @@ class TestContext(object):
             map(str.strip, splitted)
             id_ = splitted[0][1:]
             type_ = splitted[0][0]
+
             args_ = to_argv(splitted[1])
             out_dir_ = './'
-            for i in range(len(args_)):
-                if args_[i] == '-o':
+            real_args = args_[:]
+            for i, val in enumerate(args_):
+                if val == '-o':
                     # found output directory argument
                     out_dir_ = args_[i + 1]
-                    break
-
+                if val == '-n':
+                    real_args.remove('-n')
+                    real_args.remove(args_[i + 1])
+            real_args += ['-n', type_]  # add name prefix
+            real_args = ' '.join(real_args)  # back to string
             if id_ in self._params['tests']:
                 test_ = self._params['tests'][id_]
             else:
@@ -62,13 +65,13 @@ class TestContext(object):
 
             if type_ == 'g':
                 # grib2pcraster command
-                test_.g2p_command.append(self._params['g2p.exec'] + ' ' + splitted[1])
+                test_.g2p_command.append('{} {}'.format(self._params['g2p.exec'], real_args))
             elif type_ == 'p':
                 # pyg2p command
-                test_.pyg2p_command = splitted[1]
+                test_.pyg2p_command = real_args
             elif type_ == 'z':
-                # pyg2p command
-                test_.pyg2p_scipy_command = splitted[1]
+                # pyg2p command (scipy interpolation)
+                test_.pyg2p_scipy_command = real_args
 
     def get(self, param):
         return self._params[param] if param in self._params else None

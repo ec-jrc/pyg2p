@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 9, 
-        "@name": "eue_tp", 
+        "@name": "eue_tp",
         "Aggregation": {
             "@step": 24, 
             "@type": "accumulation"

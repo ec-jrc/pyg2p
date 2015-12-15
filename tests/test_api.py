@@ -48,9 +48,6 @@ class TestAPI(unittest.TestCase):
 
         ret = api.run_command(self._command2)
         self.assertEqual(ret, 0)
-        # TODO test other cases for a coverage of 80% of main package
-        # scipy interpol, grib interpol, construction of intertables for both,
-        # two spatial resolutions, two time resolutions...
 
     def test_add_geopotential(self):
 

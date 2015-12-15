@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": 6, 
-        "@name": "dwd_T24a", 
+        "@name": "dwd_T24a",
         "Aggregation": {
             "@step": 24, 
             "@type": "average"

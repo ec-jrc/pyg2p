@@ -6,7 +6,7 @@
             "@exec": "/home/dominik/devapps/PCRaster-3.0/bin/pcrcalc"
         }, 
         "g2p": {
-            "@exec": "/home/dominik/ECMWF_grib2pcraster/grib2pcraster/grib2pcraster"
+            "@exec": "/home/dominik/grib2pcraster/grib2pcraster"
         }
     }
 }

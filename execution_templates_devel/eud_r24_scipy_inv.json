@@ -1,7 +1,6 @@
 {
     "Execution": {
-        "@id": "xx", 
-        "@name": "eud_r24", 
+        "@name": "eud_r24",
         "Aggregation": {
             "@step": 6, 
             "@type": "accumulation"
