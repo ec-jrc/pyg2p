@@ -153,14 +153,14 @@ class Controller:
 
         # First resolution manipulation
         if self._ctx.must_do_aggregation:
-            if messages.have_change_resolution():
-                change_res_step = messages.get_change_res_step()
+            if messages.have_resolution_change():
+                change_res_step = messages.change_resolution_step()
                 # First resolution manipulation by setting end step as start step of the first message at 2nd resolution
                 manipulator.change_end_step(int(change_res_step.start_step))
             values = manipulator.do_manipulation(values)
 
-        if messages.have_change_resolution():
-            change_res_step = messages.get_change_res_step()
+        if messages.have_resolution_change():
+            change_res_step = messages.change_resolution_step()
             lats2 = None
             longs2 = None
             geodetic_info2 = None
@@ -187,7 +187,7 @@ class Controller:
         for timestep, v in values.iteritems():
             # writing map i
             i += 1
-            if messages.have_change_resolution() and timestep == change_res_step:
+            if messages.have_resolution_change() and timestep == change_res_step:
                 self._log(">>>>>>>>>>>> Change of resolution at message: {}".format(str(timestep)))
                 # Switching to second resolution
                 lats = lats2

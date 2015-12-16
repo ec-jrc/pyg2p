@@ -52,6 +52,9 @@ class UserConfiguration(object):
 
     def interpolate_dirs(self, execution_context):
         """
+        Change configuration strings in json commands files
+        with user variables defined in ~/.pyg2p/*.conf files
+        Strings like {CONF_DIR}/{MAPS_DIR}lat.map will be replaced with corresponding variables values
         execution_context: instance of ExecutionContext
         """
         vars_with_variables = [var for var in self.to_interpolate if self.regex.search(execution_context.get(var, ''))]
@@ -161,49 +164,6 @@ class Configuration(object):
         self.geopotentials.remove(filename)
 
     @classmethod
-    def convert_intertables_to_v2(cls, path):
-        import numpy as np
-        for f in os.listdir(path):
-            filepath = os.path.join(path, f)
-            if util.files.is_dir(filepath):
-                cls.convert_intertables_to_v2(filepath)
-            elif filepath.endswith('_nn.npy') or filepath.endswith('_inv.npy'):
-                intertable = np.load(filepath)
-                if filepath.endswith('_nn.npy'):
-                    # convert grib nn
-                    xs = intertable[0].astype(int, copy=False)
-                    ys = intertable[1].astype(int, copy=False)
-                    indexes = intertable[2].astype(int, copy=False)
-                    intertable = np.asarray([xs, ys, indexes])
-                    np.save(filepath, intertable)
-                    print '{} converted'.format(filepath)
-                elif filepath.endswith('_inv.npy'):
-                    # convert grib invdist
-                    intertable = np.load(filepath)
-                    try:
-                        indexes = intertable['indexes']
-                    except:
-                        xs = intertable[0].astype(int, copy=False)
-                        ys = intertable[1].astype(int, copy=False)
-                        idxs1 = intertable[2].astype(int, copy=False)
-                        idxs2 = intertable[3].astype(int, copy=False)
-                        idxs3 = intertable[4].astype(int, copy=False)
-                        idxs4 = intertable[5].astype(int, copy=False)
-                        coeffs1 = intertable[6]
-                        coeffs2 = intertable[7]
-                        coeffs3 = intertable[8]
-                        coeffs4 = intertable[9]
-                        indexes = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4])
-                        coeffs = np.asarray([coeffs1, coeffs2, coeffs3, coeffs4, np.zeros(coeffs1.shape), np.zeros(coeffs1.shape)])
-                        intertable = np.rec.fromarrays((indexes, coeffs), names=('indexes', 'coeffs'))
-                        np.save(filepath, intertable)
-                        print '{} converted'.format(filepath)
-                    else:
-                        # already in new format
-                        pass
-
-
-    @classmethod
     def convert_to_v2(cls, path):
         for f in os.listdir(path):
             filepath = os.path.join(path, f)
@@ -218,6 +178,7 @@ class Configuration(object):
                     new_file_.close()
 
     def copy_source_configuration(self):
+
         target_dir = self.user.user_conf_dir
         source_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../configuration')
         geopotentials_json = os.path.join(source_dir, GeopotentialsConfiguration.config_filename)
@@ -225,7 +186,8 @@ class Configuration(object):
         parameters_json = os.path.join(source_dir, ParametersConfiguration.config_filename)
         tests_conf_dir = os.path.join(source_dir, 'tests')
 
-        util.files.copy(geopotentials_json, target_dir)
-        util.files.copy_dir(geopotentials_data, os.path.join(target_dir, GeopotentialsConfiguration.data_path_))
         util.files.copy(parameters_json, target_dir)
         util.files.copy_dir(tests_conf_dir, os.path.join(target_dir, 'tests'), recreate=True)
+        util.files.copy(geopotentials_json, target_dir)
+        print 'Copying geopotentials grib files to {}'.format(os.path.join(target_dir, GeopotentialsConfiguration.data_path_))
+        util.files.copy_dir(geopotentials_data, os.path.join(target_dir, GeopotentialsConfiguration.data_path_))

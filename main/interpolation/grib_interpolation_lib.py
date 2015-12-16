@@ -1,7 +1,7 @@
 """
 Grib interpolation utils.
-For global target grids it takes 3 days on Intel(R) Core(TM) i7-3610QM CPU @ 2.30GHz.
-Parallelized versions gives 3x gain at least.s
+Interpolating between global grids it takes 3 days on Intel(R) Core(TM) i7-3610QM CPU @ 2.30GHz.
+Parallelized versions gives 4x gain at least.
 """
 
 from __future__ import division
@@ -30,19 +30,18 @@ def grib_nearest(gid, target_lats, target_lons, mv):
     ys = np.where(valid_target_coords, indices[1], int_fill_value).ravel()
     idxs = empty(num_cells, fill_value=int_fill_value, dtype=int)
 
-    flush = stdout.flush
-    write_to_console = stdout.write
     back_char, progress_step = progress_step_and_backchar(num_cells)
-    write_to_console('Start interpolation: {}\n'.format(now_string()))
-    write_to_console('{}Nearest neighbour interpolation: 0/{} [out:0] (0%)'.format(back_char, num_cells))
-    flush()
-
+    format_progress = '{}Nearest neighbour interpolation: {}/{}  [out of grid:{}] ({}%)\n'.format
     i = 0
     outs = 0
+    stdout.write('Start interpolation: {}\n'.format(now_string()))
+    stdout.write(format_progress(back_char, 0, num_cells, outs, 0))
+    stdout.flush()
+
     for lat, lon in itertools.izip(target_lats.flat, target_lons.flat):
         if i % progress_step == 0:
-            write_to_console('{}Nearest neighbour interpolation: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
-            flush()
+            stdout.write(format_progress(back_char, i, num_cells, outs, i * 100. / num_cells))
+            stdout.flush()
         if not (lon <= -1.0e+10 or lon == mv):
             try:
                 # TODO CHECK IF asscalar is really needed here
@@ -54,10 +53,10 @@ def grib_nearest(gid, target_lats, target_lons, mv):
             else:
                 idxs[i] = n_nearest[0]['index']
         i += 1
-    write_to_console('{}{}'.format(back_char, ' ' * 100))
-    write_to_console('{}Nearest neighbour interpolation: {}/{}  [out of grid:{}] (100%)\n'.format(back_char, i, num_cells, outs))
-    write_to_console('End interpolation: {}\n\n'.format(now_string()))
-    flush()
+    stdout.write('{}{:>100}'.format(back_char, ' '))
+    stdout.write(format_progress(back_char, i, num_cells, outs, 100))
+    stdout.write('End interpolation: {}\n\n'.format(now_string()))
+    stdout.flush()
     return xs[xs != int_fill_value], ys[ys != int_fill_value], idxs[idxs != int_fill_value]
 
 
@@ -76,19 +75,18 @@ def grib_invdist(gid, target_lats, target_lons, mv):
     invs3 = empty(num_cells)
     invs4 = empty(num_cells)
 
-    flush = stdout.flush
-    write_to_console = stdout.write
-
-    back_char, progress_step = progress_step_and_backchar(num_cells)
-    write_to_console('Start interpolation: {}\n'.format(now_string()))
-    write_to_console('{}Inverse distance interpolation: 0/{} [out:0] (0%)'.format(back_char, num_cells))
-    flush()
+    format_progress = '{}Inverse distance interpolation: {}/{}  [out of grid:{}] ({}%)\n'.format
     i = 0
     outs = 0
+    back_char, progress_step = progress_step_and_backchar(num_cells)
+    stdout.write('Start interpolation: {}\n'.format(now_string()))
+    stdout.write(format_progress(back_char, 0, num_cells, outs, 0))
+    stdout.flush()
+
     for lat, lon in itertools.izip(target_lats.flat, target_lons.flat):
         if i % progress_step == 0:
-            write_to_console('{}Inverse distance interpolation: {}/{} [out:{}] ({:.2f}%)'.format(back_char, i, num_cells, outs, i * 100. / num_cells))
-            flush()
+            stdout.write(format_progress(back_char, i, num_cells, outs, i * 100. / num_cells))
+            stdout.flush()
         if not (lon < -1.0e+10 or lon == mv):
 
             try:
@@ -100,16 +98,9 @@ def grib_invdist(gid, target_lats, target_lons, mv):
                 xs[i] = int_fill_value
                 ys[i] = int_fill_value
             else:
-                inv1, inv2, inv3, inv4, idx1, idx2, idx3, idx4 = _compute_coeffs_and_idxs(n_nearest)
-                idxs1[i] = idx1
-                idxs2[i] = idx2
-                idxs3[i] = idx3
-                idxs4[i] = idx4
-                invs1[i] = inv1
-                invs2[i] = inv2
-                invs3[i] = inv3
-                invs4[i] = inv4
+                invs1[i], invs2[i], invs3[i], invs4[i], idxs1[i], idxs2[i], idxs3[i], idxs4[i] = _compute_coeffs_and_idxs(n_nearest)
         i += 1
+
     invs1 = invs1[~np.isnan(invs1)]
     invs2 = invs2[~np.isnan(invs2)]
     invs3 = invs3[~np.isnan(invs3)]
@@ -119,10 +110,10 @@ def grib_invdist(gid, target_lats, target_lons, mv):
     coeffs2 = ne.evaluate('invs2 / sums')
     coeffs3 = ne.evaluate('invs3 / sums')
     coeffs4 = ne.evaluate('invs4 / sums')
-    write_to_console('{}{}'.format(back_char, ' ' * 100))
-    write_to_console('{}Inverse distance interpolation: {}/{}  [out of grid:{}] (100%)\n'.format(back_char, i, num_cells, outs))
-    write_to_console('End interpolation: {}\n\n'.format(now_string()))
-    flush()
+    stdout.write('{}{:>100}'.format(back_char, ' '))
+    stdout.write(format_progress(back_char, i, num_cells, outs, 100))
+    stdout.write('End interpolation: {}\n\n'.format(now_string()))
+    stdout.flush()
     return xs[xs != int_fill_value], ys[ys != int_fill_value], \
         idxs1[idxs1 != int_fill_value], idxs2[idxs2 != int_fill_value], idxs3[idxs3 != int_fill_value], idxs4[idxs4 != int_fill_value], \
         coeffs1, coeffs2, coeffs3, coeffs4
@@ -170,19 +161,24 @@ def nearest_parallel_step(chunk, gid, mv):
 
 
 def grib_nearest_parallel(gid, target_lats, target_lons, mv):
-    nchunks = 250
+    nchunks = target_lats.shape[0]
     apply_to_chunk_part = partial(apply_nearest_to_chunk, gid=gid, mv=mv)
     result = init_parallel(apply_to_chunk_part, mv, nchunks, target_lats, target_lons)
     progress = ProgressBar(dt=10)
     with progress:
         result = result.compute()
+    idxs, xs, ys = concatenate_nearest_result(nchunks, result)
+    return xs, ys, idxs
+
+
+def concatenate_nearest_result(nchunks, result):
     xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
     ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
     idxs = np.concatenate([result[i][2] for i in xrange(nchunks)])
     xs = xs[xs != int_fill_value]
     ys = ys[ys != int_fill_value]
     idxs = idxs[idxs != int_fill_value]
-    return xs, ys, idxs
+    return idxs, xs, ys
 
 
 # Parallel version of grib api invdist
@@ -210,34 +206,15 @@ def invdist_parallel_step(chunk, gid, mv):
 
 
 def grib_invdist_parallel(gid, target_lats, target_lons, mv):
+
     apply_to_chunk_part = partial(apply_invdist_to_chunk, gid=gid, mv=mv)
-    nchunks = 250
+    nchunks = target_lats.shape[0]
     result = init_parallel(apply_to_chunk_part, mv, nchunks, target_lats, target_lons)
+
     progress = ProgressBar(dt=10)
     with progress:
         result = result.compute()
-    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
-    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
-    idxs1 = np.concatenate([result[i][2] for i in xrange(nchunks)])
-    idxs2 = np.concatenate([result[i][3] for i in xrange(nchunks)])
-    idxs3 = np.concatenate([result[i][4] for i in xrange(nchunks)])
-    idxs4 = np.concatenate([result[i][5] for i in xrange(nchunks)])
-
-    invs1 = np.concatenate([result[i][6] for i in xrange(nchunks)])
-    invs2 = np.concatenate([result[i][7] for i in xrange(nchunks)])
-    invs3 = np.concatenate([result[i][8] for i in xrange(nchunks)])
-    invs4 = np.concatenate([result[i][9] for i in xrange(nchunks)])
-    xs = xs.astype(int, copy=False)
-    ys = ys.astype(int, copy=False)
-    idxs1 = idxs1.astype(int, copy=False)
-    idxs2 = idxs2.astype(int, copy=False)
-    idxs3 = idxs3.astype(int, copy=False)
-    idxs4 = idxs4.astype(int, copy=False)
-
-    invs1 = invs1[~np.isnan(invs1)]
-    invs2 = invs2[~np.isnan(invs2)]
-    invs3 = invs3[~np.isnan(invs3)]
-    invs4 = invs4[~np.isnan(invs4)]
+    idxs1, idxs2, idxs3, idxs4, xs, ys, invs1, invs2, invs3, invs4 = concatenate_invdist_result(nchunks, result)
 
     sums = ne.evaluate('invs1 + invs2 + invs3 + invs4')
     coeffs1 = ne.evaluate('invs1 / sums')
@@ -254,13 +231,38 @@ def grib_invdist_parallel(gid, target_lats, target_lons, mv):
     return xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4
 
 
+def concatenate_invdist_result(nchunks, result):
+    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
+    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
+    idxs1 = np.concatenate([result[i][2] for i in xrange(nchunks)])
+    idxs2 = np.concatenate([result[i][3] for i in xrange(nchunks)])
+    idxs3 = np.concatenate([result[i][4] for i in xrange(nchunks)])
+    idxs4 = np.concatenate([result[i][5] for i in xrange(nchunks)])
+    invs1 = np.concatenate([result[i][6] for i in xrange(nchunks)])
+    invs2 = np.concatenate([result[i][7] for i in xrange(nchunks)])
+    invs3 = np.concatenate([result[i][8] for i in xrange(nchunks)])
+    invs4 = np.concatenate([result[i][9] for i in xrange(nchunks)])
+    xs = xs.astype(int, copy=False)
+    ys = ys.astype(int, copy=False)
+    idxs1 = idxs1.astype(int, copy=False)
+    idxs2 = idxs2.astype(int, copy=False)
+    idxs3 = idxs3.astype(int, copy=False)
+    idxs4 = idxs4.astype(int, copy=False)
+    invs1 = invs1[~np.isnan(invs1)]
+    invs2 = invs2[~np.isnan(invs2)]
+    invs3 = invs3[~np.isnan(invs3)]
+    invs4 = invs4[~np.isnan(invs4)]
+    return idxs1, idxs2, idxs3, idxs4, xs, ys, invs1, invs2, invs3, invs4
+
+
 def init_parallel(apply_to_chunk_part, mv, nchunks, target_lats, target_lons):
     indices = np.indices(target_lons.shape)
-    valid_target_coords = (target_lons > -1.0e+10) & (target_lons != mv)
-    xs = np.where(valid_target_coords, indices[0], int_fill_value).ravel()
-    ys = np.where(valid_target_coords, indices[1], int_fill_value).ravel()
+    npartitions = max(100, int(nchunks / 10))
+    valid_coords_mask = (target_lons > -1.0e+10) & (target_lons != mv)
+    xs = np.where(valid_coords_mask, indices[0], int_fill_value).ravel()
+    ys = np.where(valid_coords_mask, indices[1], int_fill_value).ravel()
     stack = np.stack((target_lats.flat, target_lons.flat, xs.flat, ys.flat))
     chunks = np.array_split(stack, nchunks, axis=1)
-    nearest_bag = bag.from_sequence(chunks, npartitions=16)
+    nearest_bag = bag.from_sequence(chunks, npartitions=npartitions)
     result = nearest_bag.map(apply_to_chunk_part)
     return result

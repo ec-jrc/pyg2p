@@ -57,6 +57,7 @@ class ExecutionContext(object):
         parser = ParserHelpOnError(description='''Execute the grib to pcraster conversion using parameters from the input xml configuration.
                                                         \n Read user and configuration manuals''')
 
+        # TODO: Add metavar to arguments and fix help strings
         parser.add_argument('-c', '--commandsFile', help='/path/to/input/xml')
         parser.add_argument('-o', '--outDir', help='output maps dir', default='./')
         parser.add_argument('-i', '--inputFile', help='/path/to/input/grib')

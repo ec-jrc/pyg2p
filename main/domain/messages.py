@@ -21,9 +21,6 @@ class Messages(object):
         # messages is a Messages object from second set at different resolution
         self.grid_details.set_2nd_resolution(messages.grid_details, messages.first_step_range)
         self.values_second_res = messages.first_resolution_values()
-        # garbaged
-        messages = None
-        del messages
 
     def first_resolution_values(self):
         return self.values_first_or_single_res
@@ -47,10 +44,10 @@ class Messages(object):
     def latlons_2nd(self):
         return self.grid_details.get_2nd_resolution().latlons
 
-    def have_change_resolution(self):
+    def have_resolution_change(self):
         return self.grid_details.get_2nd_resolution() is not None
 
-    def get_change_res_step(self):
+    def change_resolution_step(self):
         return self.grid_details.get_change_res_step()
 
     def _log(self, message, level='DEBUG'):

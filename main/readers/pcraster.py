@@ -29,6 +29,7 @@ class PCRasterReader(object):
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
 
+    @property
     def values(self):
         data = self._band.ReadAsArray(0, 0, self._cols, self._rows)
         return data
@@ -42,7 +43,7 @@ class PCRasterReader(object):
         self._dataset = None
 
     def identifier(self):
-        return '{}_{}_{}_{}_{:.2f}_{:.2f}'.format(self._origX, self._origY,
-                                                  self._pxlW, self._pxlH,
+        return '{}_{}_{}_{}_{:.2f}_{:.2f}'.format(int(self._origX), int(self._origY),
+                                                  int(self._pxlW), int(self._pxlH),
                                                   self._min, self._max)
 

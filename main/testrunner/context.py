@@ -38,7 +38,7 @@ class TestContext(object):
             splitted = comm.split('@')
             map(str.strip, splitted)
             id_ = splitted[0][1:]
-            type_ = splitted[0][0]
+            type_ = splitted[0][0]  # p, z or g
 
             args_ = to_argv(splitted[1])
             out_dir_ = './'
@@ -78,14 +78,10 @@ class TestContext(object):
 
     @staticmethod
     def _get_list_commands(file_):
-        file_ = os.path.expanduser(file_)
-        f = open(file_)
-        f.seek(0)
-        commands = f.readlines()
-
         def _filter(line):
             return not (line.startswith('#') or line == '' or line == '\n')
-
+        file_ = os.path.expanduser(file_)
+        with open(file_) as f:
+            commands = f.readlines()
         commands = [cmd.strip() for cmd in commands if _filter(cmd.strip())]
-        f.close()
         return commands

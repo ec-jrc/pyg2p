@@ -26,12 +26,15 @@ class Logger(object):
         if not util.files.exists(logger_dir):
             util.files.create_dir(logger_dir)
         if not self._logger.handlers:
-            hdlr2 = logging.StreamHandler()
-            hdlr2.setLevel(self._level)
-            hdlr2.setFormatter(logging.Formatter(self._formatting))
-            self._logger.addHandler(hdlr2)
+            # TODO add file handlers
+            hdlr = logging.StreamHandler()
+            hdlr.setLevel(self._level)
+            hdlr.setFormatter(logging.Formatter(self._formatting))
+            self._logger.addHandler(hdlr)
         self._logger.propagate = False
         self._logger.setLevel(self._level)
+        self._temp_handlers = None
+        self._ch = None  # config handler
 
     @property
     def is_debug(self):
@@ -58,11 +61,12 @@ class Logger(object):
             message = '\033[91m' + '\033[1m' + message + '\033[0m'
         message = '{} {}'.format(self._caller_info(), message)
         exc_type, exc_obj, exc_tb = sys.exc_info()
-        if isinstance(exc_obj, gribapi.GribInternalError):
-            pass
-        elif exc_type and not isinstance(exc_obj, ApplicationException):
-            print str(exc_obj)
-            trace_it = 1
+        if level == 'DEBUG':
+            if isinstance(exc_obj, gribapi.GribInternalError):
+                pass
+            elif exc_type and not isinstance(exc_obj, ApplicationException):
+                print str(exc_obj)
+                trace_it = 1
         # elif exc_type and exc_obj.get_code() != 3000:  # no tracestack when no messages exception
         #     trace_it = 1
         self._logger.log(self._get_int_level(level), message, exc_info=trace_it)
@@ -101,4 +105,19 @@ class Logger(object):
         if logger:
             logger.close()
             del LOGGERS_REGISTER['main']
+
+    def attach_config_logger(self):
+        self._temp_handlers = self._logger.handlers
+        # detach console handler
+        self._logger.handlers = []
+        self._ch = logging.StreamHandler()
+        self._ch.setLevel(logging.INFO)
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter('%(message)s')
+        self._ch.setFormatter(formatter)
+        self._logger.addHandler(self._ch)
+
+    def detach_config_logger(self):
+        self._logger.removeHandler(self._ch)
+        self._logger.handlers = self._temp_handlers
 

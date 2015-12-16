@@ -17,7 +17,7 @@ from util.strings import to_argv
 
 
 class TestRunner(object):
-    
+    # TODO change print statements to logger info
     def __init__(self, file_):
         self._ctx = TestContext(file_)
 
@@ -35,8 +35,9 @@ class TestRunner(object):
             fnull = open(os.devnull, 'w')
             self._run_job(comm, cwd=test_.out_dir, stdout=fnull, stderr=STDOUT)
             reader_ = PCRasterReader(test_.out_dir + diff_map)
-            diff_values = reader_.values()
+            diff_values = reader_.values
             diff_values = diff_values[diff_values != reader_.missing_value]
+            reader_.close()
             # returns true if all elements are absolute(diff) <= atol
             all_ok = np.allclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
             # if all_ok:

@@ -45,8 +45,8 @@ class GribGridDetails(object):
         self._change_resolution_step = None
 
     def _build_id(self):
-        ni = 'MISSING' if 'Ni' in self._missing_keys else self._geo_keys.get('Ni')  # if gribapi.grib_is_missing(gid, 'Ni') else self._geo_keys.get('Ni')
-        nj = 'MISSING' if 'Nj' in self._missing_keys else self._geo_keys.get('Nj')  # if gribapi.grib_is_missing(gid, 'Nj') else self._geo_keys.get('Nj')
+        ni = 'M' if 'Ni' in self._missing_keys else self._geo_keys.get('Ni')
+        nj = 'M' if 'Nj' in self._missing_keys else self._geo_keys.get('Nj')
         num_of_values = self._geo_keys.get('numberOfValues')
         long_first = ('%.4f' % (self._geo_keys.get('longitudeOfFirstGridPointInDegrees'),)).rstrip('0').rstrip('.')
         long_last = ('%.4f' % (self._geo_keys.get('longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
@@ -93,6 +93,4 @@ class GribGridDetails(object):
         return self._points_meridian
 
     def get(self, geo_key):
-        if geo_key not in self._geo_keys:
-            raise Exception
         return self._geo_keys[geo_key]
