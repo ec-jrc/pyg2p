@@ -294,8 +294,8 @@ class Configuration(object):
                     except IndexError:
                         w, ixs = intertable[0], intertable[1].astype(int, copy=False)
 
-                    for suffix in ('_scipy_nn.npy', '_scipy_invdist.npy'):
-                        if f.endswith(suffix):
+                    for suffix in ('_scipy_nearest', '_scipy_invdist'):
+                        if suffix in f:
                             new_full_path = tbl_new_path(suffix)
                             intertable = np.rec.fromarrays((ixs, w), names=('indexes', 'coeffs'))
                             np.save(new_full_path, intertable)
