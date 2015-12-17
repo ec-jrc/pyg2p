@@ -96,9 +96,12 @@ class InverseDistance(object):
     def interpolate(self, lonefas, latefas, nnear, parallel=False):
         x, y, z = self.to_3d(lonefas, latefas)
         efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+
+        # TODO check if we still need this qdim if
         qdim = efas_locations.ndim
         if qdim == 1:
             efas_locations = np.array([efas_locations])
+
         stdout.write('Finding indexes for nearest neighbour k={}\n'.format(nnear))
         # TODO: adding njobs parameter to query method seems to parallelize. Ask about how many usable processors
         n_jobs = 1 if not parallel else -1

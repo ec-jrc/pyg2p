@@ -1,4 +1,5 @@
 import os
+import re
 import shutil as sh
 from os import path as path
 
@@ -41,8 +42,20 @@ def create_dir(pathname, recreate=False):
         os.makedirs(pathname)
 
 
-def file_name(pathname):
+def filename(pathname):
     return path.basename(pathname)
+
+
+def dir_filename(pathname):
+    return path.dirname(pathname), path.basename(pathname)
+
+
+def without_ext(filepath):
+    return os.path.splitext(filepath)[0]
+
+
+def ext(filepath):
+    return os.path.splitext(filepath)[1]
 
 
 def copy(file_, to_dir):
@@ -54,3 +67,18 @@ def copy_dir(source_dir, target_dir, recreate=False):
     if is_dir(source_dir):
         contents = [os.path.join(source_dir, i) for i in os.listdir(source_dir)]
         [copy(f, target_dir) for f in contents]
+
+
+def normalize_filename(name):
+
+    normalized_name = without_ext(name).lower()
+    # remove long numbers (like dates 20151225)
+    normalized_name = re.sub(r'([0-9]{8,10})', '', normalized_name) or normalized_name
+    # remove - and _
+    normalized_name = normalized_name.replace('-', '').replace('_', '')
+    # remove extension
+
+    if len(normalized_name) < 3:
+        return name.replace('.', '_')
+    # return only first 10 chars
+    return normalized_name[:10]
