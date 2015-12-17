@@ -55,7 +55,7 @@ class Interpolator(object):
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dir, filename))
             i = 1
             while util.files.exists(tbl_fullpath):
-                filename = self.format_intertablename(prognum='_{}_'.format(i))
+                filename = self.format_intertablename(prognum='_{}'.format(i))
                 tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dir, filename))
                 i += 1
             return intertable_id, tbl_fullpath

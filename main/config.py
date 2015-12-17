@@ -25,8 +25,8 @@ class UserConfiguration(object):
     user_conf_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
     sep = '='
     comment_char = '#'
-    to_interpolate = ('correction.demMap', 'outMaps.clone', 'interpolation.latMap', 'interpolation.lonMap')
-    regex = re.compile(r'{(?P<var>[a-zA-Z_]+)}')
+    conf_to_interpolate = ('correction.demMap', 'outMaps.clone', 'interpolation.latMap', 'interpolation.lonMap')
+    regex_var = re.compile(r'{(?P<var>[a-zA-Z_]+)}')
 
     def __init__(self):
         self.vars = {}
@@ -57,13 +57,13 @@ class UserConfiguration(object):
         Strings like {CONF_DIR}/{MAPS_DIR}lat.map will be replaced with corresponding variables values
         execution_context: instance of ExecutionContext
         """
-        vars_with_variables = [var for var in self.to_interpolate if self.regex.search(execution_context.get(var, ''))]
+        vars_with_variables = [var for var in self.conf_to_interpolate if self.regex_var.search(execution_context.get(var, ''))]
         for var in vars_with_variables:
             # we can have multiple variables {CONF_DIR}/{MAPS_DIR}lat.map
             execution_context[var] = execution_context[var].format(**self.vars)
-            if self.regex.search(execution_context[var]):
+            if self.regex_var.search(execution_context[var]):
                 # some variables where not string-interpolated so they are missing in user configuration
-                vars_not_defined = self.regex.findall(execution_context[var])
+                vars_not_defined = self.regex_var.findall(execution_context[var])
                 raise ApplicationException.get_programmatic_exc(NO_VAR_DEFINED, str(vars_not_defined))
 
 
@@ -82,12 +82,15 @@ class BaseConfiguration(object):
             self.configuration_mode = True
 
     def load(self):
-        with open(self.config_file) as f:
-            try:
-                content = json.load(f)
-            except ValueError as e:
-                raise ApplicationException.get_programmatic_exc(JSON_ERROR, details='{} {}'.format(e, self.config_file))
-        return content
+        f = open(self.config_file)
+        try:
+            content = json.load(f)
+        except ValueError as e:
+            raise ApplicationException.get_programmatic_exc(JSON_ERROR, details='{} {}'.format(e, self.config_file))
+        else:
+            return content
+        finally:
+            f.close()
 
     def dump(self, new_dict=None):
         with open(self.config_file, 'w') as fh:
@@ -216,7 +219,9 @@ class Configuration(object):
             elif f.endswith('.npy') and not f.startswith('tbl_') and f not in existing_intertables:
                 # This must be a pyg2p v1 intertable...
 
-                intertable_id = util.files.without_ext(f).replace('_MISSING_', '_M_')  # v2 id is v1 intertable filename
+                # v2 id is v1 intertable filename (with _M_ instead of _MISSING_)
+                intertable_id = util.files.without_ext(f).replace('_MISSING_', '_M_')
+                existing_intertable = ''
                 if intertable_id in intertables_dict:
                     existing_intertable = os.path.join(self.intertables.data_path, intertables_dict[intertable_id]['filename'])
                     if util.files.exists(existing_intertable):
@@ -224,6 +229,9 @@ class Configuration(object):
                         continue
 
                 def tbl_new_path(sfx):
+                    if existing_intertable:
+                        # we will use the filename already in configuration (but the real npy file is missing)
+                        return existing_intertable
                     tokens = f.split('_')
                     source_res = tokens[3]
                     source_grid = '{}_{}'.format(tokens[5], tokens[6])
