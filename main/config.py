@@ -50,7 +50,7 @@ class UserConfiguration(object):
                     props[key_value[0].strip()] = key_value[1].strip('" \t')
         return props
 
-    def interpolate_dirs(self, execution_context):
+    def _interpolate_strings(self, execution_context):
         """
         Change configuration strings in json commands files
         with user variables defined in ~/.pyg2p/*.conf files
@@ -68,13 +68,13 @@ class UserConfiguration(object):
 
 
 class BaseConfiguration(object):
-    config_filename = ''
+    config_file_ = ''
     data_path_ = ''
 
     def __init__(self, user_configuration):
         self.configuration_mode = False
         self.user_configuration = user_configuration
-        self.config_file = os.path.join(user_configuration.user_conf_dir, self.config_filename)
+        self.config_file = os.path.join(user_configuration.user_conf_dir, self.config_file_)
         self.data_path = os.path.join(user_configuration.user_conf_dir, self.data_path_)
         if util.files.exists(self.config_file):
             self.vars = self.load()
@@ -89,13 +89,13 @@ class BaseConfiguration(object):
                 raise ApplicationException.get_programmatic_exc(JSON_ERROR, details='{} {}'.format(e, self.config_file))
         return content
 
-    def dump(self):
+    def dump(self, new_dict=None):
         with open(self.config_file, 'w') as fh:
-            fh.write(json.dumps(self.vars, sort_keys=True, indent=4))
+            fh.write(json.dumps(self.vars if not new_dict else new_dict, sort_keys=True, indent=4))
 
 
 class ParametersConfiguration(BaseConfiguration):
-    config_filename = 'parameters.json'
+    config_file_ = 'parameters.json'
 
     def get(self, short_name):
         for param in self.vars['Parameters']['Parameter']:
@@ -115,7 +115,7 @@ class ParametersConfiguration(BaseConfiguration):
 
 
 class GeopotentialsConfiguration(BaseConfiguration):
-    config_filename = 'geopotentials.json'
+    config_file_ = 'geopotentials.json'
     data_path_ = 'geopotentials'
     short_names = ['fis', 'z', 'FIS']
 
@@ -127,7 +127,7 @@ class GeopotentialsConfiguration(BaseConfiguration):
             if item['@id'] == id_:
                 name = item['@name']
                 raise ApplicationException.get_programmatic_exc(EXISTING_GEOPOTENTIAL, details='{} for file {}. File was not added: {}'.format(id_, name, filepath))
-        name = util.files.file_name(filepath)
+        name = util.files.filename(filepath)
         util.files.copy(filepath, self.data_path)
         self.vars['geopotentials']['geopotential'].append({'@id': id_, '@name': name})
         self.dump()
@@ -146,6 +146,11 @@ class GeopotentialsConfiguration(BaseConfiguration):
         raise ApplicationException.get_programmatic_exc(NO_GEOPOTENTIAL, grid_id)
 
 
+class IntertablesConfiguration(BaseConfiguration):
+    config_file_ = 'intertables.json'
+    data_path_ = 'intertables'
+
+
 class Configuration(object):
 
     def __init__(self):
@@ -153,8 +158,9 @@ class Configuration(object):
         self.user = UserConfiguration()
         self.parameters = ParametersConfiguration(self.user)
         self.geopotentials = GeopotentialsConfiguration(self.user)
-        self.default_interpol_dir = os.path.join(self.user.user_conf_dir, 'intertables')
-        if self.parameters.configuration_mode or self.geopotentials.configuration_mode:
+        self.intertables = IntertablesConfiguration(self.user)
+        self.default_interpol_dir = self.intertables.data_path
+        if any([self.parameters.configuration_mode, self.geopotentials.configuration_mode, self.intertables.configuration_mode]):
             self.configuration_mode = True
 
     def add_geopotential(self, filepath):
@@ -177,17 +183,129 @@ class Configuration(object):
                     new_file_.write(json.dumps(res, sort_keys=True, indent=4))
                     new_file_.close()
 
-    def copy_source_configuration(self):
-
+    def copy_source_configuration(self, logger):
+        logger.attach_config_logger()
         target_dir = self.user.user_conf_dir
         source_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../configuration')
-        geopotentials_json = os.path.join(source_dir, GeopotentialsConfiguration.config_filename)
+        geopotentials_json = os.path.join(source_dir, GeopotentialsConfiguration.config_file_)
         geopotentials_data = os.path.join(source_dir, GeopotentialsConfiguration.data_path_)
-        parameters_json = os.path.join(source_dir, ParametersConfiguration.config_filename)
+        parameters_json = os.path.join(source_dir, ParametersConfiguration.config_file_)
+        intertables_json = os.path.join(source_dir, IntertablesConfiguration.config_file_)
         tests_conf_dir = os.path.join(source_dir, 'tests')
 
         util.files.copy(parameters_json, target_dir)
+        util.files.copy(intertables_json, target_dir)
         util.files.copy_dir(tests_conf_dir, os.path.join(target_dir, 'tests'), recreate=True)
         util.files.copy(geopotentials_json, target_dir)
-        print 'Copying geopotentials grib files to {}'.format(os.path.join(target_dir, GeopotentialsConfiguration.data_path_))
+        logger.info('Copying geopotentials grib files to {}'.format(os.path.join(target_dir, GeopotentialsConfiguration.data_path_)))
         util.files.copy_dir(geopotentials_data, os.path.join(target_dir, GeopotentialsConfiguration.data_path_))
+        logger.detach_config_logger()
+
+    def convert_intertables_to_v2(self, path, logger):
+        # convert files in a path and copy into user intertables folder
+        import numpy as np
+        logger.attach_config_logger()
+        logger.info('Looking into {}'.format(path))
+        intertables_dict = self.intertables.vars
+        existing_intertables = [i['filename'] for i in intertables_dict.itervalues()]
+
+        for f in os.listdir(path):
+            filepath = os.path.join(path, f)
+            if util.files.is_dir(filepath):
+                self.convert_intertables_to_v2(filepath, logger)
+            elif f.endswith('.npy') and not f.startswith('tbl_') and f not in existing_intertables:
+                # This must be a pyg2p v1 intertable...
+
+                intertable_id = util.files.without_ext(f).replace('_MISSING_', '_M_')  # v2 id is v1 intertable filename
+                if intertable_id in intertables_dict:
+                    existing_intertable = os.path.join(self.intertables.data_path, intertables_dict[intertable_id]['filename'])
+                    if util.files.exists(existing_intertable):
+                        logger.info('Skipped: {}. You already have a V2 intertable in your intertable folder {}'.format(f, existing_intertable))
+                        continue
+
+                def tbl_new_path(sfx):
+                    tokens = f.split('_')
+                    source_res = tokens[3]
+                    source_grid = '{}_{}'.format(tokens[5], tokens[6])
+                    _filename = 'tbl{nprog}_{res}_{grid}{suffix}.npy'.format(nprog='', res=source_res,
+                                                                             grid=source_grid, suffix=sfx)
+                    _path = os.path.join(self.intertables.data_path, _filename)
+                    _i = 0
+                    while util.files.exists(_path):
+                        _i += 1
+                        _filename = 'tbl{nprog}_{res}_{grid}{suffix}.npy'.format(nprog='_{}'.format(_i), res=source_res,
+                                                                                 grid=source_grid, suffix=sfx)
+                        _path = os.path.join(self.intertables.data_path, _filename)
+                    return _path
+
+                intertable = np.load(filepath)
+
+                if f.endswith('_nn.npy'):
+                    suffix = '_nn'
+                    new_full_path = tbl_new_path(suffix)
+                    # convert grib nn
+                    xs = intertable[0].astype(int, copy=False)
+                    ys = intertable[1].astype(int, copy=False)
+                    indexes = intertable[2].astype(int, copy=False)
+                    intertable = np.asarray([xs, ys, indexes])
+                    np.save(new_full_path, intertable)
+                    intertables_dict[intertable_id] = {'filename': util.files.filename(new_full_path),
+                                                       'method': 'grib_nearest',
+                                                       'source_shape': 'NA',
+                                                       'target_shape': 'NA',
+                                                       'info': 'Converted from v1'}
+                    logger.info('Converted and saved to: {}'.format(util.files.filename(new_full_path)))
+
+                elif f.endswith('_inv.npy'):
+                    # convert grib invdist
+                    suffix = '_inv'
+                    new_full_path = tbl_new_path(suffix)
+
+                    try:
+                        indexes = intertable['indexes']
+                    except IndexError:
+                        # in version 1 indexes were stored as float
+                        xs = intertable[0].astype(int, copy=False)
+                        ys = intertable[1].astype(int, copy=False)
+                        idxs1 = intertable[2].astype(int, copy=False)
+                        idxs2 = intertable[3].astype(int, copy=False)
+                        idxs3 = intertable[4].astype(int, copy=False)
+                        idxs4 = intertable[5].astype(int, copy=False)
+                        coeffs1 = intertable[6]
+                        coeffs2 = intertable[7]
+                        coeffs3 = intertable[8]
+                        coeffs4 = intertable[9]
+
+                        indexes = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4])
+                        coeffs = np.asarray([coeffs1, coeffs2, coeffs3, coeffs4, np.zeros(coeffs1.shape), np.zeros(coeffs1.shape)])
+                        intertable = np.rec.fromarrays((indexes, coeffs), names=('indexes', 'coeffs'))
+
+                    np.save(new_full_path, intertable)
+                    intertables_dict[intertable_id] = {'filename': util.files.filename(new_full_path),
+                                                       'method': 'grib_invdist',
+                                                       'source_shape': 'NA',
+                                                       'target_shape': 'NA',
+                                                       'info': 'Converted from v1'}
+                    logger.info('Converted and saved to: {}'.format(util.files.filename(new_full_path)))
+
+                elif '_scipy_' in f:
+                    try:
+                        ixs, w = intertable['indexes'], intertable['coeffs']
+                    except IndexError:
+                        w, ixs = intertable[0], intertable[1].astype(int, copy=False)
+
+                    for suffix in ('_scipy_nn.npy', '_scipy_invdist.npy'):
+                        if f.endswith(suffix):
+                            new_full_path = tbl_new_path(suffix)
+                            intertable = np.rec.fromarrays((ixs, w), names=('indexes', 'coeffs'))
+                            np.save(new_full_path, intertable)
+                            intertables_dict[intertable_id] = {'filename': util.files.filename(new_full_path),
+                                                               'method': 'nearest',
+                                                               'source_shape': 'NA',
+                                                               'target_shape': 'NA',
+                                                               'info': 'Converted from v1'}
+                            logger.info('Converted and saved to: {}'.format(util.files.filename(new_full_path)))
+
+        # update config dict
+        self.intertables.dump(intertables_dict)
+        logger.detach_config_logger()

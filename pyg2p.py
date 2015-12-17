@@ -7,7 +7,7 @@ from main.context import ExecutionContext
 from main.config import Configuration
 from main import exceptions as appexcmodule
 
-__version__ = 'v2.0'
+__version__ = '2.0'
 
 
 def main(*args):
@@ -17,7 +17,7 @@ def main(*args):
     conf = Configuration()
     # read execution configuration (command.json, commandline arguments)
     exc_ctx = ExecutionContext(conf, args)
-    logger = Logger.get_logger(exc_ctx.get('logger.level'), exc_ctx.get('logger.dir'))
+    logger = Logger.get_logger(exc_ctx.get('logger.level'))
     try:
         executed = config_command(conf, exc_ctx, logger)
         if executed:
@@ -61,18 +61,18 @@ def config_command(conf, exc_ctx, logger):
     if exc_ctx.convert_conf:
         # convert old XML configurations to JSON
         Configuration.convert_to_v2(exc_ctx.get('path_to_convert'))
+        logger.info('Configuration converted to version 2 in path {}.'.format('path_to_convert'))
         executed = True
     elif exc_ctx.convert_intertables:
         # convert old XML configurations to JSON
-        from main.interpolation import Interpolator
         path_to_intertables = exc_ctx.get('path_to_intertables_to_convert')
-        Interpolator.convert_intertables_to_v2(path_to_intertables, logger=logger)
-        logger.info('Intertables in path {} were updated to version 2'.format(path_to_intertables))
+        conf.convert_intertables_to_v2(path_to_intertables, logger=logger)
+        logger.info('Intertables in path {} were updated and copied to {}'.format(path_to_intertables, exc_ctx.configuration.intertables.data_path))
         executed = True
     elif exc_ctx.copy_conf:
         # add geopotential GRIB file to geopotentials.json
         logger.info('Copying default configuration to {}'.format(conf.user.user_conf_dir))
-        conf.copy_source_configuration()
+        conf.copy_source_configuration(logger)
         logger.info('Configuration copied.')
         executed = True
     elif exc_ctx.add_geopotential:

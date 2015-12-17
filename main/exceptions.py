@@ -6,6 +6,7 @@ NO_VAR_DEFINED = 8000
 NO_INTERTABLE_CREATED = 8100
 JSON_ERROR = 8200
 EXISTING_GEOPOTENTIAL = 8300
+INVALID_INTERPOLATION_METHOD = 8400
 WEIRD_STUFF = 9000
 
 class ApplicationException(Exception):
@@ -43,6 +44,7 @@ class ApplicationException(Exception):
         NO_INTERTABLE_CREATED: 'Interpolation table was not found and -B, --createIntertable was not set on command line.',
         JSON_ERROR: 'Error in configuration file.',
         EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
+        INVALID_INTERPOLATION_METHOD: 'Interpolation method not valid',
         WEIRD_STUFF: 'Cannot continue: weird stuff happening',
     }
 

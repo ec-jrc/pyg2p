@@ -6,17 +6,18 @@ import sys
 
 import util.files
 import util.strings
-from main.exceptions import ApplicationException
+from main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD
 from main.manipulation.aggregator import ACCUMULATION
 from util.generics import now_string, FALSE_STRINGS
 
-DEFAULT_VALUES = {'interpolation.mode': 'grib_nearest',
-                  'outMaps.unitTime': '24'}
-
 
 class ExecutionContext(object):
-    def __init__(self, user_conf, argv):
-        self._conf = user_conf
+    allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist')
+    default_values = {'interpolation.mode': 'grib_nearest', 'outMaps.unitTime': '24'}
+
+    def __init__(self, configuration, argv):
+
+        self.configuration = configuration
         self._input_args = {}
         self._to_add_geopotential = False
         self.input_file_with_geopotential = None
@@ -44,7 +45,7 @@ class ExecutionContext(object):
 
     @property
     def interpolate_with_grib(self):
-        return self._vars['interpolation.mode'].startswith('grib_')  # in ['grib_invdist', 'grib_nearest']
+        return self._vars['interpolation.mode'] in ('grib_invdist', 'grib_nearest')
 
     def _define_input_args(self, argv):
 
@@ -58,50 +59,7 @@ class ExecutionContext(object):
                                                         \n Read user and configuration manuals''')
 
         # TODO: Add metavar to arguments and fix help strings
-        parser.add_argument('-c', '--commandsFile', help='/path/to/input/xml')
-        parser.add_argument('-o', '--outDir', help='output maps dir', default='./')
-        parser.add_argument('-i', '--inputFile', help='/path/to/input/grib')
-        parser.add_argument('-I', '--inputFile2', help='/path/to/input/grib/2ndres/file')
-        parser.add_argument('-s', '--start',
-                            help='Grib timestep start. It overwrites the tstart in json execution file.', type=int)
-        parser.add_argument('-e', '--end', help='Grib timestep end. It overwrites the tend in json execution file.',
-                            type=int)
-
-        parser.add_argument('-m', '--perturbationNumber', help='eps member number', type=int)
-
-        parser.add_argument('-T', '--dataTime', help='To select messages by dataTime key value', type=int,
-                            choices=['0', '1200'])
-        parser.add_argument('-D', '--dataDate', help='<YYYYMMDD> to select messages by dataDate key value', type=int)
-
-        parser.add_argument('-l', '--loggerLevel', help='Console logging level', default='INFO',
-                            choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'])
-        parser.add_argument('-d', '--outLogDir', help='output logs dir', default='./logs/')
-        parser.add_argument('-N', '--intertableDir', help='interpolation tables dir')
-        parser.add_argument('-B', '--createIntertable', help='create intertable file',
-                            action='store_true', default=False)
-
-        parser.add_argument('-X', '--interpolationParallel', help='Use parallelization tools to make interpolation faster.'
-                                                                  'If -B option is not passed or intertable already exists'
-                                                                  ' it does not have any effect.',
-                            action='store_true', default=False)
-
-        parser.add_argument('-g', '--addGeopotential', help='''</path/to/geopotential/grib/file
-        \nAdd the file to geopotentials.json configuration file, to use for correction.
-        \nThe file will be copied into the right folder (configuration/geopotentials)
-        \nNote: shortName of geopotential must be "fis" or "z"''')
-
-        parser.add_argument('-t', '--test', help='''/path/to/test/xml_conf
-        \nWill execute a battery of commands defined in configuration/tests/pyg2p_commands.txt
-        \nand in configuration/tests/g2p_commands.txt. Then it will create diff pcraster maps and log alerts
-        \nif differences are higher than a threshold''')
-
-        parser.add_argument('-f', '--fmap', help='First map number', type=int, default=1)
-        parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1)
-        parser.add_argument('-n', '--namePrefix', help='Prefix name for maps')
-        parser.add_argument('-C', '--convertConf', help='Convert old xml configuration to new json format')
-        parser.add_argument('-z', '--convertIntertables', help='Convert old pyg2p intertables to new version (will overwrite!')
-        parser.add_argument('-P', '--copyConf', help='Copy configuration from source to user folder (except intertables)',
-                            action='store_true', default=False)
+        self.add_args(parser)
         if len(sys.argv) == 1:
             parser.print_help()
             sys.exit(0)
@@ -109,7 +67,6 @@ class ExecutionContext(object):
         parsed_args = vars(parser.parse_args(argv))
 
         self._vars['logger.level'] = parsed_args['loggerLevel']
-        self._vars['logger.dir'] = parsed_args['outLogDir']
 
         self._input_args['commandsFile'] = parsed_args['commandsFile']
         self._vars['input.file'] = parsed_args['inputFile']
@@ -133,6 +90,59 @@ class ExecutionContext(object):
         self._vars['path_to_intertables_to_convert'] = parsed_args['convertIntertables']
         self._vars['test.json'] = parsed_args['test']
         self._vars['copy_configuration'] = parsed_args['copyConf']
+
+    @staticmethod
+    def add_args(parser):
+
+        parser.add_argument('-c', '--commandsFile', help='Path to json command file', metavar='json_file')
+        parser.add_argument('-o', '--outDir', help='Path where output maps will be created.', default='./', metavar='out_dir')
+        parser.add_argument('-i', '--inputFile', help='Path to input grib.', metavar='input_file')
+        parser.add_argument('-I', '--inputFile2', help='Path to 2nd resolution input grib.', metavar='input_file_2nd')
+
+        # grib messages selectors
+        parser.add_argument('-s', '--start', metavar='tstart',
+                            help='Grib timestep start. It overwrites the tstart in json execution file.', type=int)
+        parser.add_argument('-e', '--end', help='Grib timestep end. It overwrites the tend in json execution file.',
+                            type=int, metavar='tend')
+        parser.add_argument('-m', '--perturbationNumber', help='eps member number', type=int, metavar='eps_member')
+        parser.add_argument('-T', '--dataTime', help='To select messages by dataTime key value', type=int,
+                            choices=['0', '1200'], metavar='data_time')
+        parser.add_argument('-D', '--dataDate', help='<YYYYMMDD> to select messages by dataDate key value',
+                            type=int, metavar='data_date')
+
+        # output file naming (first extension number, extension number step, prefix
+        parser.add_argument('-f', '--fmap', help='First map number', type=int, default=1, metavar='fmap')
+        parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1, metavar='extension_step')
+        parser.add_argument('-n', '--namePrefix', help='Prefix name for maps', metavar='outfiles_prefix')
+
+        # logging
+        parser.add_argument('-l', '--loggerLevel', help='Console logging level', default='INFO',
+                            choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'], metavar='log_level')
+
+        # interpolation lookup tables reading/writing
+        parser.add_argument('-N', '--intertableDir', help='interpolation tables dir', metavar='intertable_dir')
+        parser.add_argument('-B', '--createIntertable', help='create intertable file',
+                            action='store_true', default=False)
+        parser.add_argument('-X', '--interpolationParallel',
+                            help='Use parallelization tools to make interpolation faster.'
+                                 'If -B option is not passed or intertable already exists'
+                                 ' it does not have any effect.',
+                            action='store_true', default=False)
+
+        parser.add_argument('-t', '--test', help='''Path to a test.json configuration file.
+        \nWill execute a battery of commands defined in configuration/tests/pyg2p_commands.txt
+        \nand in configuration/tests/g2p_commands.txt. Then it will create diff pcraster maps and log alerts
+        \nif differences are higher than a threshold''', metavar='json_file')
+
+        parser.add_argument('-g', '--addGeopotential', help='''Add the file to geopotentials.json configuration file, to use for correction.
+        \nThe file will be copied into the right folder (configuration/geopotentials)
+        \nNote: shortName of geopotential must be "fis" or "z"''', metavar='geopotential')
+        parser.add_argument('-C', '--convertConf', help='Convert old xml configuration to new json format', metavar='path')
+        parser.add_argument('-z', '--convertIntertables', metavar='path',
+                            help='Convert old pyg2p intertables to new version and copy to user folders')
+        parser.add_argument('-P', '--copyConf',
+                            help='Copy configuration from source to user folder (except intertables)',
+                            action='store_true', default=False)
 
     def get(self, param, default=None):
         return self._vars.get(param, default) or default
@@ -164,7 +174,7 @@ class ExecutionContext(object):
         self._vars['execution.name'] = exec_conf['@name']
 
         self._vars['parameter.shortName'] = exec_conf['Parameter']['@shortName']
-        parameter = self._conf.parameters.get(self._vars['parameter.shortName'])
+        parameter = self.configuration.parameters.get(self._vars['parameter.shortName'])
         self._vars['parameter.description'] = parameter['@description']
         self._vars['parameter.unit'] = parameter['@unit']
         self._vars['parameter.conversionUnit'] = parameter['@unit']
@@ -172,7 +182,7 @@ class ExecutionContext(object):
         if exec_conf['Parameter'].get('@applyConversion'):
             self._vars['execution.doConversion'] = True
             self._vars['parameter.conversionId'] = exec_conf['Parameter']['@applyConversion']
-            conversion = self._conf.parameters.get_conversion(parameter, self._vars['parameter.conversionId'])
+            conversion = self.configuration.parameters.get_conversion(parameter, self._vars['parameter.conversionId'])
             self._vars['parameter.conversionUnit'] = conversion['@unit']
             self._vars['parameter.conversionFunction'] = conversion['@function']
             self._vars['parameter.cutoffnegative'] = util.strings.to_boolean(conversion.get('@cutOffNegative'))
@@ -185,11 +195,11 @@ class ExecutionContext(object):
 
         self._vars['outMaps.clone'] = exec_conf['OutMaps']['@cloneMap']
         interpolation_conf = exec_conf['OutMaps']['Interpolation']
-        self._vars['interpolation.mode'] = interpolation_conf.get('@mode', DEFAULT_VALUES['interpolation.mode'])
+        self._vars['interpolation.mode'] = interpolation_conf.get('@mode', self.default_values['interpolation.mode'])
         if self._vars['interpolation.dir'] is None:
             # interlookup tables folder was not defined via command line with argument -N, --intertableDir
             # get from JSON or from default user configuration
-            self._vars['interpolation.dir'] = interpolation_conf.get('@intertableDir', self._conf.default_interpol_dir)
+            self._vars['interpolation.dir'] = interpolation_conf.get('@intertableDir', self.configuration.default_interpol_dir)
         self._vars['interpolation.latMap'] = interpolation_conf['@latMap']
         self._vars['interpolation.lonMap'] = interpolation_conf['@lonMap']
 
@@ -223,7 +233,7 @@ class ExecutionContext(object):
             self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == ACCUMULATION and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in FALSE_STRINGS
 
         # string interpolation for custom user configurations (i.e. dataset folders)
-        self._conf.user.interpolate_dirs(self)
+        self.configuration.user._interpolate_strings(self)
 
     @property
     def must_do_aggregation(self):
@@ -267,6 +277,9 @@ class ExecutionContext(object):
             if not util.files.exists(self._vars['outMaps.clone']):
                 raise ApplicationException.get_programmatic_exc(1310)
 
+            if not self._vars['interpolation.mode'] in self.allowed_interp_methods:
+                raise ApplicationException.get_programmatic_exc(INVALID_INTERPOLATION_METHOD, details=self._vars['interpolation.mode'])
+
             # create out dir if not existing
             try:
                 if self._vars['outMaps.outDir'] != './':
@@ -286,7 +299,7 @@ class ExecutionContext(object):
                 raise ApplicationException.get_programmatic_exc(1400, 'Parameter level')
             self._vars['parameter.level'] = int(self._vars['parameter.level']) if self._vars.get('parameter.level') else None
 
-            self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else DEFAULT_VALUES['outMaps.unitTime']
+            self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else self.default_values['outMaps.unitTime']
 
             # check tstart<=tend
             if self._vars['parameter.tstart'] and self._vars['parameter.tend'] and not self._vars['parameter.tstart'] <= self._vars['parameter.tend']:
@@ -360,5 +373,5 @@ class ExecutionContext(object):
         return bool(self._vars.get('copy_configuration'))
 
     def geo_file(self, grid_id):
-        return self.input_file_with_geopotential or self._conf.geopotentials.get_filepath(grid_id)
+        return self.input_file_with_geopotential or self.configuration.geopotentials.get_filepath(grid_id)
         # return self._conf.geopotentials.get_filepath(grid_id)
