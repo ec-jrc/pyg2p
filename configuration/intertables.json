@@ -21,6 +21,17 @@
             680
         ]
     }, 
+    "I-18_23.5_665_657_436905_rotated_ll_-1700000_2700000_5000_-5000_-14.19_21.00_-1700000_2700000_5000_-5000_-16.50_15.75grib_nearest": {
+        "filename": "tbl_dwdgrib1is_550800_grib_nearest.npy", 
+        "method": "grib_nearest", 
+        "source_shape": [
+            436905
+        ], 
+        "target_shape": [
+            810, 
+            680
+        ]
+    }, 
     "I-18_23.5_665_657_436905_rotated_ll_-1700000_2700000_5000_-5000_34.97_71.07_-1700000_2700000_5000_-5000_-24.35_51.35scipy_invdist": {
         "filename": "tbl_dwdgrib1is_550800_scipy_invdist.npy", 
         "method": "invdist", 
@@ -420,11 +431,33 @@
             680
         ]
     }, 
+    "I334_46_M_135_21489_reduced_gg_-1700000_2700000_5000_-5000_34.97_71.07_-1700000_2700000_5000_-5000_-24.35_51.35grib_nearest": {
+        "filename": "tbl_2_epsn320_550800_grib_nearest.npy", 
+        "method": "grib_nearest", 
+        "source_shape": [
+            21489
+        ], 
+        "target_shape": [
+            810, 
+            680
+        ]
+    }, 
     "I334_46_M_135_21489_reduced_gg_-1700000_2700000_5000_-5000_34.97_71.07_-1700000_2700000_5000_-5000_-24.35_51.35scipy_nearest": {
         "filename": "tbl_3_epsn320_550800_scipy_nearest.npy", 
         "method": "nearest", 
         "source_shape": [
             21489
+        ], 
+        "target_shape": [
+            810, 
+            680
+        ]
+    }, 
+    "I334_46_M_270_84607_reduced_gg_-1700000_2700000_5000_-5000_34.97_71.07_-1700000_2700000_5000_-5000_-24.35_51.35grib_nearest": {
+        "filename": "tbl_detn640_550800_grib_nearest.npy", 
+        "method": "grib_nearest", 
+        "source_shape": [
+            84607
         ], 
         "target_shape": [
             810, 

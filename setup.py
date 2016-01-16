@@ -6,7 +6,7 @@ from distutils.command.install import install as _install
 class Install(_install):
 
     def _post_install(self):
-        
+
         import test_reqs
         test_reqs.test_reqs()
 
