@@ -12,7 +12,7 @@ class Install(_install):
 
     def run(self):
         _install.run(self)
-        # self._post_install()
+        self._post_install()
 
 
 packages_list = ['xmljson', 'numpy>=1.10.1', 'scipy>=0.16.0', 'GDAL',

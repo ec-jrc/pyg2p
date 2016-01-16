@@ -5,7 +5,6 @@ def test_reqs():
 
     print WARN + BOLD + '=================> Testing application environment' + ENDC
     errs = []
-    warns = []
 
     try:
         import numpy
@@ -38,19 +37,9 @@ def test_reqs():
     except ImportError, e:
         errs.append('=================XXXX> gribapi python extension missing')
 
-    try:
-        import memory_profiler
-    except ImportError, e:
-        warns.append('=================WARN> memory_profiler, you won''t be able to use test functionality')
-
     if len(errs) > 0:
         print FAIL + BOLD + '=================> [ERROR] Some Requirements are missing!!!'
         print('\n'.join(errs))
-        print ENDC
-
-    elif len(warns) > 0:
-        print WARN + BOLD + '=================> [WARN] Some optional requirements are missing!!!'
-        print('\n'.join(warns))
         print ENDC
     else:
         print GREEN + BOLD + '=================> [GOOD] All Requirements satisfied!!!' + ENDC
