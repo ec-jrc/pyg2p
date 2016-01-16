@@ -11,6 +11,7 @@ import pyg2p
 import util.files
 from main.readers.pcraster import PCRasterReader
 from main.testrunner.context import TestContext
+from main.writers.pcraster import PCRasterWriter
 from util.generics import GREEN, FAIL, WARN, YELLOW, ENDC, DEFAULT
 from util.logger import Logger
 from util.strings import to_argv
@@ -18,52 +19,88 @@ from util.strings import to_argv
 
 class TestRunner(object):
     # TODO change print statements to logger info
-    def __init__(self, file_):
-        self._ctx = TestContext(file_)
+    def __init__(self, config, file_):
+        self._ctx = TestContext(config, file_)
 
-    def do_pcdiffs(self, diff_exec, test_, g_maps):
+    def do_pcdiffs(self, test_, g_maps):
 
-        failed = False
-        problematic = False
+        test_result = {'failed': False, 'problematic': False}
+        for g_map in sorted(g_maps, key=lambda mapname: mapname[-3:]):
+            self.check_map(g_map, test_, test_result)
 
-        for g_map in g_maps:
-            num_map = g_map[-3:]
-            p_map = 'p{}'.format(g_map[1:])
-            diff_map = 'diff.{}'.format(num_map)
-            diff_map_cmd = '{} = {} - {}'.format(diff_map, g_map, p_map)
-            comm = [diff_exec, diff_map_cmd]
-            fnull = open(os.devnull, 'w')
-            self._run_job(comm, cwd=test_.out_dir, stdout=fnull, stderr=STDOUT)
-            reader_ = PCRasterReader(test_.out_dir + diff_map)
-            diff_values = reader_.values
-            diff_values = diff_values[diff_values != reader_.missing_value]
-            reader_.close()
-            # returns true if all elements are absolute(diff) <= atol
-            all_ok = np.allclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
-            # if all_ok:
-            #     self._print_colored(GREEN, '[GOOD] All values are good!')
-            if not all_ok:
-                diff_map_path = os.path.join(test_.out_dir, diff_map)
-                g_map_path = os.path.join(test_.out_dir, g_map)
-                p_map_path = os.path.join(test_.out_dir, p_map)
-
-                array_ok = np.isclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
-                perc_wrong = float(array_ok[array_ok == False].size * 100) / float(diff_values.size)
-                if perc_wrong > 5:  # more than 5% of differences
-                    failed = True
-                    print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
-                    self._print_colored(FAIL, '[ERROR] {:3.4f}% of values are too different!'.format(perc_wrong))
-                elif 0.5 <= perc_wrong <= 5:
-                    problematic = True
-                    print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
-                    self._print_colored(WARN, '[WARN] values are very similar but with {:3.4f}% of differences!'.format(perc_wrong))
-        if failed:
+        if test_result['failed']:
             return '1'
-        elif problematic:
+        elif test_result['problematic']:
             return '2'
         else:
-            self._print_colored(GREEN, '[GOOD]')
+            self._print_colored(GREEN, '[PASSED]')
             return '0'
+
+    def check_map(self, g_map, test_, test_result):
+        num_map = g_map[-3:]
+        p_map = 'p{}'.format(g_map[1:])
+        diff_map = 'diff.{}'.format(num_map)
+        diff_map_cmd = '{} = {} - {}'.format(diff_map, g_map, p_map)
+        comm = [self._ctx.get('pcrasterdiff.exec'), diff_map_cmd]
+        fnull = open(os.devnull, 'w')
+        self._run_job(comm, cwd=test_.out_dir, stdout=fnull, stderr=STDOUT)
+
+        diff_map_path = os.path.join(test_.out_dir, diff_map)
+        g_map_path = os.path.join(test_.out_dir, g_map)
+        p_map_path = os.path.join(test_.out_dir, p_map)
+
+        reader_diff = PCRasterReader(diff_map_path)
+        diff_values = reader_diff.values
+        diff_values = diff_values[diff_values != reader_diff.missing_value]
+        reader_diff.close()
+        reader_g = PCRasterReader(g_map_path)
+        orig_g_values = reader_g.values
+        g_values = orig_g_values[orig_g_values != reader_g.missing_value]
+        reader_g.close()
+        reader_p = PCRasterReader(p_map_path)
+        orig_p_values = reader_p.values
+        p_values = orig_p_values[orig_p_values != reader_p.missing_value]
+        reader_p.close()
+
+        # start checks
+        same_size = p_values.size == g_values.size
+        same_values = np.allclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
+        all_ok = same_size and same_values
+
+        if not all_ok:
+            max_diff = np.max(diff_values)
+            large_diff = max_diff > 2 * self._ctx.get('atol')
+
+            array_ok = np.isclose(diff_values, np.zeros(diff_values.shape), atol=self._ctx.get('atol'))
+            perc_wrong = float(array_ok[array_ok == False].size * 100) / float(diff_values.size)
+
+            if not same_size and not test_result['failed']:
+                # will print message only on first map check
+                test_result['failed'] = True
+                self._print_colored(YELLOW, '[WARN] Sizes (excluded missing values) are different. p: {} g: {}'.format(
+                    p_values.size, g_values.size))
+                clone_map = g_map_path if p_values.size < g_values.size else p_map_path
+                writer_diff_mv = PCRasterWriter(clone_map)
+                diff_mv_p_values = np.where(orig_p_values != reader_p.missing_value, 0., 1000.)
+                diff_mv_map_p_path = os.path.join(test_.out_dir, 'diff_mv_p.{}'.format(num_map))
+                writer_diff_mv.write(diff_mv_map_p_path, diff_mv_p_values, mv=reader_p.missing_value)
+                print 'aguila {}'.format(diff_mv_map_p_path)
+
+            if perc_wrong > 5:  # more than 5% of differences
+                test_result['failed'] = True
+                self._print_colored(FAIL, 'Maps {}: {:3.4f}% of values are too different. max diff: {:3.4f}'.format(num_map, perc_wrong,
+                                                                                                                    max_diff))
+            elif 0.3 <= perc_wrong <= 5:
+                test_result['problematic'] = True
+                self._print_colored(YELLOW,
+                                    'Maps {}: values are very similar but with {:3.4f}% of big differences. max diff: {:3.4f}'.format(
+                                        num_map, perc_wrong, max_diff))
+            else:
+                self._print_colored(YELLOW if large_diff else GREEN,
+                                    'Maps {}: {:3.4f}% of differences with max diff: {:3.4f}'.format(num_map, perc_wrong, max_diff))
+
+            if large_diff or perc_wrong >= 0.3:
+                print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
 
     def _print_time_diffs(self, elapsed_counter_part, elapsed_pyg2p, test_, from_scipy=False):
         txt_ = 'pyg2p with scipy interpol ' if from_scipy else 'grib2pcraster'
@@ -75,8 +112,7 @@ class TestRunner(object):
             color_code = FAIL
         if differ_elaps <= 0:
             color_code = GREEN
-            differ_elaps = - differ_elaps
-        self._print_colored(color_code, 'Difference: {}'.format(str(datetime.timedelta(seconds=differ_elaps))))
+        self._print_colored(color_code, 'Difference: {:+} seconds'.format(round(differ_elaps, 3)))
 
     def print_test_summary(self, avg_mem, avg_mem_scipy, elapsed_g2p, elapsed_pyg2p, elapsed_pyg2p_scipy, max_mem,
                            max_mem_scipy, test_):
@@ -104,7 +140,7 @@ class TestRunner(object):
 
         num_tests = g_num_maps = z_num_maps = avg_mem_scipy = max_mem_scipy = 0
         g_maps = z_maps = []
-        results = {'0': [], '1': [], '2': []}   # 0: succes, 1: errors, 2: problematic (with differences but up to 5%)
+        results = {'0': [], '1': [], '2': []}   # 0: succes, 1: errors, 2: problematic (with differences but up to 3%)
 
         ordered_tests = collections.OrderedDict(sorted(self._ctx.get('tests').iteritems(), key=lambda k: int(k[0])))
         elapsed_test = time.time()
@@ -148,9 +184,9 @@ class TestRunner(object):
             p_num_maps, p_maps = self._count_maps('p', test_.out_dir)
 
             if test_.g2p_command:
-                self._check_maps(p_num_maps, test_, g_num_maps, g_maps, results)
+                self.__diff_maps(p_num_maps, test_, g_num_maps, g_maps, results)
             elif test_.pyg2p_scipy_command:
-                self._check_maps(p_num_maps, test_, z_num_maps, z_maps, results)
+                self.__diff_maps(p_num_maps, test_, z_num_maps, z_maps, results)
             else:
                 # test with only pyg2p commands. No comparisons.
                 for p_map in p_maps:
@@ -161,14 +197,14 @@ class TestRunner(object):
         self.print_test_suite_summary(elapsed_test, num_tests, results)
         Logger.reset_logger()
 
-    def _check_maps(self, p_num_maps, test_, o_num_maps, o_maps, results):
+    def __diff_maps(self, p_num_maps, test_, o_num_maps, o_maps, results):
         if p_num_maps != o_num_maps:
             self._print_colored(FAIL, 'xxxxxxx! ATTENTION!!! Potential misconfiguration or bug!')
             self._print_colored(FAIL, 'Number of maps are different p: {} g: {}'.format(p_num_maps, o_num_maps))
             results['1'].append(test_.id)
         else:
-            print '\n\n====> Producing pcraster diff maps. If values are not identical, will print aguila commands to compare them.'
-            res = self.do_pcdiffs(self._ctx.get('pcrasterdiff.exec'), test_, o_maps)
+            print '\n\n====> Calculating differences... If values are not identical, will print aguila commands to compare them.'
+            res = self.do_pcdiffs(test_, o_maps)
             results[res].append(test_.id)
 
     @staticmethod

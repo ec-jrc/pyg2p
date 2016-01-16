@@ -1,0 +1,28 @@
+{
+    "Execution": {
+        "@name": "tigge_lam_t24",
+        "Aggregation": {
+            "@step": 24,
+            "@type": "average"
+        }, 
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/cosmo/dem05.map",
+            "@fmap": 1, 
+            "@namePrefix": "T24",
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/cosmo/lat_cosmo5km_new.map",
+                "@lonMap": "/dataset/maps/cosmo/lon_cosmo5km_new.map",
+                "@mode": "grib_nearest",
+                "@rotated_target": true
+            }
+        }, 
+        "Parameter": {
+            "@applyConversion": "k2c",
+            "@correctionFormula": "p+gem-dem*0.0065",
+            "@demMap": "/dataset/maps/cosmo/dem05.map",
+            "@gem": "(z/9.81)*0.0065",
+            "@shortName": "2t"
+        }
+    }
+}

@@ -24,15 +24,12 @@ class Test(object):
 
 class TestContext(object):
 
-    def __init__(self, json_file):
-        json_file = os.path.expanduser(json_file)
-        with open(json_file) as f:
-            res = json.loads(f.read())
-        test_conf = res['TestConfiguration']
+    def __init__(self, config, cmds_file):
+        test_conf = config['TestConfiguration']
 
-        self._params = {'file': json_file, 'pcrasterdiff.exec': test_conf['PcRasterDiff']['@exec'],
+        self._params = {'pcrasterdiff.exec': test_conf['PcRasterDiff']['@exec'],
                         'atol': float(test_conf['@atol']), 'g2p.exec': test_conf['g2p']['@exec'],
-                        'pre_commands': self._get_list_commands(test_conf['@commands']), 'tests': {}}
+                        'pre_commands': self._get_list_commands(cmds_file), 'tests': {}}
 
         for comm in self._params['pre_commands']:
             splitted = comm.split('@')
@@ -50,7 +47,10 @@ class TestContext(object):
                 if val == '-n':
                     real_args.remove('-n')
                     real_args.remove(args_[i + 1])
-            real_args += ['-n', type_]  # add name prefix
+            # add name prefix and add 'underTest' hidden option to tell pyg2p that this is a test
+            real_args += ['-n', type_]
+            if not type_ == 'g':
+                real_args += ['-U']
             real_args = ' '.join(real_args)  # back to string
             if id_ in self._params['tests']:
                 test_ = self._params['tests'][id_]

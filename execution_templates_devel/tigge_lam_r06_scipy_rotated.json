@@ -1,20 +1,19 @@
 {
     "Execution": {
-        "@name": "cosmo_r06",
+        "@name": "tigge_lam_scipy_r06",
         "Aggregation": {
-            "@forceZeroArray": true, 
-            "@step": 6, 
+            "@step": 24,
             "@type": "accumulation"
         }, 
         "OutMaps": {
-            "@cloneMap": "/dataset/maps/cosmo/dem05.map", 
+            "@cloneMap":  "/dataset/maps/cosmo/dem05.map",
             "@fmap": 1, 
-            "@namePrefix": "pR06", 
+            "@namePrefix": "R06",
             "@unitTime": 24, 
             "Interpolation": {
-                "@latMap": "/dataset/maps/cosmo/lat_cosmo5km_new.map", 
-                "@lonMap": "/dataset/maps/cosmo/lon_cosmo5km_new.map", 
-                "@mode": "grib_nearest",
+                "@latMap": "/dataset/maps/cosmo/lat_cosmo5km_new.map",
+                "@lonMap": "/dataset/maps/cosmo/lon_cosmo5km_new.map",
+                "@mode": "invdist",
                 "@rotated_target": true
             }
         }, 

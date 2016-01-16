@@ -5,6 +5,7 @@ import gribapi
 import sys
 
 from main.exceptions import ApplicationException
+from util.generics import FAIL, YELLOW, ENDC
 
 LOGGERS_REGISTER = {}
 
@@ -50,8 +51,9 @@ class Logger(object):
 
     def log(self, message, level='DEBUG'):
         trace_it = 0
-        if level == 'ERROR':
-            message = '\033[91m' + '\033[1m' + message + '\033[0m'
+        color = FAIL if level == 'ERROR' else YELLOW
+        if level in ('ERROR', 'WARN', 'WARNING'):
+            message = '{}{}{}'.format(color, message, ENDC)
         message = '{} {}'.format(self._caller_info(), message)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         if level == 'DEBUG':

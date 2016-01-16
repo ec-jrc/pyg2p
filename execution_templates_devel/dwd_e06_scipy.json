@@ -1,25 +1,26 @@
 {
     "Execution": {
-        "@name": "cosmo_e06",
+        "@name": "dwd_E06a",
         "Aggregation": {
             "@step": 6, 
             "@type": "average"
         }, 
         "OutMaps": {
-            "@cloneMap": "/dataset/maps/cosmo/dem05.map", 
-            "@ext": 6, 
+            "@cloneMap": "{EUROPE_DEM}",
             "@fmap": 1, 
             "@namePrefix": "pE06", 
             "@unitTime": 24, 
             "Interpolation": {
-                "@latMap": "/dataset/maps/cosmo/lat_cosmo5km_new.map", 
-                "@lonMap": "/dataset/maps/cosmo/lon_cosmo5km_new.map", 
+                "@latMap": "{EUROPE_LAT}",
+                "@lonMap": "{EUROPE_LON}",
                 "@mode": "nearest"
             }
         }, 
         "Parameter": {
             "@applyConversion": "tommd", 
-            "@shortName": "alhfl_s"
+            "@shortName": "ALHFL_S", 
+            "@tend": 18, 
+            "@tstart": 12
         }
     }
 }

@@ -11,7 +11,7 @@ def mask_it(v, mv, shape=None):
     return result
 
 
-def empty(size, fill_value=np.NaN, dtype=float):
-    idxs = np.empty(size, dtype=dtype)
+def empty(shape, fill_value=np.NaN, dtype=float):
+    idxs = np.empty(shape, dtype=dtype)
     idxs.fill(fill_value)
     return idxs

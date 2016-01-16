@@ -169,7 +169,7 @@ class Aggregator(object):
     def _average(self, values):
 
         if self._step_type in [PARAM_CUM]:
-            raise ApplicationException.get_programmatic_exc(6100, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
+            raise ApplicationException.get_exc(6100, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
         else:
 
             out_values = {}
@@ -230,7 +230,7 @@ class Aggregator(object):
 
     def _instantaneous(self, values):
         if self._step_type in [PARAM_CUM]:
-            raise ApplicationException.get_programmatic_exc(6100, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
+            raise ApplicationException.get_exc(6100, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
         else:
             out_values = {}
             start = self._find_start()

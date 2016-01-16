@@ -6,8 +6,8 @@ from util.logger import Logger
 class PCRasterWriter:
     FORMAT = 'PCRaster'
 
-    def __init__(self, clone_mapP):
-        self._clone_map = clone_mapP
+    def __init__(self, clone_map):
+        self._clone_map = clone_map
         self._logger = Logger.get_logger()
         self._log("Set PCRaster clone for writing maps: " + self._clone_map)
         # =============================================================================
@@ -34,15 +34,15 @@ class PCRasterWriter:
 
     def write(self, output_map_name, values, mv=None):
         drv = gdal.GetDriverByName(self.FORMAT)
-        maskedValues = self._produceMaskedValues(values, mv)
-        n = ma.count_masked(maskedValues)
+        masked_values = self._mask_values(values, mv)
+        n = ma.count_masked(masked_values)
         self._mem_ds.GetRasterBand(1).SetNoDataValue(mv)
-        self._mem_ds.GetRasterBand(1).WriteArray(maskedValues)
+        self._mem_ds.GetRasterBand(1).WriteArray(masked_values)
         out_ds = drv.CreateCopy(output_map_name.encode('utf-8'), self._mem_ds)
         self._log('%s written!' % output_map_name, 'INFO')
         out_ds = None
 
-    def _produceMaskedValues(self, values, mv):
+    def _mask_values(self, values, mv):
         masked = ma.masked_where(self._mask == True, values, copy=False)
         masked = ma.filled(masked, self._src_band.GetNoDataValue())
         return masked

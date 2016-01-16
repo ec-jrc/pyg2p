@@ -3,8 +3,6 @@ import os
 import re
 from xml.etree.ElementTree import fromstring
 
-from xmljson import badgerfish as bf
-
 import util.files
 from main.exceptions import (
     ApplicationException,
@@ -64,7 +62,7 @@ class UserConfiguration(object):
             if self.regex_var.search(execution_context[var]):
                 # some variables where not string-interpolated so they are missing in user configuration
                 vars_not_defined = self.regex_var.findall(execution_context[var])
-                raise ApplicationException.get_programmatic_exc(NO_VAR_DEFINED, str(vars_not_defined))
+                raise ApplicationException.get_exc(NO_VAR_DEFINED, str(vars_not_defined))
 
 
 class BaseConfiguration(object):
@@ -86,7 +84,7 @@ class BaseConfiguration(object):
         try:
             content = json.load(f)
         except ValueError as e:
-            raise ApplicationException.get_programmatic_exc(JSON_ERROR, details='{} {}'.format(e, self.config_file))
+            raise ApplicationException.get_exc(JSON_ERROR, details='{} {}'.format(e, self.config_file))
         else:
             return content
         finally:
@@ -104,7 +102,7 @@ class ParametersConfiguration(BaseConfiguration):
         for param in self.vars['Parameters']['Parameter']:
             if param['@shortName'] == short_name:
                 return param
-        raise ApplicationException.get_programmatic_exc(SHORTNAME_NOT_FOUND, short_name)
+        raise ApplicationException.get_exc(SHORTNAME_NOT_FOUND, short_name)
 
     @staticmethod
     def get_conversion(parameter, id_):
@@ -114,13 +112,13 @@ class ParametersConfiguration(BaseConfiguration):
                     return conversion
         elif isinstance(parameter.get('Conversion'), dict) and parameter['Conversion']['@id'] == id_:
             return parameter['Conversion']
-        raise ApplicationException.get_programmatic_exc(CONVERSION_NOT_FOUND, '{} - {}'.format(parameter['@shortName'], id_))
+        raise ApplicationException.get_exc(CONVERSION_NOT_FOUND, '{} - {}'.format(parameter['@shortName'], id_))
 
 
 class GeopotentialsConfiguration(BaseConfiguration):
     config_file_ = 'geopotentials.json'
     data_path_ = 'geopotentials'
-    short_names = ['fis', 'z', 'FIS']
+    short_names = ['fis', 'z', 'FIS', 'orog']
 
     def add(self, filepath):
 
@@ -129,7 +127,7 @@ class GeopotentialsConfiguration(BaseConfiguration):
         for item in self.vars['geopotentials']['geopotential']:
             if item['@id'] == id_:
                 name = item['@name']
-                raise ApplicationException.get_programmatic_exc(EXISTING_GEOPOTENTIAL, details='{} for file {}. File was not added: {}'.format(id_, name, filepath))
+                raise ApplicationException.get_exc(EXISTING_GEOPOTENTIAL, details='{} for file {}. File was not added: {}'.format(id_, name, filepath))
         name = util.files.filename(filepath)
         util.files.copy(filepath, self.data_path)
         self.vars['geopotentials']['geopotential'].append({'@id': id_, '@name': name})
@@ -146,12 +144,16 @@ class GeopotentialsConfiguration(BaseConfiguration):
         for f in self.vars['geopotentials']['geopotential']:
             if f['@id'] == grid_id:
                 return os.path.join(self.data_path, f['@name'])
-        raise ApplicationException.get_programmatic_exc(NO_GEOPOTENTIAL, grid_id)
+        raise ApplicationException.get_exc(NO_GEOPOTENTIAL, grid_id)
 
 
 class IntertablesConfiguration(BaseConfiguration):
     config_file_ = 'intertables.json'
     data_path_ = 'intertables'
+
+
+class TestsConfiguration(BaseConfiguration):
+    config_file_ = 'test.json'
 
 
 class Configuration(object):
@@ -162,6 +164,7 @@ class Configuration(object):
         self.parameters = ParametersConfiguration(self.user)
         self.geopotentials = GeopotentialsConfiguration(self.user)
         self.intertables = IntertablesConfiguration(self.user)
+        self.tests = TestsConfiguration(self.user)
         self.default_interpol_dir = self.intertables.data_path
         if any([self.parameters.configuration_mode, self.geopotentials.configuration_mode, self.intertables.configuration_mode]):
             self.configuration_mode = True
@@ -174,6 +177,7 @@ class Configuration(object):
 
     @classmethod
     def convert_to_v2(cls, path):
+        from xmljson import badgerfish as bf
         for f in os.listdir(path):
             filepath = os.path.join(path, f)
             if util.files.is_dir(filepath):
@@ -194,12 +198,14 @@ class Configuration(object):
         geopotentials_data = os.path.join(source_dir, GeopotentialsConfiguration.data_path_)
         parameters_json = os.path.join(source_dir, ParametersConfiguration.config_file_)
         intertables_json = os.path.join(source_dir, IntertablesConfiguration.config_file_)
+        tests_json = os.path.join(source_dir, TestsConfiguration.config_file_)
         tests_conf_dir = os.path.join(source_dir, 'tests')
 
-        util.files.copy(parameters_json, target_dir)
-        util.files.copy(intertables_json, target_dir)
+        util.files.copy(parameters_json, target_dir, backup=True)
+        util.files.copy(intertables_json, target_dir, backup=True)
+        util.files.copy(tests_json, target_dir, backup=True)
         util.files.copy_dir(tests_conf_dir, os.path.join(target_dir, 'tests'), recreate=True)
-        util.files.copy(geopotentials_json, target_dir)
+        util.files.copy(geopotentials_json, target_dir, backup=True)
         logger.info('Copying geopotentials grib files to {}'.format(os.path.join(target_dir, GeopotentialsConfiguration.data_path_)))
         util.files.copy_dir(geopotentials_data, os.path.join(target_dir, GeopotentialsConfiguration.data_path_))
         logger.detach_config_logger()
@@ -219,7 +225,7 @@ class Configuration(object):
             elif f.endswith('.npy') and not f.startswith('tbl_') and f not in existing_intertables:
                 # This must be a pyg2p v1 intertable...
 
-                # v2 id is v1 intertable filename (with _M_ instead of _MISSING_)
+                # v2 id is v1 intertable filename without npy extension (and with _M_ instead of _MISSING_)
                 intertable_id = util.files.without_ext(f).replace('_MISSING_', '_M_')
                 existing_intertable = ''
                 if intertable_id in intertables_dict:
@@ -249,7 +255,10 @@ class Configuration(object):
                 intertable = np.load(filepath)
 
                 if f.endswith('_nn.npy'):
-                    suffix = '_nn'
+                    if 'rotated' in f:
+                        logger.info('Skipped: {}. Old rotated nearest interpolated grids are not valid anymore.'.format(f))
+                        continue
+                    suffix = '_grib_nearest'
                     new_full_path = tbl_new_path(suffix)
                     # convert grib nn
                     xs = intertable[0].astype(int, copy=False)
@@ -266,7 +275,10 @@ class Configuration(object):
 
                 elif f.endswith('_inv.npy'):
                     # convert grib invdist
-                    suffix = '_inv'
+                    if 'rotated' in f:
+                        logger.info('Skipped: {}. Old rotated invdist GRIB_API grids are not valid anymore.'.format(f))
+                        continue
+                    suffix = '_grib_invdist'
                     new_full_path = tbl_new_path(suffix)
 
                     try:
@@ -297,23 +309,36 @@ class Configuration(object):
                     logger.info('Converted and saved to: {}'.format(util.files.filename(new_full_path)))
 
                 elif '_scipy_' in f:
-                    try:
-                        ixs, w = intertable['indexes'], intertable['coeffs']
-                    except IndexError:
-                        w, ixs = intertable[0], intertable[1].astype(int, copy=False)
+                    # cannot convert v1 scipy intertables
+                    continue
+                    # try:
+                    #     ixs, w = intertable['indexes'], intertable['coeffs']
+                    # except IndexError:
+                    #     w, ixs = intertable[0], intertable[1].astype(int, copy=False)
+                    #
+                    # for suffix in ('_scipy_nearest', '_scipy_invdist'):
+                    #     if suffix in f:
+                    #         new_full_path = tbl_new_path(suffix)
+                    #         intertable = np.rec.fromarrays((ixs, w), names=('indexes', 'coeffs'))
+                    #         np.save(new_full_path, intertable)
+                    #         intertables_dict[intertable_id] = {'filename': util.files.filename(new_full_path),
+                    #                                            'method': 'nearest',
+                    #                                            'source_shape': 'NA',
+                    #                                            'target_shape': 'NA',
+                    #                                            'info': 'Converted from v1'}
+                    #         logger.info('Converted and saved to: {}'.format(util.files.filename(new_full_path)))
 
-                    for suffix in ('_scipy_nearest', '_scipy_invdist'):
-                        if suffix in f:
-                            new_full_path = tbl_new_path(suffix)
-                            intertable = np.rec.fromarrays((ixs, w), names=('indexes', 'coeffs'))
-                            np.save(new_full_path, intertable)
-                            intertables_dict[intertable_id] = {'filename': util.files.filename(new_full_path),
-                                                               'method': 'nearest',
-                                                               'source_shape': 'NA',
-                                                               'target_shape': 'NA',
-                                                               'info': 'Converted from v1'}
-                            logger.info('Converted and saved to: {}'.format(util.files.filename(new_full_path)))
-
-        # update config dict
+        # update config dict to intertables.json
         self.intertables.dump(intertables_dict)
         logger.detach_config_logger()
+
+    def check_conf(self, logger):
+        logger.attach_config_logger()
+        used_intertables = [i['filename'] for i in self.intertables.vars.itervalues()]
+        intertables_folder_content = util.files.ls(self.intertables.data_path, 'npy')
+        for f in intertables_folder_content:
+            if f not in used_intertables:
+                logger.info('File is not used in intertables configuration: {}'.format(f))
+
+        logger.detach_config_logger()
+

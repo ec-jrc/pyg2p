@@ -1,7 +1,13 @@
 import os
 import re
 import shutil as sh
-from os import path as path
+import os
+
+
+def ls(path, extension=None):
+    if not extension:
+        return [f for f in os.listdir(path) if not is_dir(f)]
+    return [f for f in os.listdir(path) if not is_dir(f) and f.endswith(extension)]
 
 
 def delete_file(param):
@@ -18,23 +24,23 @@ def delete_files_from_dir(dir_path, prefix_=''):
 
 
 def exists(pathname, is_folder=False):
-    return path.exists(pathname) and (path.isdir(pathname) if is_folder else path.isfile(pathname))
+    return os.path.exists(pathname) and (os.path.isdir(pathname) if is_folder else os.path.isfile(pathname))
 
 
 def is_xml(pathname):
-    return path.isfile(pathname) and pathname.endswith('.xml')
+    return os.path.isfile(pathname) and pathname.endswith('.xml')
 
 
 def is_conf(pathname):
-    return path.isfile(pathname) and pathname.endswith('.conf')
+    return os.path.isfile(pathname) and pathname.endswith('.conf')
 
 
 def is_dir(pathname):
-    return path.isdir(pathname) and path not in ('.', '..', './', '../')
+    return os.path.isdir(pathname) and pathname not in ('.', '..', './', '../')
 
 
 def create_dir(pathname, recreate=False):
-    if not path.exists(pathname):
+    if not os.path.exists(pathname):
         os.makedirs(pathname)
     elif recreate:
         delete_files_from_dir(pathname)
@@ -43,11 +49,11 @@ def create_dir(pathname, recreate=False):
 
 
 def filename(pathname):
-    return path.basename(pathname)
+    return os.path.basename(pathname)
 
 
 def dir_filename(pathname):
-    return path.dirname(pathname), path.basename(pathname)
+    return os.path.dirname(pathname), os.path.basename(pathname)
 
 
 def without_ext(filepath):
@@ -58,7 +64,9 @@ def ext(filepath):
     return os.path.splitext(filepath)[1]
 
 
-def copy(file_, to_dir):
+def copy(file_, to_dir, backup=False):
+    if backup and exists(os.path.join(to_dir, filename(file_))):
+        to_dir = os.path.join(to_dir, filename(file_) + '.backup')
     sh.copy(file_, to_dir)
 
 

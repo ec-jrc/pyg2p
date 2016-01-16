@@ -3,7 +3,6 @@ from functools import partial
 
 import numpy as np
 
-import util.files
 from main.exceptions import ApplicationException, NO_INTERTABLE_CREATED
 from main.interpolation import scipy_interpolation_lib as ID
 from main.interpolation import grib_interpolation_lib
@@ -11,16 +10,16 @@ from main.interpolation.latlong import LatLong
 from main.interpolation.scipy_interpolation_lib import InverseDistance
 from util.logger import Logger
 from util.numeric import mask_it
+import util.files
 
 
 class Interpolator(object):
     _LOADED_INTERTABLES = {}
-    _suffix_scipy = '_scipy_'
     _prefix = 'I'
     scipy_modes_nnear = {'nearest': 1, 'invdist': 4}
-    suffixes = {'grib_nearest': '_nn', 'grib_invdist': '_inv',
-                'nearest': '_scipy_nearest', 'invdist': '_scipy_invdist'}
-    _format_intertable = 'tbl{prognum}_{source_file}_{target_size}_{mode}.npy'.format
+    suffixes = {'grib_nearest': 'grib_nearest', 'grib_invdist': 'grib_invdist',
+                'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist'}
+    _format_intertable = 'tbl{prognum}_{source_file}_{target_size}_{suffix}.npy'.format
 
     def __init__(self, exec_ctx):
         self._mode = exec_ctx.get('interpolation.mode')
@@ -28,14 +27,14 @@ class Interpolator(object):
         self._suffix = self.suffixes[self._mode]
         self._logger = Logger.get_logger()
         self._intertable_dir = exec_ctx.get('interpolation.dir')
+        self._rotated_target_grid = exec_ctx.get('interpolation.rotated_target')
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
         self._mv_efas = self._target_coords.missing_value
         self._mv_grib = -1
         self.parallel = exec_ctx.get('interpolation.parallel')
         self.format_intertablename = partial(self._format_intertable, source_file=util.files.normalize_filename(self._source_filename),
                                              target_size=self._target_coords.lats.size,
-                                             mode=self._mode)
-
+                                             suffix=self._suffix)
         # values used for interpolation table computation
         self._aux_val = None
         self._aux_gid = None
@@ -90,16 +89,12 @@ class Interpolator(object):
             coeffs = intertable['coeffs']
             return indexes, coeffs
 
-    @staticmethod
-    def _interpolate_scipy_invdist(z, _mv_grib, weights, indexes, nnear):
-
-        # TODO CHECK: maybe we don't need to mask here
-        z = mask_it(z, _mv_grib)
+    def _interpolate_scipy_invdist(self, z, weights, indexes, nnear):
         if nnear == 1:
-            # for nnear = 1 it doesn't care at this point if indexes come from intertable
-            # or were just queried from the tree
+            z = np.append(z, self._mv_efas)
             result = z[indexes]
         else:
+            z = np.append(z, self._mv_efas)
             result = np.einsum('ij,ij->i', weights, z[indexes])
         return result
 
@@ -112,22 +107,24 @@ class Interpolator(object):
 
         if util.files.exists(intertable_name):
             indexes, weights = self._read_intertable(intertable_name)
-            result = self._interpolate_scipy_invdist(z, self._mv_grib, weights, indexes, nnear)
+            result = self._interpolate_scipy_invdist(z, weights, indexes, nnear)
         elif self.create_if_missing:
             if latgrib is None:
                 self._log('Trying to interpolate without grib lat/lons. Probably a geopotential grib!', 'ERROR')
-                raise ApplicationException.get_programmatic_exc(5000)
+                raise ApplicationException.get_exc(5000)
 
-            self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
-            invdisttree = InverseDistance(longrib, latgrib, grid_details, z.ravel(), self._mv_efas, self._mv_grib)
-            result, weights, indexes = invdisttree.interpolate(lonefas, latefas, nnear, parallel=self.parallel)
+            self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'INFO')
+            invdisttree = InverseDistance(longrib, latgrib, grid_details, z.ravel(), nnear, self._mv_efas,
+                                          self._mv_grib, target_is_rotated=self._rotated_target_grid,
+                                          parallel=self.parallel)
+            result, weights, indexes = invdisttree.interpolate(lonefas, latefas)
             # saving interpolation lookup table
             intertable = np.rec.fromarrays((indexes, weights), names=('indexes', 'coeffs'))
             np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, z.shape)
             # reshape to target (e.g. efas, glofas...)
         else:
-            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
+            raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
         grid_data = result.reshape(lonefas.shape)
         return grid_data
@@ -139,7 +136,6 @@ class Interpolator(object):
     def grib_nearest(self, v, gid, grid_id, second_spatial_resolution=False):
         intertable_id, intertable_name = self._intertable_filename(grid_id)
         existing_intertable = False
-
         # TODO CHECK these double call of masked values/fill
         result = np.empty(self._target_coords.longs.shape)
         result.fill(self._mv_efas)
@@ -164,14 +160,20 @@ class Interpolator(object):
             try:
                 assert gid != -1, 'GRIB message reference was not found.'
             except AssertionError as e:
-                raise ApplicationException.get_programmatic_exc(6000, details=str(e))
-            self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
+                raise ApplicationException.get_exc(6000, details=str(e))
+            self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'INFO')
             xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value)
             intertable = np.asarray([xs, ys, idxs])
             np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
         else:
-            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
+            if intertable_id not in self.intertables_dict:
+                d = {'filename': util.files.filename(intertable_name),
+                     'method': self._mode,
+                     'source_shape': v.shape,
+                     'target_shape': self._target_coords.longs.shape}
+                self._log('If you already have an intertable file, add this configuration to intertables.json and change filename. {} {}'.format(intertable_id, d), 'INFO')
+            raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
         result[xs, ys] = v[idxs]
         return result, existing_intertable
@@ -204,7 +206,8 @@ class Interpolator(object):
         elif self.create_if_missing:
             # assert...
             if gid == -1:
-                raise ApplicationException.get_programmatic_exc(6000)
+                raise ApplicationException.get_exc(6000)
+
             self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
             lonefas = self._target_coords.longs
             latefas = self._target_coords.lats
@@ -220,7 +223,13 @@ class Interpolator(object):
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
 
         else:
-            raise ApplicationException.get_programmatic_exc(NO_INTERTABLE_CREATED, details=intertable_name)
+            if intertable_id not in self.intertables_dict:
+                d = {'filename': util.files.filename(intertable_name),
+                     'method': self._mode,
+                     'source_shape': v.shape,
+                     'target_shape': self._target_coords.longs.shape}
+                self._log('If you already have an intertable file, add this configuration to intertables.json and change filename. {} {}'.format(intertable_id, d), 'INFO')
+            raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=intertable_name)
         result[xs, ys] = v[idxs1] * coeffs1 + v[idxs2] * coeffs2 + v[idxs3] * coeffs3 + v[idxs4] * coeffs4
         return result, existing_intertable
 

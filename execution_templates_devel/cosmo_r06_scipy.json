@@ -7,14 +7,14 @@
             "@type": "accumulation"
         }, 
         "OutMaps": {
-            "@cloneMap": "/dataset/maps/cosmo/dem05.map", 
+            "@cloneMap": "{EUROPE_DEM}",
             "@fmap": 1, 
             "@namePrefix": "pR06", 
             "@unitTime": 24, 
             "Interpolation": {
-                "@latMap": "/dataset/maps/cosmo/lat_cosmo5km_new.map", 
-                "@lonMap": "/dataset/maps/cosmo/lon_cosmo5km_new.map", 
-                "@mode": "nearest"
+                "@latMap": "{EUROPE_LAT}",
+                "@lonMap": "{EUROPE_LON}",
+                "@mode": "invdist"
             }
         }, 
         "Parameter": {

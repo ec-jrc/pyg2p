@@ -152,7 +152,7 @@ class GRIBReader(object):
                 self.scan_grib(gribs, kwargs)
             return gribs
         except ValueError:
-            raise ApplicationException.get_programmatic_exc(NO_MESSAGES, details="using {}".format((str(kwargs))))
+            raise ApplicationException.get_exc(NO_MESSAGES, details="using {}".format((str(kwargs))))
 
     def select_messages(self, **kwargs):
         self._selected_grbs = self._get_gids(**kwargs)
@@ -205,7 +205,7 @@ class GRIBReader(object):
             return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes), short_name
         # no messages found
         else:
-            raise ApplicationException.get_programmatic_exc(3000, details="using {}".format(kwargs))
+            raise ApplicationException.get_exc(3000, details="using {}".format(kwargs))
 
     @staticmethod
     def _find_start_end_steps(gribs):
@@ -248,7 +248,7 @@ class GRIBReader(object):
             return info
         # no messages found
         else:
-            raise ApplicationException.get_programmatic_exc(3000, details="using " + str(select_args))
+            raise ApplicationException.get_exc(3000, details="using " + str(select_args))
 
     def get_gids_for_grib_intertable(self):
         # returns gids of messages to use to create interpolation tables

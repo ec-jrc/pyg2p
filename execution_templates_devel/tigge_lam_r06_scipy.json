@@ -1,25 +1,24 @@
 {
     "Execution": {
-        "@name": "cosmo_e06",
+        "@name": "tigge_lam_scipy_r06",
         "Aggregation": {
-            "@step": 6, 
-            "@type": "average"
+            "@step": 24,
+            "@type": "accumulation"
         }, 
         "OutMaps": {
             "@cloneMap": "/dataset/maps/europe/dem.map",
-            "@ext": 6, 
             "@fmap": 1, 
-            "@namePrefix": "pE06", 
+            "@namePrefix": "R06",
             "@unitTime": 24, 
             "Interpolation": {
                 "@latMap": "/dataset/maps/europe/lat.map",
-                "@lonMap": "/dataset/maps/europe/lon.map",
-                "@mode": "nearest"
+                "@lonMap": "/dataset/maps/europe/long.map",
+                "@mode": "invdist"
             }
         }, 
         "Parameter": {
-            "@applyConversion": "tommd", 
-            "@shortName": "alhfl_s"
+            "@applyConversion": "cut", 
+            "@shortName": "tp"
         }
     }
 }

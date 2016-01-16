@@ -16,7 +16,14 @@ def main(*args):
     # contains main configuration (parameters, geopotentials, loggers, intertables and geopotentials folders)
     conf = Configuration()
     # read execution configuration (command.json, commandline arguments)
-    exc_ctx = ExecutionContext(conf, args)
+    try:
+        exc_ctx = ExecutionContext(conf, args)
+    except appexcmodule.ApplicationException, err:
+        logger = Logger.get_logger()
+        logger.error('\nError: {}\n\n'.format(err))
+        logger.close()
+        return 1
+
     logger = Logger.get_logger(exc_ctx.get('logger.level'))
     try:
         executed = config_command(conf, exc_ctx, logger)
@@ -46,7 +53,7 @@ def execution_command(conf, exc_ctx, logger):
                 ret_value = 1
         finally:
             controller.close()
-            if not exc_ctx.run_tests:
+            if not exc_ctx.is_a_test:
                 logger.close()
     else:
         logger.error(
@@ -85,8 +92,12 @@ def config_command(conf, exc_ctx, logger):
         executed = True
         from main.testrunner import TestRunner
         logger.reset_logger()
-        TestRunner(exc_ctx.get('test.json')).run()
+        TestRunner(conf.tests.vars, exc_ctx.get('test.cmds')).run()
         logger.close()
+    elif exc_ctx.check_conf:
+        # comparison tests between grib2pcraster and pyg2p results
+        executed = True
+        conf.check_conf(logger)
     return executed
 
 

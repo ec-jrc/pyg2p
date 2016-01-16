@@ -26,7 +26,7 @@ class ExecutionContext(object):
         try:
             # read cli input args (commands file path, input files, output dir, or shows help and exit)
             self._define_input_args(argv)
-            if not (self.add_geopotential or self.run_tests or self.convert_conf or self.copy_conf or self.convert_intertables):
+            if not (self.add_geopotential or self.run_tests or self.convert_conf or self.copy_conf or self.convert_intertables or self.check_conf):
                 # read config files and define execuition parameters (set defaults also)
                 self._define_exec_params()
         except Exception, err:
@@ -58,7 +58,6 @@ class ExecutionContext(object):
         parser = ParserHelpOnError(description='''Execute the grib to pcraster conversion using parameters from the input xml configuration.
                                                         \n Read user and configuration manuals''')
 
-        # TODO: Add metavar to arguments and fix help strings
         self.add_args(parser)
         if len(sys.argv) == 1:
             parser.print_help()
@@ -88,8 +87,10 @@ class ExecutionContext(object):
         self._to_add_geopotential = bool(self._vars['geopotential'])
         self._vars['path_to_convert'] = parsed_args['convertConf']
         self._vars['path_to_intertables_to_convert'] = parsed_args['convertIntertables']
-        self._vars['test.json'] = parsed_args['test']
+        self._vars['test.cmds'] = parsed_args['test']
         self._vars['copy_configuration'] = parsed_args['copyConf']
+        self._vars['under_test'] = parsed_args['underTest']
+        self._vars['check_conf'] = parsed_args['checkConf']
 
     @staticmethod
     def add_args(parser):
@@ -129,10 +130,9 @@ class ExecutionContext(object):
                                  ' it does not have any effect.',
                             action='store_true', default=False)
 
-        parser.add_argument('-t', '--test', help='''Path to a test.json configuration file.
-        \nWill execute a battery of commands defined in configuration/tests/pyg2p_commands.txt
-        \nand in configuration/tests/g2p_commands.txt. Then it will create diff pcraster maps and log alerts
-        \nif differences are higher than a threshold''', metavar='json_file')
+        parser.add_argument('-t', '--test', help='''Path to a text file containing list of commands,
+        \n defining a battery of tests. Then it will create diff pcraster maps and log alerts
+        \nif differences are higher than a threshold (edit configuration in test.json)''', metavar='cmds_file')
 
         parser.add_argument('-g', '--addGeopotential', help='''Add the file to geopotentials.json configuration file, to use for correction.
         \nThe file will be copied into the right folder (configuration/geopotentials)
@@ -142,6 +142,10 @@ class ExecutionContext(object):
                             help='Convert old pyg2p intertables to new version and copy to user folders')
         parser.add_argument('-P', '--copyConf',
                             help='Copy configuration from source to user folder (except intertables)',
+                            action='store_true', default=False)
+        parser.add_argument('-U', '--underTest', help=argparse.SUPPRESS,
+                            action='store_true', default=False)
+        parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,
                             action='store_true', default=False)
 
     def get(self, param, default=None):
@@ -164,7 +168,7 @@ class ExecutionContext(object):
             self._input_args['commandsFile'] = os.path.join(os.getcwd(), self._input_args['commandsFile'])
 
         if not util.files.exists(self._input_args['commandsFile']):
-            raise ApplicationException.get_programmatic_exc(0, self._input_args['commandsFile'])
+            raise ApplicationException.get_exc(0, self._input_args['commandsFile'])
 
         with open(self._input_args['commandsFile']) as f:
             u = json.load(f)
@@ -196,6 +200,7 @@ class ExecutionContext(object):
         self._vars['outMaps.clone'] = exec_conf['OutMaps']['@cloneMap']
         interpolation_conf = exec_conf['OutMaps']['Interpolation']
         self._vars['interpolation.mode'] = interpolation_conf.get('@mode', self.default_values['interpolation.mode'])
+        self._vars['interpolation.rotated_target'] = interpolation_conf.get('@rotated_target', False)
         if self._vars['interpolation.dir'] is None:
             # interlookup tables folder was not defined via command line with argument -N, --intertableDir
             # get from JSON or from default user configuration
@@ -253,32 +258,32 @@ class ExecutionContext(object):
     def _check_exec_params(self):
 
         if self.run_tests:
-            if not util.files.exists(self._vars['test.json']):
-                raise ApplicationException.get_programmatic_exc(7000, self._vars['test.json'])
+            if not util.files.exists(self._vars['test.cmds']):
+                raise ApplicationException.get_exc(7000, self._vars['test.cmds'])
         elif self.add_geopotential:
             if not util.files.exists(self._vars['geopotential']):
-                raise ApplicationException.get_programmatic_exc(7001, self._vars['geopotential'])
+                raise ApplicationException.get_exc(7001, self._vars['geopotential'])
         elif self.convert_conf:
             if not util.files.exists(self._vars['path_to_convert'], is_folder=True):
-                raise ApplicationException.get_programmatic_exc(7002, self._vars['path_to_convert'])
-        elif self.copy_conf:
+                raise ApplicationException.get_exc(7002, self._vars['path_to_convert'])
+        elif self.copy_conf or self.check_conf:
             pass
         elif self.convert_intertables:
             if not util.files.exists(self._vars['path_to_intertables_to_convert'], is_folder=True):
-                raise ApplicationException.get_programmatic_exc(7003, self._vars['path_to_intertables_to_convert'])
+                raise ApplicationException.get_exc(7003, self._vars['path_to_intertables_to_convert'])
         else:
 
             if not self._vars.get('input.file'):
-                raise ApplicationException.get_programmatic_exc(1001)
+                raise ApplicationException.get_exc(1001)
             if not util.files.exists(self._vars['input.file']):
-                raise ApplicationException.get_programmatic_exc(1000, self._vars['input.file'])
+                raise ApplicationException.get_exc(1000, self._vars['input.file'])
             if not util.files.exists(self._vars['interpolation.lonMap']) or not util.files.exists(self._vars['interpolation.latMap']):
-                raise ApplicationException.get_programmatic_exc(1300)
+                raise ApplicationException.get_exc(1300)
             if not util.files.exists(self._vars['outMaps.clone']):
-                raise ApplicationException.get_programmatic_exc(1310)
+                raise ApplicationException.get_exc(1310)
 
             if not self._vars['interpolation.mode'] in self.allowed_interp_methods:
-                raise ApplicationException.get_programmatic_exc(INVALID_INTERPOLATION_METHOD, details=self._vars['interpolation.mode'])
+                raise ApplicationException.get_exc(INVALID_INTERPOLATION_METHOD, details=self._vars['interpolation.mode'])
 
             # create out dir if not existing
             try:
@@ -291,25 +296,25 @@ class ExecutionContext(object):
                 raise ApplicationException(exc, None, str(exc))
 
             if self._vars.get('interpolation.dir') and not util.files.exists(self._vars['interpolation.dir'], is_folder=True):
-                raise ApplicationException.get_programmatic_exc(1320, self._vars['interpolation.dir'])
+                raise ApplicationException.get_exc(1320, self._vars['interpolation.dir'])
 
             # check all numbers
 
             if self._vars['parameter.level'] and not self._vars['parameter.level'].isdigit():
-                raise ApplicationException.get_programmatic_exc(1400, 'Parameter level')
+                raise ApplicationException.get_exc(1400, 'Parameter level')
             self._vars['parameter.level'] = int(self._vars['parameter.level']) if self._vars.get('parameter.level') else None
 
             self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else self.default_values['outMaps.unitTime']
 
             # check tstart<=tend
             if self._vars['parameter.tstart'] and self._vars['parameter.tend'] and not self._vars['parameter.tstart'] <= self._vars['parameter.tend']:
-                raise ApplicationException.get_programmatic_exc(1500)
+                raise ApplicationException.get_exc(1500)
 
             # check both correction params are present
             if self._vars['execution.doCorrection'] and not (self._vars.get('correction.gemFormula') and self._vars.get('correction.demMap') and self._vars.get('correction.formula')):
-                raise ApplicationException.get_programmatic_exc(4100)
+                raise ApplicationException.get_exc(4100)
             if self._vars['execution.doCorrection'] and not util.files.exists(self._vars['correction.demMap']):
-                raise ApplicationException.get_programmatic_exc(4200, self._vars['correction.demMap'])
+                raise ApplicationException.get_exc(4200, self._vars['correction.demMap'])
 
     def __str__(self):
         mess = '\n\n============ pyg2p: Execution parameters: {} {} ============\n\n'.format(self._vars['execution.name'], now_string())
@@ -358,7 +363,11 @@ class ExecutionContext(object):
 
     @property
     def run_tests(self):
-        return bool(self._vars.get('test.json'))
+        return bool(self._vars.get('test.cmds'))
+
+    @property
+    def is_a_test(self):
+        return bool(self._vars.get('under_test'))
 
     @property
     def convert_conf(self):
@@ -372,6 +381,9 @@ class ExecutionContext(object):
     def copy_conf(self):
         return bool(self._vars.get('copy_configuration'))
 
+    @property
+    def check_conf(self):
+        return self._vars.get('check_conf')
+
     def geo_file(self, grid_id):
         return self.input_file_with_geopotential or self.configuration.geopotentials.get_filepath(grid_id)
-        # return self._conf.geopotentials.get_filepath(grid_id)

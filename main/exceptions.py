@@ -9,6 +9,7 @@ EXISTING_GEOPOTENTIAL = 8300
 INVALID_INTERPOLATION_METHOD = 8400
 WEIRD_STUFF = 9000
 
+
 class ApplicationException(Exception):
 
     # TODO: convert key from number to explicative string (e.g. 1000 --> 'file.notfound')
@@ -36,12 +37,12 @@ class ApplicationException(Exception):
               'with no more reference to original gribs, using grib_api interpolation methods.  \n'
               'Interlookup table must be created, first. Otherwise, use other interpolation methods (nearest or invdist).',
         6100: 'Manipulation not implemented.',
-        7000: 'JSON configuration file for tests was not found',
+        7000: 'Commands text file for tests was not found',
         7001: 'Geopotential grib file was not found',
         7002: 'Path to old xml configuration was not found',
         7003: 'Path to grib api intertables was not found',
         NO_VAR_DEFINED: 'Variable was not found in any .conf files. Please add it in ~/.pyg2p/<myconffile>.conf',
-        NO_INTERTABLE_CREATED: 'Interpolation table was not found and -B, --createIntertable was not set on command line.',
+        NO_INTERTABLE_CREATED: 'Interpolation table was not found and -B option was not set on command line.',
         JSON_ERROR: 'Error in configuration file.',
         EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
         INVALID_INTERPOLATION_METHOD: 'Interpolation method not valid',
@@ -56,7 +57,7 @@ class ApplicationException(Exception):
             return 'Unknown Error Code: {}'.format(code)
 
     @classmethod
-    def get_programmatic_exc(cls, code, details=''):
+    def get_exc(cls, code, details=''):
         return cls(None, code, '{} - {}'.format(ApplicationException.error_description(code), str(details)))
 
     def __init__(self, inner, code, error):

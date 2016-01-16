@@ -78,7 +78,7 @@ class GribGridDetails(object):
 
     @property
     def latlons(self):
-        # this method is called only when interpolation is a scipy method
+        # this method is called only for scipy interpolation
         if self._lats is None:
             self._log('Fetching coordinates from grib file')
             self._lats, self._longs = self._compute_latlongs(self._gid)
@@ -94,3 +94,6 @@ class GribGridDetails(object):
 
     def get(self, geo_key):
         return self._geo_keys[geo_key]
+
+    def __str__(self):
+        return str(self._geo_keys)

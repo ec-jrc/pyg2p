@@ -1,26 +1,25 @@
 {
     "Execution": {
-        "@name": "Octahedral test 1",
+        "@name": "tigge_lam_t24",
         "Aggregation": {
-            "@step": 24, 
+            "@step": 24,
             "@type": "average"
         }, 
         "OutMaps": {
-            "@cloneMap": "/dataset/maps/global/dem.map",
-            "@ext": 1, 
+            "@cloneMap": "/dataset/maps/europe/dem.map",
             "@fmap": 1, 
-            "@namePrefix": "t2",
+            "@namePrefix": "T24",
             "@unitTime": 24, 
             "Interpolation": {
-                "@latMap": "/dataset/maps/global/lat.map",
-                "@lonMap": "/dataset/maps/global/long.map",
+                "@latMap": "/dataset/maps/europe/lat.map",
+                "@lonMap": "/dataset/maps/europe/long.map",
                 "@mode": "grib_nearest"
             }
         }, 
         "Parameter": {
             "@applyConversion": "k2c",
             "@correctionFormula": "p+gem-dem*0.0065",
-            "@demMap": "/dataset/maps/global/dem.map",
+            "@demMap": "/dataset/maps/europe/dem.map",
             "@gem": "(z/9.81)*0.0065",
             "@shortName": "2t"
         }

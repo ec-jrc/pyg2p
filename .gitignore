@@ -2,9 +2,7 @@
 *.py[c|o]
 ~*.*
 *.*~
-intertables_backup/
-configuration/alternate_intertables
-configuration/intertables/I*
+configuration/intertables/tbl*
 configuration/geopotentials/*.grib
 configuration/geopotentials/*.grib2
 configuration/geopotentials/*.grb

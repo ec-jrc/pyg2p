@@ -14,7 +14,8 @@
             "Interpolation": {
                 "@latMap": "/dataset/maps/cosmo/lat_cosmo5km_new.map", 
                 "@lonMap": "/dataset/maps/cosmo/lon_cosmo5km_new.map", 
-                "@mode": "grib_nearest"
+                "@mode": "grib_nearest",
+                "@rotated_target": true
             }
         }, 
         "Parameter": {

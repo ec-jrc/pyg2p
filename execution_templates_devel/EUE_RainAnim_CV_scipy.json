@@ -1,0 +1,20 @@
+{
+    "Execution": {
+        "@name": "eue_CV06",
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/UKMO/dem.map", 
+            "@ext": 6, 
+            "@fmap": 6, 
+            "@namePrefix": "pCV06", 
+            "@unitTime": 24, 
+            "Interpolation": {
+                "@latMap": "/dataset/maps/UKMO/lat.map", 
+                "@lonMap": "/dataset/maps/UKMO/lon.map", 
+                "@mode": "invdist"
+            }
+        }, 
+        "Parameter": {
+            "@shortName": "tp"
+        }
+    }
+}

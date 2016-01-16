@@ -19,10 +19,10 @@
         }, 
         "Parameter": {
             "@applyConversion": "k2c", 
-            "@correctionFormula": "p+gem-dem*0.0065", 
-            "@dataTime": 1200, 
-            "@demMap": "/dataset/maps/europe5km/dem.map", 
-            "@gem": "(z/9.81)*0.0065", 
+            "@correctionFormula": "p+gem-dem*0.0065",
+            "@dataTime": 1200,
+            "@demMap": "/dataset/maps/europe5km/dem.map",
+            "@gem": "(z/9.81)*0.0065",
             "@shortName": "2t"
         }
     }

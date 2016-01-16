@@ -1,28 +1,69 @@
  ##########################################################
  # use '#' to comment out and empty lines for readability #
  ##########################################################
- g9@ -p 11.2 -n gT24 -t 24 --fmap=1 -m 10 --ext=4 -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24
- p9@ -l ERROR -B -c /pyg2p_git/execution_templates_devel/cosmo_t24_scipy_inv.json -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24 -m 10
- ############# CURRENT FEW TESTS (OCTAHEDRAL) ######################
+ # g9@ -p 11.2 -n gT24 -t 24 --fmap=1 -m 10 --ext=4 -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24
+ # p9@ -l ERROR -B -X -c /pyg2p_git/execution_templates_devel/cosmo_t24_scipy.json -i /dataset/cosmo/2012111912_pf10_t2.grb -o /dataset/testdiffmaps/scipy_interpol/cosmoT24 -m 10
+ ############# CURRENT FEW TESTS (TIGGE_LAM + OCTAHEDRAL) ######################
 
- # p104@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z104@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_vs_scipy/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+# OMSZ (regular grid)
+p1@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_t24.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_omsz -i /dataset/TIGGE_LAM/omsz.grib
+z1@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_t24_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_omsz -i /dataset/TIGGE_LAM/omsz.grib
 
- # p105@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/grib_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z105@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/global/ta -i /dataset/octahedral/2015081000_ensemble/8.grb
+p2@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_r06.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_omsz -i /dataset/TIGGE_LAM/omsz.grib
+z2@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_r06_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_omsz -i /dataset/TIGGE_LAM/omsz.grib
 
- # p106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_invdist.json -o /dataset/octahedral/out/grib_nearest_vs_scipy/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+# METEO FRANCE
+p3@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_t24.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_france -i /dataset/TIGGE_LAM/meteo_france.grib
+z3@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_t24_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_france -i /dataset/TIGGE_LAM/meteo_france.grib
 
- # p106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
- # z106@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist/tp -i /dataset/octahedral/2015081000_ensemble/8.grb
+p4@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_r06.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_france -i /dataset/TIGGE_LAM/meteo_france.grib
+z4@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_r06_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_france -i /dataset/TIGGE_LAM/meteo_france.grib
 
+# ZAMG
+p5@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_t24.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_zamg -i /dataset/TIGGE_LAM/zamg.grib
+z5@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_t24_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_zamg -i /dataset/TIGGE_LAM/zamg.grib
 
-#167.128 2t
-#168.128 2d
-#176.128 ssr
-#177.128 str
-#165.128 10u
-#166.128 10v
-#143.128 cp
-#142.128 lsp
+p6@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_r06.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_zamg -i /dataset/TIGGE_LAM/zamg.grib
+z6@ -l ERROR -B -X -m 8 -c execution_templates_devel/tigge_lam_r06_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_zamg -i /dataset/TIGGE_LAM/zamg.grib
+
+# For rotated grids we test only scipy interpolation
+# DWD (rotated grid not supported in GRIB_API)
+# p7@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_dwd -i /dataset/TIGGE_LAM/dwd.grib
+p7@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_dwd -i /dataset/TIGGE_LAM/dwd.grib
+
+# p8@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_dwd -i /dataset/TIGGE_LAM/dwd.grib
+p8@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_dwd -i /dataset/TIGGE_LAM/dwd.grib
+
+# DMI (rotated)
+# p9@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_dmi -i /dataset/TIGGE_LAM/dmi.grib
+p9@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_dmi -i /dataset/TIGGE_LAM/dmi.grib
+
+# p10@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_dmi -i /dataset/TIGGE_LAM/dmi.grib
+p10@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_dmi -i /dataset/TIGGE_LAM/dmi.grib
+
+# UKMO (rotated)
+# p11@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_ukmo -i /dataset/TIGGE_LAM/ukmo.grib
+p11@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_ukmo -i /dataset/TIGGE_LAM/ukmo.grib
+
+# p12@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_ukmo -i /dataset/TIGGE_LAM/ukmo.grib
+p12@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_ukmo -i /dataset/TIGGE_LAM/ukmo.grib
+
+# ARPA (rotated)
+# p13@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_arpa -i /dataset/TIGGE_LAM/arpa.grib
+p13@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_t24_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/ta_arpa -i /dataset/TIGGE_LAM/arpa.grib
+
+# p14@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_arpa -i /dataset/TIGGE_LAM/arpa.grib
+p14@ -l ERROR -B -X -m 10 -c execution_templates_devel/tigge_lam_r06_scipy.json -o /dataset/TIGGE_LAM/out/grib_vs_scipy/r06_arpa -i /dataset/TIGGE_LAM/arpa.grib
+
+# OCTAHEDRAL
+p15@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test.json -o /dataset/octahedral/out/grib_vs_scipy/nearest -i /dataset/octahedral/2015081000_ensemble/8.grb
+z15@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy.json -o /dataset/octahedral/out/grib_vs_scipy/nearest -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+p16@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/grib_vs_scipy/global/nearest -i /dataset/octahedral/2015081000_ensemble/8.grb
+z16@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global.json -o /dataset/octahedral/out/grib_vs_scipy/global/nearest -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+p17@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/invdist -i /dataset/octahedral/2015081000_ensemble/8.grb
+z17@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/invdist -i /dataset/octahedral/2015081000_ensemble/8.grb
+
+p18@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist -i /dataset/octahedral/2015081000_ensemble/8.grb
+z18@ -l ERROR -B -X -m 8 -e 360 -c execution_templates_devel/octahedral_test_scipy_global_invdist.json -o /dataset/octahedral/out/grib_vs_scipy/global/invdist -i /dataset/octahedral/2015081000_ensemble/8.grb

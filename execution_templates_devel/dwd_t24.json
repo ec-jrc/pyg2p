@@ -6,21 +6,21 @@
             "@type": "average"
         }, 
         "OutMaps": {
-            "@cloneMap": "/dataset/maps/dwd/dem05.map", 
+            "@cloneMap": "/dataset/maps/europe/dem.map",
             "@ext": 4, 
             "@fmap": 1, 
             "@namePrefix": "pT24", 
             "@unitTime": 24, 
             "Interpolation": {
-                "@latMap": "/dataset/maps/dwd/dwdlme05_lat.map", 
-                "@lonMap": "/dataset/maps/dwd/dwdlme05_lon.map", 
-                "@mode": "grib_nearest"
+                "@latMap": "/dataset/maps/europe/lat.map",
+                "@lonMap": "/dataset/maps/europe/lon.map",
+                "@mode": "nearest"
             }
         }, 
         "Parameter": {
             "@applyConversion": "k2c", 
             "@correctionFormula": "p+gem-dem*0.0065", 
-            "@demMap": "/dataset/maps/dwd/dem05.map", 
+            "@cloneMap": "/dataset/maps/europe/dem.map",
             "@gem": "(z/9.81)*0.0065", 
             "@shortName": "2t", 
             "@tend": 30, 

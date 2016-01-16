@@ -1,26 +1,26 @@
 {
     "Execution": {
-        "@name": "Octahedral test 1",
+        "@name": "cosmo_T24",
         "Aggregation": {
             "@step": 24, 
             "@type": "average"
         }, 
         "OutMaps": {
-            "@cloneMap": "/dataset/maps/global/dem.map",
-            "@ext": 1, 
+            "@cloneMap": "{EUROPE_DEM}",
+            "@ext": 4, 
             "@fmap": 1, 
-            "@namePrefix": "t2",
+            "@namePrefix": "pT24", 
             "@unitTime": 24, 
             "Interpolation": {
-                "@latMap": "/dataset/maps/global/lat.map",
-                "@lonMap": "/dataset/maps/global/long.map",
-                "@mode": "grib_nearest"
+                "@latMap": "{EUROPE_LAT}",
+                "@lonMap": "{EUROPE_LON}",
+                "@mode": "nearest"
             }
         }, 
         "Parameter": {
-            "@applyConversion": "k2c",
+            "@applyConversion": "k2c", 
             "@correctionFormula": "p+gem-dem*0.0065",
-            "@demMap": "/dataset/maps/global/dem.map",
+            "@demMap": "{EUROPE_DEM}",
             "@gem": "(z/9.81)*0.0065",
             "@shortName": "2t"
         }

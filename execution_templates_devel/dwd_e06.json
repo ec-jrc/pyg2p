@@ -6,14 +6,14 @@
             "@type": "average"
         }, 
         "OutMaps": {
-            "@cloneMap": "/dataset/maps/dwd/dem05.map", 
+            "@cloneMap": "/dataset/maps/europe/dem.map",
             "@fmap": 1, 
             "@namePrefix": "pE06", 
             "@unitTime": 24, 
             "Interpolation": {
-                "@latMap": "/dataset/maps/dwd/dwdlme05_lat.map", 
-                "@lonMap": "/dataset/maps/dwd/dwdlme05_lon.map", 
-                "@mode": "grib_nearest"
+                "@latMap": "/dataset/maps/europe/lat.map",
+                "@lonMap": "/dataset/maps/europe/lon.map",
+                "@mode": "nearest"
             }
         }, 
         "Parameter": {

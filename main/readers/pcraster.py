@@ -1,5 +1,6 @@
-import gdal
-from gdalconst import *
+from osgeo import gdal
+from osgeo.gdalconst import GA_ReadOnly
+
 from util.logger import Logger
 
 
@@ -25,6 +26,7 @@ class PCRasterReader(object):
         self._band = self._dataset.GetRasterBand(1)
         self._min = self._band.GetMinimum()
         self._max = self._band.GetMaximum()
+        self._mv = self._band.GetNoDataValue()
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)
@@ -36,7 +38,7 @@ class PCRasterReader(object):
 
     @property
     def missing_value(self):
-        return self._band.GetNoDataValue()
+        return self._mv
 
     def close(self):
         self._band = None
