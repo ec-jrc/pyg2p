@@ -55,8 +55,8 @@ class ExecutionContext(object):
                 sys.stderr.write('Argument error: {}\n'.format(message))
                 sys.exit(1)
 
-        parser = ParserHelpOnError(description='''Execute the grib to pcraster conversion using parameters from the input xml configuration.
-                                                        \n Read user and configuration manuals''')
+        parser = ParserHelpOnError(description='''Execute the grib to pcraster conversion using parameters from the input json configuration.
+                                                        \n Read user manual.''')
 
         self.add_args(parser)
         if len(sys.argv) == 1:
