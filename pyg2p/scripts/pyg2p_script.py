@@ -2,18 +2,22 @@
 
 import sys
 
-from main import exceptions as appexcmodule
-from main.config import Configuration
-from main.controller import Controller
+from pyg2p.main import exceptions as appexcmodule
+from pyg2p.main.config import Configuration
+from pyg2p.main.controller import Controller
 
 from pyg2p.main.context import ExecutionContext
-from pyg2p.util import Logger
+from pyg2p.util.logger import Logger
 
 __version__ = '2.0'
 
 
+def main_script():
+    sys.exit(main(sys.argv[1:]))
+
+
 def main(*args):
-    if __name__ in ("__main__", "pyg2p") and isinstance(args[0], list):
+    if isinstance(args[0], list):
         args = args[0]
     # contains main configuration (parameters, geopotentials, loggers, intertables and geopotentials folders)
     conf = Configuration()
@@ -101,7 +105,3 @@ def config_command(conf, exc_ctx, logger):
         executed = True
         conf.check_conf(logger)
     return executed
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))

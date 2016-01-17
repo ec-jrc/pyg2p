@@ -10,7 +10,9 @@ from pyg2p.main.exceptions import (
     SHORTNAME_NOT_FOUND,
     CONVERSION_NOT_FOUND,
     NO_GEOPOTENTIAL,
-    NO_VAR_DEFINED, JSON_ERROR, EXISTING_GEOPOTENTIAL)
+    NO_VAR_DEFINED, JSON_ERROR, EXISTING_GEOPOTENTIAL
+)
+import pyg2p.util.files
 
 
 class UserConfiguration(object):

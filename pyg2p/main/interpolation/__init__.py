@@ -2,13 +2,14 @@ import os
 from functools import partial
 
 import numpy as np
-from main.interpolation import grib_interpolation_lib
-from main.interpolation.latlong import LatLong
-from main.interpolation.scipy_interpolation_lib import InverseDistance
+from pyg2p.main.interpolation import grib_interpolation_lib
+from pyg2p.main.interpolation.latlong import LatLong
+from pyg2p.main.interpolation.scipy_interpolation_lib import InverseDistance
 
 from pyg2p.main.exceptions import ApplicationException, NO_INTERTABLE_CREATED
-from pyg2p.util import Logger
-from pyg2p.util import mask_it
+from pyg2p.util.logger import Logger
+from pyg2p.util.numeric import mask_it
+import pyg2p.util.files
 
 
 class Interpolator(object):

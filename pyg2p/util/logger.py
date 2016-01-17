@@ -6,7 +6,7 @@ import sys
 import gribapi
 
 from pyg2p.main.exceptions import ApplicationException
-from pyg2p.util import FAIL, YELLOW, ENDC
+from pyg2p.util.generics import FAIL, YELLOW, ENDC
 
 LOGGERS_REGISTER = {}
 

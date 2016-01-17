@@ -9,7 +9,7 @@ from pyg2p.main.domain.grid_details import GribGridDetails
 from pyg2p.main.domain.messages import Messages
 from pyg2p.main.domain.step import Step
 
-from pyg2p import util as utils
+from pyg2p.util import generics as utils
 from pyg2p.main.exceptions import ApplicationException, NO_MESSAGES
 from pyg2p.util.logger import Logger
 
@@ -173,8 +173,8 @@ class GRIBReader(object):
             type_of_level = grib_get(self._selected_grbs[0], 'levelType')
 
             missing_value = grib_get(self._selected_grbs[0], 'missingValue')
-            allValues = {}
-            allValues2ndRes = {}
+            all_values = {}
+            all_values_second_res = {}
             grid2 = None
             input_step = self._step_grib
             for g in self._selected_grbs:
@@ -195,14 +195,14 @@ class GRIBReader(object):
 
                 values = grib_get_double_array(g, 'values')
                 if not grid2:
-                    allValues[key] = values
+                    all_values[key] = values
                 elif points_meridian != grid.num_points_along_meridian:
-                    allValues2ndRes[key] = values
+                    all_values_second_res[key] = values
 
             if grid2:
-                key_2nd_spatial_res = min(allValues2ndRes.keys())
+                key_2nd_spatial_res = min(all_values_second_res.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
-            return Messages(allValues, missing_value, unit, type_of_level, type_of_step, grid, allValues2ndRes), short_name
+            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, grid, all_values_second_res), short_name
         # no messages found
         else:
             raise ApplicationException.get_exc(3000, details="using {}".format(kwargs))
