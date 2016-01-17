@@ -11,7 +11,7 @@ conf_list_files = os.listdir('./configuration')
 conf_list_files = [os.path.join('./configuration', f) for f in conf_list_files if f.endswith('json')]
 
 setup(name='pyg2p',
-      version='2.0',
+      version='2.0.1',
       description="Convert GRIB files to PCRaster",
       license="Commercial",
       install_requires=packages_list,
