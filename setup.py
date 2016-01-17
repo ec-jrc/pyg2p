@@ -28,5 +28,7 @@ setup(name='pyg2p',
       keywords="GRIB PCRaster pyg2p",
       # cmdclass={'install': Install},
       entry_points={'console_scripts': ['pyg2p = pyg2p.pyg2p:main']},
+      package_dir={'pyg2p': './'},
+      package_data={'pyg2p': ['configuration/*', 'Docs/*', 'execution_templates_devel']},
       zip_safe=True)
 
