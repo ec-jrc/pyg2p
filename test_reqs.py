@@ -1,4 +1,4 @@
-from util.generics import WARN, BOLD, FAIL, ENDC, GREEN
+from pyg2p.util import WARN, BOLD, FAIL, ENDC, GREEN
 
 
 def test_reqs():
