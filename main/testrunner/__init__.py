@@ -17,7 +17,7 @@ from util.logger import Logger
 from util.strings import to_argv
 
 
-class TestDiffMixing(object):
+class TestDiffMixin(object):
     def _diff_maps(self, p_num_maps, test_, o_num_maps, o_maps, results):
         if p_num_maps != o_num_maps:
             self._print_colored(FAIL, 'xxxxxxx! ATTENTION!!! Potential misconfiguration or bug!')
@@ -110,7 +110,7 @@ class TestDiffMixing(object):
                 print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
 
 
-class TestRunner(TestDiffMixing):
+class TestRunner(TestDiffMixin):
     # TODO change print statements to logger info
     def __init__(self, config, file_):
         self._ctx = TestContext(config, file_)
