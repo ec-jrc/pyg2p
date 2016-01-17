@@ -2,13 +2,14 @@
     "Execution": {
         "@name": "dwd_rain_gsp",
         "Aggregation": {
+            "@forceZeroArray": "yes",
             "@step": 6, 
             "@type": "accumulation"
         }, 
         "OutMaps": {
             "@cloneMap": "/dataset/maps/europe/dem.map",
             "@fmap": 1, 
-            "@namePrefix": "pR06", 
+            "@namePrefix": "R06",
             "@unitTime": 24, 
             "Interpolation": {
                 "@latMap": "/dataset/maps/europe/lat.map",
@@ -17,6 +18,7 @@
             }
         }, 
         "Parameter": {
+            "@applyConversion": "cut",
             "@shortName": "RAIN_GSP", 
             "@tend": 18, 
             "@tstart": 12

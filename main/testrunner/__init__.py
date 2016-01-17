@@ -29,11 +29,13 @@ class TestRunner(object):
             self.check_map(g_map, test_, test_result)
 
         if test_result['failed']:
+            self._print_colored(FAIL, 'Test {}: [FAILED]'.format(test_.id))
             return '1'
         elif test_result['problematic']:
+            self._print_colored(YELLOW, 'Test {}: [TO CHECK]'.format(test_.id))
             return '2'
         else:
-            self._print_colored(GREEN, '[PASSED]')
+            self._print_colored(GREEN, 'Test {}: [PASSED]'.format(test_.id))
             return '0'
 
     def check_map(self, g_map, test_, test_result):
@@ -203,7 +205,6 @@ class TestRunner(object):
             self._print_colored(FAIL, 'Number of maps are different p: {} g: {}'.format(p_num_maps, o_num_maps))
             results['1'].append(test_.id)
         else:
-            print '\n\n====> Calculating differences... If values are not identical, will print aguila commands to compare them.'
             res = self.do_pcdiffs(test_, o_maps)
             results[res].append(test_.id)
 

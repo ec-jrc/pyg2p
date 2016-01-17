@@ -1,4 +1,3 @@
-import json
 import os
 
 from util.strings import to_argv

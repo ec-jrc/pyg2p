@@ -58,19 +58,19 @@
 
  #GLOFAS
  #glofas commands. grib2pcraster needs two executions for each pyg2p command
- g13@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 192 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
- g13@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/multires/multiresSRO -p 8.128 -m 50 -n gsro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
- p13@ -c /pyg2p_git/execution_templates_devel/glofas_sro.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -s 192 -o /dataset/testdiffmaps/multires/multiresSRO -m 50 -l ERROR -X -B
+ g13@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/multires/multiresSRO -p 8.128 -m 50 --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
+ g13@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/multires/multiresSRO -p 8.128 -m 50 --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
+ p13@ -c /pyg2p_git/execution_templates_devel/glofas_sro.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -s 0 -o /dataset/testdiffmaps/multires/multiresSRO -m 50 -l ERROR -X -B
 
- g14@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 192 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
+ g14@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
  g14@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/multires/multiresSSRO -m 50 -p 9.128 -n gssro --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
- p14@ -l ERROR -X -B -c /pyg2p_git/execution_templates_devel/glofas_ssro.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -s 192 -o /dataset/testdiffmaps/multires/multiresSSRO -m 50
+ p14@ -l ERROR -X -B -c /pyg2p_git/execution_templates_devel/glofas_ssro.json -i /dataset/multires/20130325_en0to10.grib -I /dataset/multires/20130325_en11to15.grib -s 0 -o /dataset/testdiffmaps/multires/multiresSSRO -m 50
 
  #pyg2p executing with single file multires
  #uncomment and edit this test to use all files of same date
- #g15@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/multiresSRO2 -p 8.128 -m 50 -n gsrog --date=20130325 -s 192 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
+ #g15@ -i /dataset/multires/20130325_en0to10.grib -o /dataset/testdiffmaps/multiresSRO2 -p 8.128 -m 50 -n gsrog --date=20130325 -s 0 -e 240 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_medium.txt
  #g15@ -i /dataset/multires/20130325_en11to15.grib -o /dataset/testdiffmaps/multiresSRO2 -p 8.128 -m 50 -n gsrog --date=20130325 -s 264 --fmap=11 -e 360 --unit=mm -t 24 --interlookup=/home/dominik/ECMWF_grib2pcraster/grib2pcraster/interplookup/intertable_low.txt
- #p15@ -l ERROR -X -B -c /pyg2p_git/execution_templates_devel/EUE_15d_glob.json -i /dataset/multires/sro_2013051300.grb -s 192 -o /dataset/testdiffmaps/multiresSRO2 -m 0
+ #p15@ -l ERROR -X -B -c /pyg2p_git/execution_templates_devel/EUE_15d_glob.json -i /dataset/multires/sro_2013051300.grb -s 0 -o /dataset/testdiffmaps/multiresSRO2 -m 0
 
  #DWD NEW INTERPOL
  g16@  -p 102.201 -n gR06 -t 06 --fmap=14 -s 84 -e 168 -i /dataset/dwd/grib/dwd_grib1_ispra_gmi20_2012111912 -o /dataset/testdiffmaps/dwdgmi20_r06NewInter
@@ -88,10 +88,7 @@
  # TODO repeat grib interpolation creation and check if and why it is slow. scipy run in 1 minute while grib run in 8 hrs
  # it can be a multiprocessing problem if scipy took all processors
  p36@ -l ERROR -X -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
- z36@ -l ERROR -X -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
-
- #p95@ -l ERROR -X -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_g.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
- #z95@ -l ERROR -X -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_t24_fred_scipy_nn.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
+ z36@ -l ERROR -X -B -i /dataset/frederic_ecmwf/0.grb -c /pyg2p_git/execution_templates_devel/eud_r06_fred_scipy.json -o /dataset/testdiffmaps/scipy_interpol/frederic_ecmwf/test_20140523
 
  ############# AFFS TESTS ######################
 
@@ -138,3 +135,4 @@
  g108@ -i /dataset/octahedral/2015081000_ensemble/9.grb -o /dataset/octahedral/out/cgrib_pygrib/global/ta -p 167.128 -m 9 --ma 1 -n t2 --ext=1 --fmap=1 --ts=24 -s 0 -e 240 --interlookup=interplookup/octahedral_global.1.txt --interlookup2=interplookup/octahedral_global.2.txt
  g108@ -i /dataset/octahedral/2015081000_ensemble/9.grb -o /dataset/octahedral/out/cgrib_pygrib/global/ta -p 167.128 -m 9 --ma 1 -n t2 --ext=1 --fmap=11 --ts=24 -s 264 -e 360 --interlookup=interplookup/octahedral_global.2.txt
  p108@ -l ERROR -X -B -m 9 -e 360 -c execution_templates_devel/octahedral_test_global.json -o /dataset/octahedral/out/cgrib_pygrib/global/ta -i /dataset/octahedral/2015081000_ensemble/9.grb
+
