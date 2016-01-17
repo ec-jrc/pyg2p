@@ -1,6 +1,8 @@
 .idea/
 *.py[c|o]
 ~*.*
+/build
+/pyg2p.egg-info
 *.*~
 configuration/intertables/tbl*
 configuration/geopotentials/*.grib
