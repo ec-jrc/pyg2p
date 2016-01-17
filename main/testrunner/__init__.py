@@ -17,10 +17,15 @@ from util.logger import Logger
 from util.strings import to_argv
 
 
-class TestRunner(object):
-    # TODO change print statements to logger info
-    def __init__(self, config, file_):
-        self._ctx = TestContext(config, file_)
+class TestDiffMixing(object):
+    def _diff_maps(self, p_num_maps, test_, o_num_maps, o_maps, results):
+        if p_num_maps != o_num_maps:
+            self._print_colored(FAIL, 'xxxxxxx! ATTENTION!!! Potential misconfiguration or bug!')
+            self._print_colored(FAIL, 'Number of maps are different p: {} g: {}'.format(p_num_maps, o_num_maps))
+            results['1'].append(test_.id)
+        else:
+            res = self.do_pcdiffs(test_, o_maps)
+            results[res].append(test_.id)
 
     def do_pcdiffs(self, test_, g_maps):
 
@@ -104,6 +109,12 @@ class TestRunner(object):
             if large_diff or perc_wrong >= 0.3:
                 print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
 
+
+class TestRunner(TestDiffMixing):
+    # TODO change print statements to logger info
+    def __init__(self, config, file_):
+        self._ctx = TestContext(config, file_)
+
     def _print_time_diffs(self, elapsed_counter_part, elapsed_pyg2p, test_, from_scipy=False):
         txt_ = 'pyg2p with scipy interpol ' if from_scipy else 'grib2pcraster'
         msg = '{} test {} executed in {}'.format(txt_, test_.id, str(datetime.timedelta(seconds=elapsed_counter_part)))
@@ -186,9 +197,9 @@ class TestRunner(object):
             p_num_maps, p_maps = self._count_maps('p', test_.out_dir)
 
             if test_.g2p_command:
-                self.__diff_maps(p_num_maps, test_, g_num_maps, g_maps, results)
+                self._diff_maps(p_num_maps, test_, g_num_maps, g_maps, results)
             elif test_.pyg2p_scipy_command:
-                self.__diff_maps(p_num_maps, test_, z_num_maps, z_maps, results)
+                self._diff_maps(p_num_maps, test_, z_num_maps, z_maps, results)
             else:
                 # test with only pyg2p commands. No comparisons.
                 for p_map in p_maps:
@@ -198,15 +209,6 @@ class TestRunner(object):
 
         self.print_test_suite_summary(elapsed_test, num_tests, results)
         Logger.reset_logger()
-
-    def __diff_maps(self, p_num_maps, test_, o_num_maps, o_maps, results):
-        if p_num_maps != o_num_maps:
-            self._print_colored(FAIL, 'xxxxxxx! ATTENTION!!! Potential misconfiguration or bug!')
-            self._print_colored(FAIL, 'Number of maps are different p: {} g: {}'.format(p_num_maps, o_num_maps))
-            results['1'].append(test_.id)
-        else:
-            res = self.do_pcdiffs(test_, o_maps)
-            results[res].append(test_.id)
 
     @staticmethod
     def _print_colored(color, message):
