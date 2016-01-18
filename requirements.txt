@@ -7,5 +7,6 @@ memory_profiler
 # pip install numexpr separately otherwise won't find numpy
 
 # dask packages for parallel interpolation
+dask[bag]
 dask[array]
 toolz

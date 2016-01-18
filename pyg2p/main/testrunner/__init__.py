@@ -14,6 +14,9 @@ from pyg2p.main.testrunner.context import TestContext
 from pyg2p.util.generics import GREEN, FAIL, WARN, YELLOW, ENDC, DEFAULT
 from pyg2p.util.logger import Logger
 from pyg2p.util.strings import to_argv
+import pyg2p.util.files
+
+from pyg2p.scripts.pyg2p_script import main as pyg2p_main
 
 
 class TestDiffMixin(object):
@@ -176,7 +179,8 @@ class TestRunner(TestDiffMixin):
             if test_.pyg2p_scipy_command:
                 print 'Running pyg2p with scipy interpolation...'
                 a = time.time()
-                t = (pyg2p.main, to_argv(test_.pyg2p_scipy_command.strip()))
+
+                t = (pyg2p_main, to_argv(test_.pyg2p_scipy_command.strip()))
                 mem_usage = memory_usage(t)  # here it runs
                 elapsed_pyg2p_scipy = time.time() - a
                 avg_mem_scipy = sum(mem_usage) / len(mem_usage)
@@ -186,7 +190,7 @@ class TestRunner(TestDiffMixin):
             print 'Running pyg2p...'
             a = time.time()
 
-            t = (pyg2p.main, to_argv(test_.pyg2p_command.strip()))
+            t = (pyg2p_main, to_argv(test_.pyg2p_command.strip()))
             mem_usage = memory_usage(t)  # here it runs
             elapsed_pyg2p = time.time() - a
             avg_mem = sum(mem_usage) / len(mem_usage)

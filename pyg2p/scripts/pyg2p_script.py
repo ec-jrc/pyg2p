@@ -96,7 +96,7 @@ def config_command(conf, exc_ctx, logger):
     elif exc_ctx.run_tests:
         # comparison tests between grib2pcraster and pyg2p results
         executed = True
-        from pyg2p.main import TestRunner
+        from pyg2p.main.testrunner import TestRunner
         logger.reset_logger()
         TestRunner(conf.tests.vars, exc_ctx.get('test.cmds')).run()
         logger.close()

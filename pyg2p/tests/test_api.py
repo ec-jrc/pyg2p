@@ -6,7 +6,7 @@ from pyg2p.main import api
 from pyg2p.main.config import Configuration
 
 from pyg2p.main.exceptions import ApplicationException
-
+import pyg2p.util.files
 
 class TestAPI(unittest.TestCase):
     out_1 = '/dataset/testdiffmaps/eueT24'
