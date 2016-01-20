@@ -2,11 +2,16 @@ SHORTNAME_NOT_FOUND = 1100
 CONVERSION_NOT_FOUND = 1200
 NO_MESSAGES = 3000
 NO_GEOPOTENTIAL = 4000
+NO_FILE_GEOPOTENTIAL = 4100
 NO_VAR_DEFINED = 8000
 NO_INTERTABLE_CREATED = 8100
 JSON_ERROR = 8200
 EXISTING_GEOPOTENTIAL = 8300
 INVALID_INTERPOLATION_METHOD = 8400
+NO_WRITE_PERMISSIONS = 8500
+NO_READ_PERMISSIONS = 8600
+NOT_EXISTING_PATH = 8600
+MISSING_CONFIG_FILES = 8700
 WEIRD_STUFF = 9000
 
 
@@ -28,7 +33,8 @@ class ApplicationException(Exception):
         1700: 'Unkwon ext mode. Must be number.',
         2000: 'Found Not Handled parameter value',
         NO_MESSAGES: 'No Messages found',
-        NO_GEOPOTENTIAL: 'No geopotential filename found in geopotentials.json (for correction)',
+        NO_GEOPOTENTIAL: 'No geopotential configured in geopotentials.json. Add it with -g option',
+        NO_FILE_GEOPOTENTIAL: 'Geopotential configured but file is missing',
         4100: 'Both correctionFormula, gemFormula and demMap attributes must be present in the Parameter tag',
         4200: 'Did not found demMap file',
         5000: 'Interpolating with not existing lat/lons. Probably a geopotential grib.\n'
@@ -41,12 +47,16 @@ class ApplicationException(Exception):
         7001: 'Geopotential grib file was not found',
         7002: 'Path to old xml configuration was not found',
         7003: 'Path to grib api intertables was not found',
-        NO_VAR_DEFINED: 'Variable was not found in any .conf files. Please add it in ~/.pyg2p/<myconffile>.conf',
+        NO_VAR_DEFINED: 'Following vars were not found in any of your .conf files. Please add it in ~/.pyg2p/<myconffile>.conf',
         NO_INTERTABLE_CREATED: 'Interpolation table was not found and -B option was not set on command line.',
         JSON_ERROR: 'Error in configuration file.',
         EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
         INVALID_INTERPOLATION_METHOD: 'Interpolation method not valid',
         WEIRD_STUFF: 'Cannot continue: weird stuff happening',
+        NO_WRITE_PERMISSIONS: 'You cannot write to folder',
+        NO_READ_PERMISSIONS: 'You cannot read from folder',
+        NOT_EXISTING_PATH: 'Not existing paths',
+        MISSING_CONFIG_FILES: 'Missing configuration. You may need to run setup.py install again.',
     }
 
     @staticmethod

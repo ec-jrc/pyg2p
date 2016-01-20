@@ -25,7 +25,7 @@ class Interpolator(object):
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]
         self._logger = Logger.get_logger()
-        self._intertable_dir = exec_ctx.get('interpolation.dir')
+        self._intertable_dirs = exec_ctx.get('interpolation.dirs')
         self._rotated_target_grid = exec_ctx.get('interpolation.rotated_target')
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
         self._mv_efas = self._target_coords.missing_value
@@ -48,20 +48,22 @@ class Interpolator(object):
     def _intertable_filename(self, grid_id):
         intertable_id = '{}{}_{}{}'.format(self._prefix, grid_id.replace('$', '_'), self._target_coords.identifier, self._suffix)
         if intertable_id not in self.intertables_dict:
-            # return a new intertable filename
+            # return a new intertable filename to create
             filename = self.format_intertablename(prognum='')
-            tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dir, filename))
+            tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
             i = 1
             while pyg2p.util.files.exists(tbl_fullpath):
                 filename = self.format_intertablename(prognum='_{}'.format(i))
-                tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dir, filename))
+                tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
                 i += 1
             return intertable_id, tbl_fullpath
 
         filename = self.intertables_dict[intertable_id]['filename']
-        tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dir, filename))
+        tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
         if not pyg2p.util.files.exists(tbl_fullpath):
-            self._logger.warn('An entry in configuration was found for {} but intertable does not exist and will be created'.format(filename))
+            tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['global'], filename))
+            if not pyg2p.util.files.exists(tbl_fullpath):
+                self._logger.warn('An entry in configuration was found for {} but intertable does not exist.'.format(filename))
         return intertable_id, tbl_fullpath
 
     def _read_intertable(self, tbl_fullpath):
@@ -112,7 +114,7 @@ class Interpolator(object):
                 self._log('Trying to interpolate without grib lat/lons. Probably a geopotential grib!', 'ERROR')
                 raise ApplicationException.get_exc(5000)
 
-            self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'INFO')
+            self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             invdisttree = InverseDistance(longrib, latgrib, grid_details, z.ravel(), nnear, self._mv_efas,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
                                           parallel=self.parallel)
@@ -160,7 +162,7 @@ class Interpolator(object):
                 assert gid != -1, 'GRIB message reference was not found.'
             except AssertionError as e:
                 raise ApplicationException.get_exc(6000, details=str(e))
-            self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'INFO')
+            self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value)
             intertable = np.asarray([xs, ys, idxs])
             np.save(intertable_name, intertable)
@@ -207,7 +209,7 @@ class Interpolator(object):
             if gid == -1:
                 raise ApplicationException.get_exc(6000)
 
-            self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'INFO')
+            self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'WARN')
             lonefas = self._target_coords.longs
             latefas = self._target_coords.lats
             mv = self._target_coords.missing_value

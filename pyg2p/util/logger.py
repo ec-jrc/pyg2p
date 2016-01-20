@@ -52,15 +52,13 @@ class Logger(object):
 
     def log(self, message, level='DEBUG'):
         trace_it = 0
-        color = FAIL if level == 'ERROR' else YELLOW
         if level in ('ERROR', 'WARN', 'WARNING'):
+            color = FAIL if level == 'ERROR' else YELLOW
             message = '{}{}{}'.format(color, message, ENDC)
         message = '{} {}'.format(self._caller_info(), message)
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        if level == 'DEBUG':
-            if isinstance(exc_obj, gribapi.GribInternalError):
-                pass
-            elif exc_type and not isinstance(exc_obj, ApplicationException):
+        if self._level == 'DEBUG':
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            if not isinstance(exc_obj, gribapi.GribInternalError) and exc_type:
                 print str(exc_obj)
                 trace_it = 1
         self._logger.log(self._get_int_level(level), message, exc_info=trace_it)

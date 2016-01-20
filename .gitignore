@@ -1,17 +1,9 @@
 .idea/
 *.py[c|o]
-~*.*
+*~*.*
 /build
 /pyg2p.egg-info
 /dist
-*.*~
-configuration/intertables/tbl*
-configuration/geopotentials/*.grib
-configuration/geopotentials/*.grib2
-configuration/geopotentials/*.grb
-configuration/geopotentials/*.grib1
-configuration/geopotentials/*_LME_*
-configuration/geopotentials/*_gmi20_*
-logs/
+
 
 

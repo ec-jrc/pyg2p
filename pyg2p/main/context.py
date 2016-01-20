@@ -6,6 +6,7 @@ import sys
 from pyg2p.main.manipulation.aggregator import ACCUMULATION
 
 import pyg2p.util.strings
+import pyg2p.util.files
 from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD
 from pyg2p.util.strings import now_string, FALSE_STRINGS
 
@@ -17,16 +18,19 @@ class ExecutionContext(object):
     def __init__(self, configuration, argv):
 
         self.configuration = configuration
+
+        # init vars
         self._input_args = {}
         self._to_add_geopotential = False
         self.input_file_with_geopotential = None
         self._vars = {}
+        self.is_config_command = False
 
         try:
             # read cli input args (commands file path, input files, output dir, or shows help and exit)
-            self._define_input_args(argv)
-            if not (self.add_geopotential or self.run_tests or self.convert_conf or self.copy_conf or self.convert_intertables or self.check_conf):
-                # read config files and define execuition parameters (set defaults also)
+            self._define_input_args(argv)  # redefines self.is_config_command
+            if not self.is_config_command:
+                # read config files and define execution parameters (set defaults also)
                 self._define_exec_params()
         except Exception, err:
             raise ApplicationException(err, None, str(err))
@@ -87,9 +91,12 @@ class ExecutionContext(object):
         self._vars['path_to_convert'] = parsed_args['convertConf']
         self._vars['path_to_intertables_to_convert'] = parsed_args['convertIntertables']
         self._vars['test.cmds'] = parsed_args['test']
-        self._vars['copy_configuration'] = parsed_args['copyConf']
+        self._vars['download_configuration'] = parsed_args['downloadConf']
         self._vars['under_test'] = parsed_args['underTest']
         self._vars['check_conf'] = parsed_args['checkConf']
+        user_intertables = self._vars['interpolation.dir'] or self.configuration.default_interpol_dir
+        self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path, 'user': user_intertables}
+        self.is_config_command = (self.add_geopotential or self.run_tests or self.convert_conf or self.download_conf or self.convert_intertables or self.check_conf)
 
     @staticmethod
     def add_args(parser):
@@ -139,9 +146,9 @@ class ExecutionContext(object):
         parser.add_argument('-C', '--convertConf', help='Convert old xml configuration to new json format', metavar='path')
         parser.add_argument('-z', '--convertIntertables', metavar='path',
                             help='Convert old pyg2p intertables to new version and copy to user folders')
-        parser.add_argument('-P', '--copyConf',
-                            help='Copy configuration from source to user folder (except intertables)',
-                            action='store_true', default=False)
+        parser.add_argument('-W', '--downloadConf',
+                            help='Download intertables and geopotentials (FTP settings defined in ftp.json)',
+                            metavar='dataset', choices=['geopotentials', 'intertables'])
         parser.add_argument('-U', '--underTest', help=argparse.SUPPRESS,
                             action='store_true', default=False)
         parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,
@@ -200,10 +207,9 @@ class ExecutionContext(object):
         interpolation_conf = exec_conf['OutMaps']['Interpolation']
         self._vars['interpolation.mode'] = interpolation_conf.get('@mode', self.default_values['interpolation.mode'])
         self._vars['interpolation.rotated_target'] = interpolation_conf.get('@rotated_target', False)
-        if self._vars['interpolation.dir'] is None:
-            # interlookup tables folder was not defined via command line with argument -N, --intertableDir
-            # get from JSON or from default user configuration
-            self._vars['interpolation.dir'] = interpolation_conf.get('@intertableDir', self.configuration.default_interpol_dir)
+        if not self._vars['interpolation.dir'] and interpolation_conf.get('@intertableDir'):
+            # get from JSON
+            self._vars['interpolation.dirs']['user'] = interpolation_conf['@intertableDir']
         self._vars['interpolation.latMap'] = interpolation_conf['@latMap']
         self._vars['interpolation.lonMap'] = interpolation_conf['@lonMap']
 
@@ -237,7 +243,7 @@ class ExecutionContext(object):
             self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == ACCUMULATION and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in FALSE_STRINGS
 
         # string interpolation for custom user configurations (i.e. dataset folders)
-        self.configuration.user._interpolate_strings(self)
+        self.configuration.user.interpolate_strings(self)
 
     @property
     def must_do_aggregation(self):
@@ -265,7 +271,7 @@ class ExecutionContext(object):
         elif self.convert_conf:
             if not pyg2p.util.files.exists(self._vars['path_to_convert'], is_folder=True):
                 raise ApplicationException.get_exc(7002, self._vars['path_to_convert'])
-        elif self.copy_conf or self.check_conf:
+        elif self.download_conf or self.check_conf:
             pass
         elif self.convert_intertables:
             if not pyg2p.util.files.exists(self._vars['path_to_intertables_to_convert'], is_folder=True):
@@ -294,8 +300,8 @@ class ExecutionContext(object):
             except Exception, exc:
                 raise ApplicationException(exc, None, str(exc))
 
-            if self._vars.get('interpolation.dir') and not pyg2p.util.files.exists(self._vars['interpolation.dir'], is_folder=True):
-                raise ApplicationException.get_exc(1320, self._vars['interpolation.dir'])
+            if not pyg2p.util.files.exists(self._vars['interpolation.dirs']['user'], is_folder=True):
+                raise ApplicationException.get_exc(1320, self._vars['interpolation.dirs']['user'])
 
             # check all numbers
 
@@ -377,8 +383,8 @@ class ExecutionContext(object):
         return bool(self._vars.get('path_to_intertables_to_convert'))
 
     @property
-    def copy_conf(self):
-        return bool(self._vars.get('copy_configuration'))
+    def download_conf(self):
+        return bool(self._vars.get('download_configuration'))
 
     @property
     def check_conf(self):

@@ -39,6 +39,23 @@ def is_dir(pathname):
     return os.path.isdir(pathname) and pathname not in ('.', '..', './', '../')
 
 
+def has_perms(pathnames, perm):
+    if not isinstance(pathnames, (tuple, list)):
+        pathnames = [pathnames]
+    for path in pathnames:
+        if not os.access(path, perm):
+            return False
+    return True
+
+
+def can_write(pathnames):
+    return has_perms(pathnames, os.W_OK)
+
+
+def can_read(pathnames):
+    return has_perms(pathnames, os.R_OK)
+
+
 def create_dir(pathname, recreate=False):
     if not os.path.exists(pathname):
         os.makedirs(pathname)

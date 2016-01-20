@@ -33,7 +33,7 @@ class GRIBReader(object):
         self._file_handler = None
         self._grbindx = None
         self._logger = Logger.get_logger()
-        self._log("Opening the GRIBReader for " + self._grib_file)
+        self._log('Opening GRIBReader for {}'.format(self._grib_file))
 
         try:
             index_keys = ['shortName']

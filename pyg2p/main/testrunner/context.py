@@ -4,7 +4,7 @@ from pyg2p.util.strings import to_argv
 
 
 class Test(object):
-    _pyg2p_exe = 'pyg2p.py'
+    _pyg2p_exe = 'pyg2p'
 
     def __init__(self):
         self.id = ''

@@ -3,7 +3,7 @@ numpy>=1.10.1
 scipy>=0.16.0
 GDAL
 memory_profiler
-# numexpr
+# numexpr>=2.4.6
 # pip install numexpr separately otherwise won't find numpy
 
 # dask packages for parallel interpolation
