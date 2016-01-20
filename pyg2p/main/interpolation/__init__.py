@@ -63,6 +63,7 @@ class Interpolator(object):
         if not pyg2p.util.files.exists(tbl_fullpath):
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['global'], filename))
             if not pyg2p.util.files.exists(tbl_fullpath):
+                tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
                 self._logger.warn('An entry in configuration was found for {} but intertable does not exist.'.format(filename))
         return intertable_id, tbl_fullpath
 
@@ -100,6 +101,7 @@ class Interpolator(object):
         return result
 
     def interpolate_scipy(self, latgrib, longrib, z, grid_id, grid_details=None):
+
         intertable_id, intertable_name = self._intertable_filename(grid_id)
         lonefas = self._target_coords.longs
         latefas = self._target_coords.lats
@@ -134,8 +136,9 @@ class Interpolator(object):
     def interpolate_grib(self, v, gid, grid_id, second_spatial_resolution=False):
         return self.grib_methods[self._mode](v, gid, grid_id, second_spatial_resolution=second_spatial_resolution)
 
-    def grib_nearest(self, v, gid, grid_id, second_spatial_resolution=False):
-        intertable_id, intertable_name = self._intertable_filename(grid_id)
+    def grib_nearest(self, v, gid, grid_id, second_spatial_resolution=False, intertable_id=None, intertable_name=None):
+        if not intertable_name:
+            intertable_id, intertable_name = self._intertable_filename(grid_id)
         existing_intertable = False
         # TODO CHECK these double call of masked values/fill
         result = np.empty(self._target_coords.longs.shape)
@@ -145,9 +148,12 @@ class Interpolator(object):
         if gid == -1 and not pyg2p.util.files.exists(intertable_name):
             # aux_gid and aux_values are only used to create the interlookuptable
             if second_spatial_resolution:
-                self.grib_nearest(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
+                self.grib_nearest(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id,
+                                  intertable_name=intertable_name, intertable_id=intertable_id,
+                                  second_spatial_resolution=second_spatial_resolution)
             else:
-                self.grib_nearest(self._aux_val, self._aux_gid, grid_id)
+                self.grib_nearest(self._aux_val, self._aux_gid, grid_id,
+                                  intertable_name=intertable_name, intertable_id=intertable_id)
 
         if pyg2p.util.files.exists(intertable_name):
             # interpolation using intertables
@@ -179,8 +185,9 @@ class Interpolator(object):
         result[xs, ys] = v[idxs]
         return result, existing_intertable
 
-    def grib_inverse_distance(self, v, gid, grid_id, second_spatial_resolution=False):
-        intertable_id, intertable_name = self._intertable_filename(grid_id)
+    def grib_inverse_distance(self, v, gid, grid_id, second_spatial_resolution=False, intertable_id=None, intertable_name=None):
+        if not intertable_name:
+            intertable_id, intertable_name = self._intertable_filename(grid_id)
 
         # TODO CHECK these double call of masked values
         result = np.empty(self._target_coords.longs.shape)
@@ -196,9 +203,12 @@ class Interpolator(object):
             # aux_gid and aux_values are only used to create the interlookuptable
             # since manipulated values messages don't have gid reference to grib file any longer
             if second_spatial_resolution:
-                self.grib_inverse_distance(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id, second_spatial_resolution=second_spatial_resolution)
+                self.grib_inverse_distance(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id,
+                                           intertable_name=intertable_name, intertable_id=intertable_id,
+                                           second_spatial_resolution=second_spatial_resolution)
             else:
-                self.grib_inverse_distance(self._aux_val, self._aux_gid, grid_id)
+                self.grib_inverse_distance(self._aux_val, self._aux_gid, grid_id,
+                                           intertable_name=intertable_name, intertable_id=intertable_id)
 
         if pyg2p.util.files.exists(intertable_name):
             # interpolation using intertables
