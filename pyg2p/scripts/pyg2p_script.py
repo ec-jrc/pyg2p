@@ -72,32 +72,37 @@ def execution_command(conf, exc_ctx, logger):
 
 def config_command(conf, exc_ctx, logger):
     """Executes one of the commands -C, -z, -K, -W, -g, -t"""
-    if exc_ctx.convert_conf:
+    if exc_ctx.convert_conf:  # -C
         # convert old XML configurations to JSON
         Configuration.convert_to_v2(exc_ctx.get('path_to_convert'))
         logger.info('Configuration converted to version 2 in path {}.'.format('path_to_convert'))
-    elif exc_ctx.convert_intertables:
+
+    elif exc_ctx.convert_intertables:  # -z
         # convert old XML configurations to JSON
         path_to_intertables = exc_ctx.get('path_to_intertables_to_convert')
         conf.convert_intertables_to_v2(path_to_intertables, logger=logger)
         logger.info('Intertables in path {} were updated and copied to {}'.format(path_to_intertables, exc_ctx.configuration.intertables.data_path))
-    elif exc_ctx.download_conf:
+
+    elif exc_ctx.download_conf:  # -W
         # add geopotential GRIB file to geopotentials.json
         dataset = exc_ctx.get('download_configuration')
         conf.download_data(dataset, logger)
         logger.info('Configuration downloaded.')
-    elif exc_ctx.add_geopotential:
+
+    elif exc_ctx.add_geopotential:  # -g
         # add geopotential GRIB file to geopotentials.json and copy it into user configuration folder
         conf.add_geopotential(exc_ctx.get('geopotential'))
         logger.info('Added geopotential {} to configuration'.format(exc_ctx.get('geopotential')))
-    elif exc_ctx.run_tests:
+
+    elif exc_ctx.run_tests:  # -t
         # comparison tests (grib2pcraster vs pyg2p, pyg2p scipy interpol vs pyg2p GRIBAPI interpol)
         from pyg2p.main.testrunner import TestRunner
         logger.reset_logger()
         TestRunner(conf.tests.vars, exc_ctx.get('test.cmds')).run()
         logger.close()
-    elif exc_ctx.check_conf:
-        # comparison tests between grib2pcraster and pyg2p results
+
+    elif exc_ctx.check_conf:  # -K
+        # check unused intertables (intertables that are not in configuration and can be deleted
         conf.check_conf(logger)
 
 if __name__ == '__main__':

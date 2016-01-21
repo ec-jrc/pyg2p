@@ -2,6 +2,8 @@ import json
 import os
 import re
 from xml.etree.ElementTree import fromstring
+
+import itertools
 from pkg_resources import resource_stream
 
 import pyg2p
@@ -392,11 +394,24 @@ class Configuration(object):
         logger.detach_config_logger()
 
     def check_conf(self, logger):
+        # it logs all files in intertables and geopotentials paths that are not used in configuration
+        # TODO: log non existing files that are in configuration
         logger.attach_config_logger()
+
         used_intertables = [i['filename'] for i in self.intertables.vars.itervalues()]
+        used_geopotentials = self.geopotentials.vars.values()
+
         intertables_folder_content = file_util.ls(self.intertables.data_path, 'npy')
-        for f in intertables_folder_content:
-            if f not in used_intertables:
-                logger.info('Intertable is not in configuration: {}'.format(f))
+        intertables_global_folder_content = file_util.ls(self.intertables.global_data_path, 'npy')
+        geopotentials_folder_content = file_util.ls(self.geopotentials.data_path, 'npy')
+        geopotentials_global_folder_content = file_util.ls(self.geopotentials.global_data_path, 'npy')
+
+        for f in itertools.chain(intertables_folder_content, intertables_global_folder_content):
+            if file_util.filename(f) not in used_intertables:
+                logger.info('Intertable file is not in configuration: {} - You could delete it'.format(f))
+
+        for f in itertools.chain(geopotentials_folder_content, geopotentials_global_folder_content):
+            if file_util.filename(f) not in used_geopotentials:
+                logger.info('Geopotential file is not in configuration: {} - You could delete it'.format(f))
 
         logger.detach_config_logger()

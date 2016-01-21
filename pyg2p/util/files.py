@@ -1,12 +1,14 @@
 import re
 import shutil as sh
 import os
+from functools import partial
 
 
 def ls(path, extension=None):
+    join = partial(os.path.join, path)
     if not extension:
-        return [f for f in os.listdir(path) if not is_dir(f)]
-    return [f for f in os.listdir(path) if not is_dir(f) and f.endswith(extension)]
+        return [join(f) for f in os.listdir(path) if not is_dir(f)]
+    return [join(f) for f in os.listdir(path) if not is_dir(f) and f.endswith(extension)]
 
 
 def delete_file(param):

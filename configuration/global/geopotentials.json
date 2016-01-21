@@ -3,7 +3,7 @@
     "-12$14$306$258$78948$rotated_ll": "cosmos_geopotential.grib", 
     "-15.75$16.125$511$415$212065$rotated_ll": "cosmo7km.grb", 
     "-16$7$393$338$132834$rotated_ll": "imprints_ex_const_c7.grib1", 
-    "-18$23.5$665$657$436905$rotated_ll": "dwd_grib1_ispra_LME_2012111900", 
+    "-18$23.5$665$657$436905$rotated_ll": "dwd_grib1_ispra_LME_2012111900.grib",
     "-35$45$161$91$14651$regular_ll": "europe_0.5_degree_T799.grb", 
     "-35$45$81$46$3726$regular_ll": "europe_1_degree_T399.grb", 
     "-5$4$520$350$182000$rotated_ll": "imprints_ex_const_c2.grib1", 
