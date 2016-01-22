@@ -26,8 +26,8 @@ class TestContext(object):
     def __init__(self, config, cmds_file):
         test_conf = config['TestConfiguration']
 
-        self._params = {'pcrasterdiff.exec': test_conf['PcRasterDiff']['@exec'],
-                        'atol': float(test_conf['@atol']), 'g2p.exec': test_conf['g2p']['@exec'],
+        self._params = {'pcrasterdiff.exec': test_conf['PcRasterDiff'],
+                        'atol': float(test_conf['atol']), 'g2p.exec': test_conf['g2p'],
                         'pre_commands': self._get_list_commands(cmds_file), 'tests': {}}
 
         for comm in self._params['pre_commands']:

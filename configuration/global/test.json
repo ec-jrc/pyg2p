@@ -1,11 +1,7 @@
 {
     "TestConfiguration": {
-        "@atol": 0.1, 
-        "PcRasterDiff": {
-            "@exec": "/usr/local/bin/pcrcalc"
-        }, 
-        "g2p": {
-            "@exec": "/usr/local/bin/grib2pcraster"
+        "atol": 0.1,
+        "PcRasterDiff":"/usr/local/bin/pcrcalc",
+        "g2p":"/usr/local/bin/grib2pcraster"
         }
-    }
 }
