@@ -1,0 +1,6 @@
+{
+    "host":"ftp.ecmwf.int",
+    "user":"safer",
+    "pwd":"neo2008",
+    "folder":"/pyg2p_data/"
+}

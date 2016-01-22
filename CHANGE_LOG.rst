@@ -1,8 +1,18 @@
 CHANGE LOG
 ==========
 
-v 2.0
------
+v 2.0.0
+-------
+
+* **62** Improvement (minor)
+    Added command -W to download default geopotentials and intertables from FTP.
+
+* **61** Improvement (major)
+    separated default configuration (in package) from user configuration.
+
+* **60** Improvement (major)
+    pyg2p is now installed as executable script via setup.py.
+
 * **59** Improvement (minor)
     Documentation in a single file, with more information on interpolation (and internals),
     grids and examples.
