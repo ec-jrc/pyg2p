@@ -2,7 +2,7 @@
     "TestConfiguration": {
         "@atol": 0.1, 
         "PcRasterDiff": {
-            "@exec": "/PCRaster-3.0/bin/pcrcalc"
+            "@exec": "/usr/local/bin/pcrcalc"
         }, 
         "g2p": {
             "@exec": "/usr/local/bin/grib2pcraster"
