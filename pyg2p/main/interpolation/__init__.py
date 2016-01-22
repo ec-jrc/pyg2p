@@ -43,11 +43,10 @@ class Interpolator(object):
         self.create_if_missing = exec_ctx.get('interpolation.create')
         self.grib_methods = {'grib_nearest': self.grib_nearest, 'grib_invdist': self.grib_inverse_distance}
         self.intertables_config = exec_ctx.configuration.intertables
-        self.intertables_dict = self.intertables_config.vars
 
     def _intertable_filename(self, grid_id):
         intertable_id = '{}{}_{}{}'.format(self._prefix, grid_id.replace('$', '_'), self._target_coords.identifier, self._suffix)
-        if intertable_id not in self.intertables_dict:
+        if intertable_id not in self.intertables_config.vars:
             # return a new intertable filename to create
             filename = self.format_intertablename(prognum='')
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
@@ -58,7 +57,7 @@ class Interpolator(object):
                 i += 1
             return intertable_id, tbl_fullpath
 
-        filename = self.intertables_dict[intertable_id]['filename']
+        filename = self.intertables_config.vars[intertable_id]['filename']
         tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
         if not pyg2p.util.files.exists(tbl_fullpath):
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['global'], filename))
@@ -174,7 +173,7 @@ class Interpolator(object):
             np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
         else:
-            if intertable_id not in self.intertables_dict:
+            if intertable_id not in self.intertables_config.vars:
                 d = {'filename': pyg2p.util.files.filename(intertable_name),
                      'method': self._mode,
                      'source_shape': v.shape,
@@ -234,7 +233,7 @@ class Interpolator(object):
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
 
         else:
-            if intertable_id not in self.intertables_dict:
+            if intertable_id not in self.intertables_config.vars:
                 d = {'filename': pyg2p.util.files.filename(intertable_name),
                      'method': self._mode,
                      'source_shape': v.shape,
@@ -246,11 +245,16 @@ class Interpolator(object):
 
     def update_intertable_conf(self, intertable, intertable_id, intertable_name, source_shape):
         self._LOADED_INTERTABLES[intertable_name] = intertable
-        self.intertables_dict[intertable_id] = {'filename': pyg2p.util.files.filename(intertable_name),
-                                                'method': self._mode,
-                                                'source_shape': source_shape,
-                                                'target_shape': self._target_coords.longs.shape}
-        self.intertables_config.dump(self.intertables_dict)
+        new_intertable_conf_item = {'filename': pyg2p.util.files.filename(intertable_name),
+                                    'method': self._mode,
+                                    'source_shape': source_shape,
+                                    'target_shape': self._target_coords.longs.shape}
+        # update global configuration
+        self.intertables_config.vars[intertable_id] = new_intertable_conf_item
+
+        # Dumps only user configuration to ~/.pyg2p/intertables.json
+        self.intertables_config.user_vars[intertable_id] = new_intertable_conf_item
+        self.intertables_config.dump()
 
     # set aux gids for grib interlookup creation
     def aux_for_intertable_generation(self, aux_g, aux_v, aux_g2, aux_v2):

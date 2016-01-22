@@ -100,6 +100,7 @@ class BaseConfiguration(object):
         self.global_config_file = os.path.join(GLOBAL_CONFIG_DIR, self.config_file_)
         self.data_path = user_configuration.get(self.data_path_var)
         self.vars = self.load_global()
+        self.user_vars = {}
         if self.global_data_path_var:
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)
             if not file_util.can_read(self.global_data_path):
@@ -115,7 +116,8 @@ class BaseConfiguration(object):
     def merge_with_user_conf(self):
         # it overwrites global config
         if file_util.exists(self.config_file):
-            self.vars.update(self._load())
+            self.user_vars = self._load()
+            self.vars.update(self.user_vars)
 
     def _load(self, config_file=None):
         f = open(self.config_file) if not config_file else config_file
@@ -130,7 +132,7 @@ class BaseConfiguration(object):
 
     def dump(self, new_dict=None):
         with open(self.config_file, 'w') as f:
-            f.write(json.dumps(self.vars if not new_dict else new_dict, sort_keys=True, indent=4))
+            f.write(json.dumps(self.user_vars if not new_dict else new_dict, sort_keys=True, indent=4))
 
 
 class GlobalConf(BaseConfiguration):
@@ -201,13 +203,13 @@ class GeopotentialsConfiguration(BaseConfiguration):
 
         name = file_util.filename(filepath)
         file_util.copy(filepath, self.data_path)
-        self.vars[id_] = name
+        self.user_vars[id_] = name
         self.dump()
 
     def remove(self, filename):
-        for g in self.vars.iterkeys():
-            if self.vars[g] == filename:
-                del self.vars[g]
+        for g in self.user_vars.iterkeys():
+            if self.user_vars[g] == filename:
+                del self.user_vars[g]
                 self.dump()
                 break
 
@@ -278,7 +280,7 @@ class Configuration(object):
             filepath = os.path.join(path, f)
             if file_util.is_dir(filepath):
                 cls.convert_to_v2(filepath, logger)
-            elif file_util.is_xml(filepath):
+            elif file_util.is_xml(filepath) and 'logger' not in f:
                 logger.info('Converting {} ...'.format(filepath))
                 with open(filepath) as f_:
                     res = bf.data(fromstring(f_.read()))
@@ -320,31 +322,41 @@ class Configuration(object):
         import numpy as np
         logger.attach_config_logger()
         logger.info('Looking into {}. \nNote: Old GRIB_API intertables of rotated grids and scipy intertables cannot be converted and will be skipped'.format(path))
-        intertables_dict = self.intertables.vars
-        existing_intertables = [i['filename'] for i in intertables_dict.itervalues()]
+        existing_intertables = [i['filename'] for i in self.intertables.vars.itervalues()]
 
         for f in os.listdir(path):
             filepath = os.path.join(path, f)
             if file_util.is_dir(filepath):
                 self.convert_intertables_to_v2(filepath, logger)
+
             elif f.endswith('.npy') and not f.startswith('tbl_') and f not in existing_intertables:
                 # This must be a pyg2p v1 intertable...
                 if 'rotated' in f or '_scipy_' in f:
                     logger.info('Skipped: {}. Scipy intertables and old rotated GRIB_API interpolated grids are not valid anymore.'.format(f))
                     continue
-                # v2 id is v1 intertable filename without npy extension (and with _M_ instead of _MISSING_)
+
+                # v2 intertable_id is v1 intertable filename without npy extension (and with _M_ instead of _MISSING_)
                 intertable_id = file_util.without_ext(f).replace('_MISSING_', '_M_')
-                existing_intertable = ''
-                if intertable_id in intertables_dict:
-                    existing_intertable = os.path.join(self.intertables.data_path, intertables_dict[intertable_id]['filename'])
-                    if file_util.exists(existing_intertable):
-                        logger.info('Skipped: {}. You already have a V2 intertable in your intertable folder {}'.format(f, existing_intertable))
+
+                existing_intertable_path = ''
+                if intertable_id in self.intertables.vars:
+                    existing = False
+                    for path_ in (self.intertables.data_path, self.intertables.global_data_path):
+                        existing_intertable_path = os.path.join(path_, self.intertables.vars[intertable_id]['filename'])
+                        if file_util.exists(existing_intertable_path):
+                            existing = True
+                            logger.info('Skipped: {}. You already have a V2 intertable in intertable folder {}'.format(f, existing_intertable_path))
+                            break
+                    if existing:
+                        # skip file
                         continue
+                    # if not existing file but existing id and filename in configuration, we use same filename to user path
+                    existing_intertable_path = os.path.join(self.intertables.data_path, self.intertables.vars[intertable_id]['filename'])
 
                 def tbl_new_path(sfx):
-                    if existing_intertable:
+                    if existing_intertable_path:
                         # we will use the filename already in configuration (but the real npy file is missing)
-                        return existing_intertable
+                        return existing_intertable_path
                     tokens = f.split('_')
                     source_res = tokens[3]
                     source_grid = '{}_{}'.format(tokens[5], tokens[6])
@@ -370,11 +382,11 @@ class Configuration(object):
                     indexes = intertable[2].astype(int, copy=False)
                     intertable = np.asarray([xs, ys, indexes])
                     np.save(new_full_path, intertable)
-                    intertables_dict[intertable_id] = {'filename': file_util.filename(new_full_path),
-                                                       'method': 'grib_nearest',
-                                                       'source_shape': 'NA',
-                                                       'target_shape': 'NA',
-                                                       'info': 'Converted from v1'}
+                    self.intertables.user_vars[intertable_id] = {'filename': file_util.filename(new_full_path),
+                                                                 'method': 'grib_nearest',
+                                                                 'source_shape': 'NA',
+                                                                 'target_shape': 'NA',
+                                                                 'info': 'Converted from v1'}
                     logger.info('Converted and saved to: {}'.format(file_util.filename(new_full_path)))
 
                 elif f.endswith('_inv.npy'):
@@ -402,15 +414,15 @@ class Configuration(object):
                         intertable = np.rec.fromarrays((indexes, coeffs), names=('indexes', 'coeffs'))
 
                     np.save(new_full_path, intertable)
-                    intertables_dict[intertable_id] = {'filename': file_util.filename(new_full_path),
-                                                       'method': 'grib_invdist',
-                                                       'source_shape': 'NA',
-                                                       'target_shape': 'NA',
-                                                       'info': 'Converted from v1'}
+                    self.intertables.user_vars[intertable_id] = {'filename': file_util.filename(new_full_path),
+                                                                 'method': 'grib_invdist',
+                                                                 'source_shape': 'NA',
+                                                                 'target_shape': 'NA',
+                                                                 'info': 'Converted from v1'}
                     logger.info('Converted and saved to: {}'.format(file_util.filename(new_full_path)))
 
         # update config dict to intertables.json
-        self.intertables.dump(intertables_dict)
+        self.intertables.dump()
         logger.detach_config_logger()
 
     def check_conf(self, logger):
