@@ -256,19 +256,39 @@ class Configuration(object):
         self.geopotentials.remove(filename)
 
     @classmethod
-    def convert_to_v2(cls, path):
+    def convert_geopotentials(cls, data):
+        new_data = {}
+        for p in data['geopotentials']['geopotential']:
+            new_data[p['@id']] = p['@name']
+        return new_data
+
+    @classmethod
+    def convert_parameters(cls, data):
+        new_data = {}
+        for p in data['Parameters']['Parameter']:
+            new_data[p['@shortName']] = p
+        return new_data
+
+    @classmethod
+    def convert_to_v2(cls, path, logger):
+        logger.attach_config_logger()
         from xmljson import badgerfish as bf
+        logger.debug('Entering in {}'.format(path))
         for f in os.listdir(path):
             filepath = os.path.join(path, f)
             if file_util.is_dir(filepath):
-                cls.convert_to_v2(filepath)
+                cls.convert_to_v2(filepath, logger)
             elif file_util.is_xml(filepath):
+                logger.info('Converting {} ...'.format(filepath))
                 with open(filepath) as f_:
                     res = bf.data(fromstring(f_.read()))
+                    res = getattr(cls, 'convert_{}'.format(f[:-4]), lambda x: x)(res)
                     new_file = os.path.join(path, f.replace('.xml', '.json'))
                     new_file_ = open(new_file, 'w')
                     new_file_.write(json.dumps(res, sort_keys=True, indent=4))
                     new_file_.close()
+                    logger.info('+ New config file {}'.format(new_file_.name))
+        logger.detach_config_logger()
 
     def download_data(self, dataset, logger):
         from ftplib import FTP

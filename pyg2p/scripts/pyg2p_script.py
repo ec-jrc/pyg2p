@@ -74,8 +74,8 @@ def config_command(conf, exc_ctx, logger):
     """Executes one of the commands -C, -z, -K, -W, -g, -t"""
     if exc_ctx.convert_conf:  # -C
         # convert old XML configurations to JSON
-        Configuration.convert_to_v2(exc_ctx.get('path_to_convert'))
-        logger.info('Configuration converted to version 2 in path {}.'.format('path_to_convert'))
+        Configuration.convert_to_v2(exc_ctx.get('path_to_convert'), logger)
+        logger.info('Configuration converted to version 2 in path {}.'.format(exc_ctx.get('path_to_convert')))
 
     elif exc_ctx.convert_intertables:  # -z
         # convert old XML configurations to JSON
