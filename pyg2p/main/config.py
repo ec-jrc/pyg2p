@@ -28,7 +28,7 @@ class UserConfiguration(object):
     Ex: in a json command file you can define "@latMap": "{EFAS_MAPS}/lat.map"
     and in ~/pyg2p/mysettings.conf you set EFAS_MAPS=/path/to/my/maps
     """
-    user_conf_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
+    config_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
     sep = '='
     comment_char = '#'
     conf_to_interpolate = ('correction.demMap', 'outMaps.clone', 'interpolation.latMap', 'interpolation.lonMap')
@@ -38,10 +38,10 @@ class UserConfiguration(object):
 
     def __init__(self):
         self.vars = {}
-        if not file_util.exists(self.user_conf_dir, is_folder=True):
-            file_util.create_dir(self.user_conf_dir)
-        for f in os.listdir(self.user_conf_dir):
-            filepath = os.path.join(self.user_conf_dir, f)
+        if not file_util.exists(self.config_dir, is_folder=True):
+            file_util.create_dir(self.config_dir)
+        for f in os.listdir(self.config_dir):
+            filepath = os.path.join(self.config_dir, f)
             if file_util.is_conf(filepath):
                 self.vars.update(self.load_properties(filepath))
 
@@ -107,17 +107,18 @@ class BaseConfiguration(object):
                 raise ApplicationException.get_exc(NO_READ_PERMISSIONS, details='{}'.format(self.global_data_path))
         if not self.only_global_conf:
             self.merge_with_user_conf()
-            if file_util.exists(self.config_file):
-                self.vars.update(self._load())
 
     def load_global(self):
         return self._load(resource_stream(pyg2p.__name__, self.global_config_file))
 
     def merge_with_user_conf(self):
-        # it overwrites global config
-        if file_util.exists(self.config_file):
+        # it overwrites global config. If not config file for user is found, it creates an empty one.
+        if not file_util.exists(self.config_file):
+            self.user_vars = {}
+            self.dump()
+        else:
             self.user_vars = self._load()
-            self.vars.update(self.user_vars)
+        self.vars.update(self.user_vars)
 
     def _load(self, config_file=None):
         f = open(self.config_file) if not config_file else config_file

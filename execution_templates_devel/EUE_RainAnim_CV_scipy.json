@@ -5,7 +5,7 @@
             "@cloneMap": "/dataset/maps/UKMO/dem.map", 
             "@ext": 6, 
             "@fmap": 6, 
-            "@namePrefix": "pCV06", 
+            "@namePrefix": "CV06",
             "@unitTime": 24, 
             "Interpolation": {
                 "@latMap": "/dataset/maps/UKMO/lat.map", 

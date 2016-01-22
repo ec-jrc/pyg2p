@@ -7,7 +7,7 @@ import pyg2p.util.files as fm
 def setup_data_files(setup_args_):
     user_conf_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
     fm.create_dir(user_conf_dir)
-    list_files = {t: [os.path.join(t, f) for f in os.listdir(t) if f.endswith('json')]
+    list_files = {t: [os.path.join(t, f) for f in os.listdir(t) if f.endswith('.json')]
                   for t in ('./execution_templates_devel',
                             './configuration',
                             './configuration/global')}
@@ -16,6 +16,7 @@ def setup_data_files(setup_args_):
     templates_to_copy = [f for f in list_files['./execution_templates_devel'] if
                          not fm.exists(os.path.join(user_conf_dir, 'templates_samples', fm.filename(f)))]
     data_files = [('pyg2p/configuration/', list_files['./configuration/global'])]
+
     if for_user_to_copy:
         data_files.append((user_conf_dir, for_user_to_copy))
     if templates_to_copy:
