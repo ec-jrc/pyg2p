@@ -2,7 +2,7 @@ import collections
 from functools import partial
 from types import MethodType
 
-from pyg2p.scripts.pyg2p import main
+from pyg2p.scripts.pyg2p_script import main
 from pyg2p.util.strings import to_argv, to_argdict
 
 
