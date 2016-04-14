@@ -62,7 +62,7 @@ class ExecutionContext(object):
                                                         \n Read user manual.''')
 
         self.add_args(parser)
-        if len(sys.argv) == 1:
+        if len(argv) == 1:
             parser.print_help()
             sys.exit(0)
 

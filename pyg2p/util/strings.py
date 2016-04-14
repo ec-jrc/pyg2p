@@ -1,4 +1,5 @@
 import csv
+import re
 from datetime import datetime
 
 
@@ -28,12 +29,9 @@ def to_argv(string_):
 
 
 def to_argdict(string_):
-    c = csv.reader(csv.StringIO(string_), delimiter=" ")
+    c = re.split(' |=', string_.strip(), maxsplit=0)
     l = filter(_is_empty_string, list(c)[0])
-    d = {}
-    for i in range(0, len(l), 2):
-        d[l[i]] = l[i + 1]
-    return d
+    return dict(zip(c[0::2], c[1::2]))
 
 
 FALSE_STRINGS = ['FALSE', 'F', 'f', 'False', 'false', 'NO', 'no', 'No', '0']
