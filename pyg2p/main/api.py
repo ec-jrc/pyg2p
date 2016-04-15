@@ -47,7 +47,7 @@ class Command(object):
             setattr(self, 'with_{}'.format(method_suffix), MethodType(partial(_a, opt), self, Command))
 
     def __str__(self):
-        cmd = 'pyg2p.py '
+        cmd = 'pyg2p '
         self._d = collections.OrderedDict(sorted(self._d.items(), key=lambda k: k[0]))
         args = ''.join(['%s %s ' % (key, value) for (key, value) in self._d.items()]).strip()
         return cmd + args
