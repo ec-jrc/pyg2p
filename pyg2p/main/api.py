@@ -51,5 +51,3 @@ class Command(object):
         self._d = collections.OrderedDict(sorted(self._d.items(), key=lambda k: k[0]))
         args = ''.join(['%s %s ' % (key, value) for (key, value) in self._d.items()]).strip()
         return cmd + args
-
-

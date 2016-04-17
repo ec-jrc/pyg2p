@@ -1,4 +1,4 @@
-import json
+import ujson as json
 import os
 import re
 from xml.etree.ElementTree import fromstring

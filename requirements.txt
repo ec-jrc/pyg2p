@@ -1,3 +1,4 @@
+ujson
 xmljson
 numpy>=1.10.1
 scipy>=0.16.0

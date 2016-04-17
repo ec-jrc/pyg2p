@@ -53,13 +53,13 @@ def execution_command(conf, exc_ctx, logger):
     controller = None
     ret_value = 0
     try:
-        if not conf.missing_config:
-            controller = Controller(exc_ctx)
-            controller.log_execution_context()
-            controller.execute()
-        else:
-            raise appexcmodule.ApplicationException.get_exc(MISSING_CONFIG_FILES, details='{}'.format(','.join(conf.missing_config)))
-    except appexcmodule.ApplicationException, err:
+        if conf.missing_config:
+            raise appexcmodule.ApplicationException.get_exc(MISSING_CONFIG_FILES,
+                                                            details='{}'.format(','.join(conf.missing_config)))
+        controller = Controller(exc_ctx)
+        controller.log_execution_context()
+        controller.execute()
+    except appexcmodule.ApplicationException as err:
         logger.error('\n\nError: {}'.format(err))
         if not err.get_code() == appexcmodule.NO_MESSAGES:
             ret_value = 1

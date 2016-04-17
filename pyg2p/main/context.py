@@ -1,5 +1,5 @@
 import argparse
-import json
+import ujson as json
 import os
 import sys
 
@@ -62,7 +62,7 @@ class ExecutionContext(object):
                                                         \n Read user manual.''')
 
         self.add_args(parser)
-        if len(argv) == 1:
+        if len(argv) == 0:
             parser.print_help()
             sys.exit(0)
 
