@@ -10,7 +10,7 @@ from pyg2p.main.context import ExecutionContext
 from pyg2p.main.exceptions import MISSING_CONFIG_FILES
 from pyg2p.util.logger import Logger
 
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 
 
 def main_script():
@@ -27,11 +27,16 @@ def main(*args):
         # (parameters, geopotentials, intertables, custom user paths, ftp, static data paths)
         conf = Configuration()
         exc_ctx = ExecutionContext(conf, args)
-    except appexcmodule.ApplicationException, err:
-
+    except appexcmodule.ApplicationException as err:
+        # error during initalization
+        logger = Logger.get_logger(level='INFO')
+        logger.error('\nError: {}\n\n'.format(err))
+        logger.flush()
+        return 1
+    except Exception as err:
         logger = Logger.get_logger()
         logger.error('\nError: {}\n\n'.format(err))
-        logger.close()
+        logger.flush()
         return 1
 
     logger = Logger.get_logger(exc_ctx.get('logger.level'))
@@ -39,9 +44,9 @@ def main(*args):
         try:
             config_command(conf, exc_ctx, logger)
             return 0
-        except appexcmodule.ApplicationException, err:
+        except appexcmodule.ApplicationException as err:
             logger.error('\nError while running a configuration command: {}\n\n'.format(err))
-            logger.close()
+            logger.flush()
             return 1
 
     # normal execution flow
@@ -65,8 +70,7 @@ def execution_command(conf, exc_ctx, logger):
             ret_value = 1
     finally:
         controller.close()
-        if not exc_ctx.is_a_test:
-            logger.close()
+        logger.flush()
     return ret_value
 
 
@@ -97,9 +101,9 @@ def config_command(conf, exc_ctx, logger):
     elif exc_ctx.run_tests:  # -t
         # comparison tests (grib2pcraster vs pyg2p, pyg2p scipy interpol vs pyg2p GRIBAPI interpol)
         from pyg2p.main.testrunner import TestRunner
-        logger.reset_logger()
+        logger.reset_logger()  # remove logger. tests will instantiate other loggers
         TestRunner(conf.tests.vars, exc_ctx.get('test.cmds')).run()
-        logger.close()
+        logger.flush()
 
     elif exc_ctx.check_conf:  # -K
         # check unused intertables (intertables that are not in configuration and can be deleted

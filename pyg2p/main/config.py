@@ -18,8 +18,6 @@ from pyg2p.main.exceptions import (
 
 import pyg2p.util.files as file_util
 
-GLOBAL_CONFIG_DIR = 'configuration/'
-
 
 class UserConfiguration(object):
     """
@@ -94,12 +92,13 @@ class BaseConfiguration(object):
     init_dict = {}
     only_global_conf = False
     instance = None
+    GLOBAL_CONFIG_DIR = 'configuration/'
 
     def __init__(self, user_configuration):
         self.configuration_mode = False
         self.user_configuration = user_configuration
         self.config_file = os.path.join(user_configuration.config_dir, self.config_file_)
-        self.global_config_file = os.path.join(GLOBAL_CONFIG_DIR, self.config_file_)
+        self.global_config_file = os.path.join(self.GLOBAL_CONFIG_DIR, self.config_file_)
         self.data_path = user_configuration.get(self.data_path_var)
         self.vars = self.load_global()
         self.user_vars = {}
@@ -454,7 +453,6 @@ class Configuration(object):
 
     def check_conf(self, logger):
         # it logs all files in intertables and geopotentials paths that are not used in configuration
-        # TODO: log non existing files that are in configuration
         logger.attach_config_logger()
 
         used_intertables = [i['filename'] for i in self.intertables.vars.itervalues()]

@@ -33,7 +33,7 @@ def grib_nearest(gid, target_lats, target_lons, mv):
     idxs = empty(num_cells, fill_value=int_fill_value, dtype=int)
 
     back_char, progress_step = progress_step_and_backchar(num_cells)
-    format_progress = '{}Nearest neighbour interpolation: {}/{}  [outs: {}] ({}%)\n'.format
+    format_progress = '{}Nearest neighbour interpolation: {}/{}  [outs: {}] ({}%)'.format
     i = 0
     outs = 0
     stdout.write('Start interpolation: {}\n'.format(now_string()))
@@ -77,7 +77,7 @@ def grib_invdist(gid, target_lats, target_lons, mv):
     invs3 = empty(num_cells)
     invs4 = empty(num_cells)
 
-    format_progress = '{}Inverse distance interpolation: {}/{}  [outs: {}] ({}%)\n'.format
+    format_progress = '{}Inverse distance interpolation: {}/{}  [outs: {}] ({}%)'.format
     i = 0
     outs = 0
     back_char, progress_step = progress_step_and_backchar(num_cells)

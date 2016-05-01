@@ -91,11 +91,10 @@ class Interpolator(object):
             return indexes, coeffs
 
     def _interpolate_scipy_invdist(self, z, weights, indexes, nnear):
+        z = np.append(z, self._mv_efas)
         if nnear == 1:
-            z = np.append(z, self._mv_efas)
             result = z[indexes]
         else:
-            z = np.append(z, self._mv_efas)
             result = np.einsum('ij,ij->i', weights, z[indexes])
         return result
 
@@ -142,7 +141,7 @@ class Interpolator(object):
         # TODO CHECK these double call of masked values/fill
         result = np.empty(self._target_coords.longs.shape)
         result.fill(self._mv_efas)
-        result = mask_it(result, self._mv_efas)
+        # result = mask_it(result, self._mv_efas)
 
         if gid == -1 and not pyg2p.util.files.exists(intertable_name):
             # aux_gid and aux_values are only used to create the interlookuptable
@@ -160,7 +159,7 @@ class Interpolator(object):
             xs, ys, idxs = self._read_intertable(intertable_name)
 
             # TODO CHECK: maybe we don't need to mask here
-            v = mask_it(v, self._mv_grib)
+            # v = mask_it(v, self._mv_grib)
 
         elif self.create_if_missing:
             try:
@@ -194,7 +193,7 @@ class Interpolator(object):
         result = np.ma.masked_array(data=result, fill_value=self._mv_efas, copy=False)
 
         # TODO CHECK: maybe we don't need to mask here
-        v = mask_it(v, self._mv_grib)
+        # v = mask_it(v, self._mv_grib)
 
         existing_intertable = False
         # check if gid is due to the recursive call

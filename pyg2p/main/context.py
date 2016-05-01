@@ -1,13 +1,12 @@
 import argparse
 import ujson as json
 import os
-import sys
 
 from pyg2p.main.manipulation.aggregator import ACCUMULATION
 
 import pyg2p.util.strings
 import pyg2p.util.files
-from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD
+from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS
 from pyg2p.util.strings import now_string, FALSE_STRINGS
 
 
@@ -26,22 +25,14 @@ class ExecutionContext(object):
         self._vars = {}
         self.is_config_command = False
 
-        try:
-            # read cli input args (commands file path, input files, output dir, or shows help and exit)
-            self._define_input_args(argv)  # redefines self.is_config_command
-            if not self.is_config_command:
-                # read config files and define execution parameters (set defaults also)
-                self._define_exec_params()
-        except Exception, err:
-            raise ApplicationException(err, None, str(err))
+        # read cli input args (commands file path, input files, output dir, or shows help and exit)
+        self._define_input_args(argv)  # redefines self.is_config_command
+        if not self.is_config_command:
+            # read config files and define execution parameters (set defaults also)
+            self._define_exec_params()
 
         # check numbers, existing dirs and files, supported options, semantics etc.
-        try:
-            self._check_exec_params()
-        except ValueError, err:
-            raise ApplicationException(err, None, str(err))
-        except Exception, exc:
-            raise ApplicationException(exc, None, str(exc))
+        self._check_exec_params()
 
     def input_file_has_geopotential(self):
         self.input_file_with_geopotential = self.get('input.file')
@@ -54,9 +45,10 @@ class ExecutionContext(object):
 
         class ParserHelpOnError(argparse.ArgumentParser):
             def error(self, message):
-                self.print_help()
-                sys.stderr.write('Argument error: {}\n'.format(message))
-                sys.exit(1)
+                if '-A' not in argv:
+                    # print help only if not from api
+                    self.print_help()
+                raise ApplicationException.get_exc(WRONG_ARGS, message)
 
         parser = ParserHelpOnError(description='''Execute the grib to pcraster conversion using parameters from the input json configuration.
                                                         \n Read user manual.''')
@@ -64,7 +56,7 @@ class ExecutionContext(object):
         self.add_args(parser)
         if len(argv) == 0:
             parser.print_help()
-            sys.exit(0)
+            raise ApplicationException.get_exc(WRONG_ARGS, 'Called without input arguments. Check help')
 
         parsed_args = vars(parser.parse_args(argv))
 
@@ -93,6 +85,7 @@ class ExecutionContext(object):
         self._vars['test.cmds'] = parsed_args['test']
         self._vars['download_configuration'] = parsed_args['downloadConf']
         self._vars['under_test'] = parsed_args['underTest']
+        self._vars['under_api'] = parsed_args['underApi']
         self._vars['check_conf'] = parsed_args['checkConf']
         user_intertables = self._vars['interpolation.dir'] or self.configuration.default_interpol_dir
         self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path, 'user': user_intertables}
@@ -150,6 +143,8 @@ class ExecutionContext(object):
                             help='Download intertables and geopotentials (FTP settings defined in ftp.json)',
                             metavar='dataset', choices=['geopotentials', 'intertables'])
         parser.add_argument('-U', '--underTest', help=argparse.SUPPRESS,
+                            action='store_true', default=False)
+        parser.add_argument('-A', '--underApi', help=argparse.SUPPRESS,
                             action='store_true', default=False)
         parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,
                             action='store_true', default=False)
@@ -373,6 +368,10 @@ class ExecutionContext(object):
     @property
     def is_a_test(self):
         return bool(self._vars.get('under_test'))
+
+    @property
+    def from_api(self):
+        return bool(self._vars.get('under_api'))
 
     @property
     def convert_conf(self):

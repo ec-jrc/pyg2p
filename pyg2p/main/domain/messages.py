@@ -62,3 +62,6 @@ class Messages(object):
         self.values_first_or_single_res = {key: converter.convert(values) for key, values in self.values_first_or_single_res.iteritems()}
         self.values_second_res = {key: converter.convert(values) for key, values in self.values_second_res.iteritems()}
         gc.collect()
+
+    def __len__(self):
+        return len(self.values_first_or_single_res) + len(self.values_second_res)

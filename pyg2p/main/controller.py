@@ -1,6 +1,5 @@
 import collections
 
-import numpy as np
 from pyg2p.main.interpolation import Interpolator
 from pyg2p.main.manipulation.aggregator import Aggregator
 from pyg2p.main.manipulation.correction import Corrector
@@ -11,7 +10,7 @@ from pyg2p.main.manipulation.conversion import Converter
 from pyg2p.util.logger import Logger
 
 
-class Controller:
+class Controller(object):
     def __init__(self, exec_ctx):
         self._ctx = exec_ctx
         self._logger = Logger.get_logger()
@@ -69,10 +68,7 @@ class Controller:
 
     def create_out_map(self, grid_id, i, lats, longs, timestep, v, geodetic_info=None, gid=-1, second_spatial_resolution=False):
 
-        if self._logger.is_debug:
-            self._log("\nGRIB Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-                self._ctx.get('parameter.unit'), np.average(v), v.min(), v.max()))
-            self._log('Interpolating values for step range/resolution/original timestep: {}'.format(timestep))
+        self._log('Interpolating values for step range/resolution/original timestep: {}'.format(timestep))
 
         # FIXME this if else should go into interpolator class
         if self._ctx.interpolate_with_grib:
@@ -89,21 +85,11 @@ class Controller:
             # interpolating gridded data with scipy kdtree
             v = self._interpolator.interpolate_scipy(lats, longs, v, grid_id, geodetic_info)
 
-        if self._logger.is_debug:
-            self._log("Interpolated Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-                self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mv_efas]), v[v != self._mv_efas].min(),
-                v[v != self._mv_efas].max()))
-
         if self._ctx.must_do_correction:
             corrector = Corrector.get_instance(self._ctx, grid_id)
             v = corrector.correct(v)
 
-        if self._logger.is_debug:
-            self._log("Final Values in %s have avg:%.4f, min:%.4f, max:%.4f" % (
-                self._ctx.get('parameter.conversionUnit'), np.average(v[v != self._mv_efas]), v[v != self._mv_efas].min(),
-                v[v != self._mv_efas].max()))
-
-        self._pcraster_writer.write(self._name_map(i), v, self._mv_efas)
+        self._pcraster_writer.write(self._name_map(i), v)
 
     def read_2nd_res_messages(self, cmd_args, messages):
         # append messages
@@ -216,7 +202,7 @@ class Controller:
         self._logger.log(message, level)
 
     def _name_map(self, i_map):
-        # return a filename of the type 8.3  {prefix}[000000].0[0]{seq}
+        # return a full path for output map, of the type 8.3  {prefix}[000000].0[0]{seq}
         filename = self._ctx.get('outMaps.namePrefix')
         map_number = self._ctx.get('outMaps.fmap') + (i_map - 1) * self._ctx.get('outMaps.ext')
         zeroes = 11 - len(self._ctx.get('outMaps.namePrefix')) - len(str(map_number))

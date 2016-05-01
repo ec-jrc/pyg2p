@@ -13,6 +13,7 @@ NO_READ_PERMISSIONS = 8600
 NOT_EXISTING_PATH = 8600
 MISSING_CONFIG_FILES = 8700
 WEIRD_STUFF = 9000
+WRONG_ARGS = 10000
 
 
 class ApplicationException(Exception):
@@ -57,6 +58,7 @@ class ApplicationException(Exception):
         NO_READ_PERMISSIONS: 'You cannot read from folder',
         NOT_EXISTING_PATH: 'Not existing paths',
         MISSING_CONFIG_FILES: 'Missing configuration. You may need to run setup.py install again.',
+        WRONG_ARGS: 'Failed to parse input arguments.',
     }
 
     @staticmethod

@@ -112,9 +112,11 @@ class InverseDistance(object):
         return x, y, z
 
     def _build_nn(self, distances, indexes):
-        z = mask_it(self.z, self._mv_source)
+        # z = mask_it(self.z, self._mv_source)
+        z = self.z
         # TODO probably we don't need to mask but just an empty array
-        result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
+        # result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
+        result = np.empty((len(distances),) + np.shape(z[0]))
         jinterpol = 0
         num_cells = result.size
         back_char, progress_step = progress_step_and_backchar(num_cells)

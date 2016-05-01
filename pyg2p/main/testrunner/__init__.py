@@ -92,7 +92,7 @@ class TestDiffMixin(object):
                 writer_diff_mv = PCRasterWriter(clone_map)
                 diff_mv_p_values = np.where(orig_p_values != reader_p.missing_value, 0., 1000.)
                 diff_mv_map_p_path = os.path.join(test_.out_dir, 'diff_mv_p.{}'.format(num_map))
-                writer_diff_mv.write(diff_mv_map_p_path, diff_mv_p_values, mv=reader_p.missing_value)
+                writer_diff_mv.write(diff_mv_map_p_path, diff_mv_p_values)
                 print 'aguila {}'.format(diff_mv_map_p_path)
 
             if perc_wrong > 5:  # more than 5% of differences

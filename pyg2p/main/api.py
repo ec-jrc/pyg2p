@@ -15,7 +15,7 @@ def run_command(cmd):
     return main(argv[1:])
 
 
-def _a(opt, self, param):
+def _a(opt, self, param=''):
     self._d[opt] = param
     return self
 
@@ -27,7 +27,7 @@ class Command(object):
     Usage:
     c = Command()
     c = c.with_cmdpath('average.json').with_inputfile('rain.grb').with_outdir('./')
-    c = c.with_createintertable('').with_parallel('')  # boolean args need an empty string to be passed
+    c = c.with_create_intertable().with_parallel()  # boolean args are created without args
     """
     cmds_map = {'cmdpath': '-c', 'inputfile': '-i', 'second_input_file': '-I',
                 'eps': '-m', 'tend': '-e', 'tstart': '-s', 'datatime': '-T', 'datadate': '-D',
@@ -35,12 +35,13 @@ class Command(object):
                 'log_level': '-l', 'log_dir': '-d',
                 'create_intertable': '-B', 'parallel': '-X', 'intertable_dir': '-N'}
 
-    def _a(self, opt, param):
+    def _a(self, opt, param=''):
         self._d[opt] = param
         return self
 
     def __init__(self, cmd_string=None):
-        self._d = {} if not cmd_string else to_argdict(cmd_string)
+        # adding flag underApi
+        self._d = {} if not cmd_string else to_argdict('{} -A'.format(cmd_string))
         if '-l' not in self._d.keys():
             self._a('-l', 'ERROR')
         for method_suffix, opt in self.cmds_map.iteritems():

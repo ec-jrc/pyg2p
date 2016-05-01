@@ -1,6 +1,13 @@
 CHANGE LOG
 ==========
 
+v 2.0.1
+-------
+* **65** Fixed wrong masking
+* **64** Minor fixes in API
+* **63** Minor fixes in logging
+
+
 v 2.0.0
 -------
 

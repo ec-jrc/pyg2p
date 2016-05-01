@@ -30,7 +30,7 @@ packages_deps = ['ujson', 'xmljson', 'numpy>=1.10.1', 'scipy>=0.16.0', 'GDAL>=1.
                  'numexpr>=2.4.6', 'dask[bag]', 'dask[array]', 'toolz']
 
 setup_args = dict(name='pyg2p',
-                  version='2.0.0',
+                  version='2.0.1',
                   description="Convert GRIB files to PCRaster",
                   license="Commercial",
                   install_requires=packages_deps,
