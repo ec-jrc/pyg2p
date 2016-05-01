@@ -1,6 +1,7 @@
 import ujson as json
 import os
 import re
+from copy import deepcopy
 from xml.etree.ElementTree import fromstring
 
 import itertools
@@ -462,7 +463,6 @@ class Configuration(object):
         intertables_global_folder_content = file_util.ls(self.intertables.global_data_path, 'npy')
         geopotentials_folder_content = file_util.ls(self.geopotentials.data_path, 'npy')
         geopotentials_global_folder_content = file_util.ls(self.geopotentials.global_data_path, 'npy')
-
         for f in itertools.chain(intertables_folder_content, intertables_global_folder_content):
             if file_util.filename(f) not in used_intertables:
                 logger.info('Intertable file is not in configuration: {} - You could delete it'.format(f))
@@ -470,5 +470,14 @@ class Configuration(object):
         for f in itertools.chain(geopotentials_folder_content, geopotentials_global_folder_content):
             if file_util.filename(f) not in used_geopotentials:
                 logger.info('Geopotential file is not in configuration: {} - You could delete it'.format(f))
+
+        user_intertables = deepcopy(self.intertables.user_vars)
+        for k, i in user_intertables.iteritems():
+            fullpath = os.path.join(self.intertables.data_path, i['filename'])
+            if not file_util.exists(fullpath):
+                logger.info('{} - Non existing. Removing item from intertables.json'.format(fullpath))
+                del self.intertables.user_vars[k]
+        self.intertables.dump()
+
 
         logger.detach_config_logger()
