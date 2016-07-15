@@ -1,4 +1,4 @@
 {
-    "geopotentials":"/perm/ma/ma9/pyg2p_data/geopotentials",
-    "intertables":"/perm/ma/ma9/pyg2p_data/intertables"
+    "geopotentials":"/dataset/pyg2p_data/geopotentials",
+    "intertables":"/dataset/pyg2p_data/intertables"
 }
