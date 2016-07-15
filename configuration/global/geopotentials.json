@@ -30,5 +30,9 @@
     "350$40$201$161$32361$regular_ll": "dwd_gme_2004_72_i256_geo.grib2", 
     "354.9108$363.3107$421$548$230708$rotated_ll": "ukmo_orography.grib", 
     "355$5.5$421$461$194081$rotated_ll": "dwd_orography.grib", 
-    "37$47$101$111$11211$regular_ll": "africa_01_degrees.grb"
+    "37$47$101$111$11211$regular_ll": "africa_01_degrees.grb",
+    "-32$53$341$161$54901$regular_ll":"025x025_54901.grb",
+    "335$65$361$181$65341$regular_ll":"icon_65341.grb",
+    "336.5$62.5$1377$657$904689$regular_ll":"iconeu_904689.grb",
+    "350$40.04$201$161$32361$regular_ll":"icon_32361.grb"
 }
