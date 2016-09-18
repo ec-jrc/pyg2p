@@ -93,13 +93,14 @@ class BaseConfiguration(object):
     init_dict = {}
     only_global_conf = False
     instance = None
-    GLOBAL_CONFIG_DIR = 'configuration/'
+    GLOBAL_CONFIG_DIR = 'configuration/'  # data dir in package to read as resource stream
 
     def __init__(self, user_configuration):
         self.configuration_mode = False
         self.user_configuration = user_configuration
         self.config_file = os.path.join(user_configuration.config_dir, self.config_file_)
         self.global_config_file = os.path.join(self.GLOBAL_CONFIG_DIR, self.config_file_)
+        self.global_config_file_debug = os.path.join(self.GLOBAL_CONFIG_DIR, 'global/', self.config_file_)
         self.data_path = user_configuration.get(self.data_path_var)
         self.vars = self.load_global()
         self.user_vars = {}
@@ -111,7 +112,11 @@ class BaseConfiguration(object):
             self.merge_with_user_conf()
 
     def load_global(self):
-        return self._load(resource_stream(pyg2p.__name__, self.global_config_file))
+        try:
+            res = self._load(resource_stream(pyg2p.__name__, self.global_config_file))
+        except IOError:
+            res = self._load(open(self.global_config_file_debug, 'r'))
+        return res
 
     def merge_with_user_conf(self):
         # it overwrites global config. If not config file for user is found, it creates an empty one.
@@ -478,6 +483,5 @@ class Configuration(object):
                 logger.info('{} - Non existing. Removing item from intertables.json'.format(fullpath))
                 del self.intertables.user_vars[k]
         self.intertables.dump()
-
 
         logger.detach_config_logger()

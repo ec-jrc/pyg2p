@@ -255,5 +255,10 @@
         "@description": "Geopotential", 
         "@shortName": "z", 
         "@unit": "m**2 s**-2"
+    },
+    "cin": {
+        "@description": "Convective inhibition",
+        "@shortName": "cin",
+        "@unit": "J kg**-1"
     }
 }

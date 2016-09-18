@@ -1,10 +1,11 @@
 import gdal
 import numpy.ma as ma
 
+from pyg2p.main.writers import Writer
 from pyg2p.util.logger import Logger
 
 
-class PCRasterWriter(object):
+class PCRasterWriter(Writer):
     FORMAT = 'PCRaster'
 
     def __init__(self, clone_map):
@@ -44,7 +45,10 @@ class PCRasterWriter(object):
         out_ds = None
 
     def _mask_values(self, values):
-        masked = ma.masked_where(self._mask == True, values, copy=False)
+        if isinstance(values, ma.core.MaskedArray):
+            masked = ma.masked_where((self._mask | values.mask), values.data, copy=False)
+        else:
+            masked = ma.masked_where(self._mask, values, copy=False)
         masked = ma.filled(masked, self.mv)
         return masked
 

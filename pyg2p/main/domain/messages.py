@@ -43,7 +43,10 @@ class Messages(object):
 
     @property
     def latlons_2nd(self):
-        return self.grid_details.get_2nd_resolution().latlons
+        second_res_grid = self.grid_details.get_2nd_resolution()
+        if second_res_grid:
+            return second_res_grid.latlons
+        return None, None
 
     def have_resolution_change(self):
         return self.grid_details.get_2nd_resolution() is not None

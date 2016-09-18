@@ -100,8 +100,8 @@ def normalize_filename(name):
     normalized_name = without_ext(name).lower()
     # remove long numbers (like dates 20151225)
     normalized_name = re.sub(r'([0-9]{8,10})', '', normalized_name) or normalized_name
-    # remove - and _
-    normalized_name = normalized_name.replace('-', '').replace('_', '')
+    # remove ., - and _
+    normalized_name = normalized_name.replace('-', '').replace('_', '').replace('.', '')
     # remove extension
 
     if len(normalized_name) < 3:

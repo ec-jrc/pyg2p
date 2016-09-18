@@ -147,7 +147,8 @@ class InverseDistance(object):
     def _build_weights(self, distances, indexes, nnear):
 
         # TODO CHECK: maybe we don't need to mask here
-        z = mask_it(self.z, self._mv_source)
+        # z = mask_it(self.z, self._mv_source)
+        z = self.z
         # no intertable found for inverse distance nnear = 8
         # TODO CHECK if we need mask here (maybe just need an empty array)
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
