@@ -20,7 +20,6 @@ class Logger(object):
         self._logger = logging.getLogger('main')
         self.level = self.level if not level else level
         if not self._logger.handlers:
-            # TODO add file handlers and add an option to argparse to log to folder/file
             hdlr = logging.StreamHandler()
             hdlr.setLevel(self.level)
             hdlr.setFormatter(logging.Formatter(self._formatting))

@@ -44,7 +44,7 @@ def has_perms(pathnames, perm):
     if not isinstance(pathnames, (tuple, list)):
         pathnames = [pathnames]
     for path in pathnames:
-        if not os.access(path, perm):
+        if path and not os.access(path, perm):
             return False
     return True
 

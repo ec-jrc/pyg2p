@@ -23,7 +23,6 @@ WRONG_ARGS = 10000
 
 class ApplicationException(Exception):
 
-    # TODO: convert key from number to explicative string (e.g. 1000 --> 'file.notfound')
     _errorMessages = {
         0: 'Execution command file not found',
         1000: 'Did not found input file. Check filename.',
@@ -46,16 +45,18 @@ class ApplicationException(Exception):
         5000: 'Interpolating with not existing lat/lons. Probably a geopotential grib.\n'
               'Geopotentials must be interpolated with an intertable. Try to create it first.',
         6000: 'Trying to interpolate manipulated values \n'
-              'with no more reference to original gribs, using grib_api interpolation methods.  \n'
+              'with no more reference to original gribs, using grib_api interpolation methods.\n'
               'Interlookup table must be created, first. Otherwise, use other interpolation methods (nearest or invdist).',
         NOT_IMPLEMENTED: 'Not implemented.',
         7000: 'Commands text file for tests was not found',
         7001: 'Geopotential grib file was not found',
         7002: 'Path to old xml configuration was not found',
         7003: 'Path to grib api intertables was not found',
-        NO_VAR_DEFINED: 'Following vars were not found in any of your .conf files. Please add it in ~/.pyg2p/<myconffile>.conf',
-        NO_INTERTABLE_CREATED: 'Interpolation table was not found and -B option was not set on command line.',
-        JSON_ERROR: 'Error in configuration file.',
+        NO_VAR_DEFINED: 'To add intertables/geopotentials to configuration you need to set paths to folder in variables.\n'
+                        'Following var(s) were not found in any of your *.conf files.\n'
+                        'Please add them e.g. in ~/.pyg2p/paths.conf',
+        NO_INTERTABLE_CREATED: 'Interpolation table was not found and needs to be created but -B option was not set on command line.',
+        JSON_ERROR: 'Error in json configuration file.',
         EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
         INVALID_INTERPOLATION_METHOD: 'Interpolation method not valid',
         WEIRD_STUFF: 'Cannot continue: weird stuff happening',

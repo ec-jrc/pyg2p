@@ -113,7 +113,6 @@ class TestDiffMixin(object):
 
 
 class TestRunner(TestDiffMixin):
-    # TODO change print statements to logger info
     def __init__(self, config, file_):
         self._ctx = TestContext(config, file_)
 

@@ -1,6 +1,6 @@
 {
     "Execution": {
-        "@name": "cin missing values",
+        "@name": "test missing values",
 
         "OutMaps": {
             "@cloneMap": "/dataset/maps/europe/dem.map",

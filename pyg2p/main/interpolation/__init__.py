@@ -44,7 +44,7 @@ class Interpolator(object):
 
         self.create_if_missing = exec_ctx.get('interpolation.create')
         self.grib_methods = {'grib_nearest': self.grib_nearest, 'grib_invdist': self.grib_inverse_distance}
-        self.intertables_config = exec_ctx.configuration.intertables
+        self.intertables_config = exec_ctx.configuration.intertables  # IntertablesConfiguration object
 
     def interpolate(self, lats, longs, v, grid_id, geodetic_info, gid=-1, is_second_res=False):
         if self.interpolate_with_grib:
@@ -58,6 +58,9 @@ class Interpolator(object):
         intertable_id = '{}{}_{}{}'.format(self._prefix, grid_id.replace('$', '_'), self._target_coords.identifier, self._suffix)
         if intertable_id not in self.intertables_config.vars:
             # return a new intertable filename to create
+            if not self.create_if_missing:
+                raise ApplicationException.get_exc(NO_INTERTABLE_CREATED)
+            self.intertables_config.check_write()
             filename = self.format_intertablename(prognum='')
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
             i = 1
@@ -68,10 +71,17 @@ class Interpolator(object):
             return intertable_id, tbl_fullpath
 
         filename = self.intertables_config.vars[intertable_id]['filename']
-        tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
-        if not pyg2p.util.files.exists(tbl_fullpath):
+
+        # tbl_fullpath is taken from user path if defined, otherwise comes from global configuration
+        tbl_fullpath = None if not self._intertable_dirs.get('user') else os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
+        if not tbl_fullpath or not pyg2p.util.files.exists(tbl_fullpath):
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['global'], filename))
             if not pyg2p.util.files.exists(tbl_fullpath):
+                # will create a new intertable but with same filename/id
+                # as an existing configuration was already found but file is missing for some reasons
+                if not self.create_if_missing:
+                    raise ApplicationException.get_exc(NO_INTERTABLE_CREATED)
+                self.intertables_config.check_write()
                 tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
                 self._logger.warn('An entry in configuration was found for {} but intertable does not exist.'.format(filename))
         return intertable_id, tbl_fullpath
@@ -100,13 +110,14 @@ class Interpolator(object):
             coeffs = intertable['coeffs']
             return indexes, coeffs
 
+    # ####### SCIPY INTERPOLATION ###################################
     def _interpolate_scipy_invdist(self, v, weights, indexes, nnear):
         # append the MV efas value at the end because of how KDTree algo works
         # It gives (last_index + 1) from original values when value can't be computed.
-        # last_index + 1 values are stored in intertable so we artificially add a missing value at position
-        # v[last_index + 1]
-        orig_mask = False if not isinstance(v, ma.core.MaskedArray) else v.mask
+        # These "last_index + 1" indexes are stored in intertable so we artificially add a missing value
+        # v[last_index + 1] = mv
         v = np.append(v, self.mv_output)
+        orig_mask = False if not isinstance(v, ma.core.MaskedArray) else v.mask
         if nnear == 1:
             if isinstance(orig_mask, np.ndarray):
                 result = ma.masked_where(orig_mask[indexes], v[indexes], copy=False)
@@ -115,6 +126,7 @@ class Interpolator(object):
         else:
             result = np.einsum('ij,ij->i', weights, v[indexes])
             if isinstance(orig_mask, np.ndarray):
+                # there are masks. logic sum of masks from all values used
                 mask = None
                 for i in xrange(0, indexes.shape[1]):
                     mask = orig_mask[indexes.T[i]] if mask is None else mask | orig_mask[indexes.T[i]]
@@ -134,15 +146,17 @@ class Interpolator(object):
             result = self._interpolate_scipy_invdist(v, weights, indexes, nnear)
 
         elif self.create_if_missing:
+            self.intertables_config.check_write()
             if latgrib is None:
-                self._log('Trying to interpolate without grib lat/lons. Probably a geopotential grib!', 'ERROR')
+                self._log('Trying to interpolate without grib lat/lons. Probably a malformed grib!', 'ERROR')
                 raise ApplicationException.get_exc(5000)
 
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             invdisttree = InverseDistance(longrib, latgrib, grid_details, v.ravel(), nnear, self._mv_efas,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
                                           parallel=self.parallel)
-            result, weights, indexes = invdisttree.interpolate(lonefas, latefas)
+            _, weights, indexes = invdisttree.interpolate(lonefas, latefas)
+            result = self._interpolate_scipy_invdist(v, weights, indexes, nnear)
             # saving interpolation lookup table
             intertable = np.rec.fromarrays((indexes, weights), names=('indexes', 'coeffs'))
             np.save(intertable_name, intertable)
@@ -164,6 +178,7 @@ class Interpolator(object):
         result = np.empty(self._target_coords.longs.shape)
         result.fill(self._mv_efas)
         if gid == -1 and not pyg2p.util.files.exists(intertable_name):
+            # calling recursive grib_nearest
             # aux_gid and aux_values are only used to create the interlookuptable
             if is_second_res:
                 self.grib_nearest(self._aux_2nd_res_val, self._aux_2nd_res_gid, grid_id,
@@ -182,6 +197,7 @@ class Interpolator(object):
                 assert gid != -1, 'GRIB message reference was not found.'
             except AssertionError as e:
                 raise ApplicationException.get_exc(6000, details=str(e))
+            self.intertables_config.check_write()
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value)
             intertable = np.asarray([xs, ys, idxs])

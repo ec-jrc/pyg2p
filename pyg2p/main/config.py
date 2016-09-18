@@ -37,6 +37,7 @@ class UserConfiguration(object):
 
     def __init__(self):
         self.vars = {}
+        # create user folder .pyg2p always
         if not file_util.exists(self.config_dir, is_folder=True):
             file_util.create_dir(self.config_dir)
         for f in os.listdir(self.config_dir):
@@ -44,16 +45,8 @@ class UserConfiguration(object):
             if file_util.is_conf(filepath):
                 self.vars.update(self.load_properties(filepath))
 
-        if not (self.get(self.geopotentials_path_var) and self.get(self.intertables_path_var)):
-            raise ApplicationException.get_exc(NO_VAR_DEFINED, '{} - {}'.format(self.geopotentials_path_var, self.intertables_path_var))
-
         self.geopotentials_path = self.get(self.geopotentials_path_var)
         self.intertables_path = self.get(self.intertables_path_var)
-
-        if not file_util.exists(self.geopotentials_path, is_folder=True) or not file_util.exists(self.intertables_path, is_folder=True):
-            raise ApplicationException.get_exc(NOT_EXISTING_PATH, '{} - {}'.format(self.geopotentials_path, self.intertables_path))
-        if not (file_util.can_write([self.geopotentials_path, self.intertables_path]) and file_util.can_read([self.geopotentials_path, self.intertables_path])):
-            raise ApplicationException.get_exc(NO_WRITE_PERMISSIONS, details='{} {}'.format(self.geopotentials_path, self.intertables_path))
 
     def get(self, var):
         return self.vars.get(var)
@@ -145,6 +138,15 @@ class BaseConfiguration(object):
             user_vars = self.user_vars or '{}'
             f.write(json.dumps(user_vars, sort_keys=True, indent=4))
 
+    def check_write(self):
+        if not self.data_path:
+            # user hasn't defined his own data folder for geopotentials.
+            raise ApplicationException.get_exc(NO_VAR_DEFINED, self.data_path_var)
+        if not file_util.exists(self.data_path, is_folder=True):
+            raise ApplicationException.get_exc(NOT_EXISTING_PATH, self.data_path)
+        if not file_util.can_write(self.data_path):
+            raise ApplicationException.get_exc(NO_WRITE_PERMISSIONS, self.data_path)
+
 
 class GlobalConf(BaseConfiguration):
     config_file_ = 'global_conf.json'
@@ -227,6 +229,8 @@ class GeopotentialsConfiguration(BaseConfiguration):
             raise ApplicationException.get_exc(EXISTING_GEOPOTENTIAL, details='{} for file {}. File was not added: {}'.format(id_, self.vars[id_], filepath))
 
         name = file_util.filename(filepath)
+        self.check_write()
+
         file_util.copy(filepath, self.data_path)
         self.user_vars[id_] = name
         self.dump()
@@ -242,8 +246,8 @@ class GeopotentialsConfiguration(BaseConfiguration):
         filename = self.vars.get(grid_id)
         if not filename:
             raise ApplicationException.get_exc(NO_GEOPOTENTIAL, grid_id)
-        path = os.path.join(self.data_path, filename)
-        if not file_util.exists(path):
+        path = None if not self.data_path else os.path.join(self.data_path, filename)
+        if not path or not file_util.exists(path):
             path = os.path.join(self.global_data_path, filename)
         if not file_util.exists(path):
             raise ApplicationException.get_exc(NO_FILE_GEOPOTENTIAL, details='id:{} {} Searched in: {}'.format(grid_id, path, (self.data_path, self.global_data_path)))

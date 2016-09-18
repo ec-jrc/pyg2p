@@ -303,9 +303,6 @@ class ExecutionContext(object):
             except Exception, exc:
                 raise ApplicationException(exc, None, str(exc))
 
-            if not pyg2p.util.files.exists(self._vars['interpolation.dirs']['user'], is_folder=True):
-                raise ApplicationException.get_exc(INTERTABLE_DIR_NOT_FOUND, self._vars['interpolation.dirs']['user'])
-
             # check all numbers
 
             if self._vars['parameter.level'] and not self._vars['parameter.level'].isdigit():
