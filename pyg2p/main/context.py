@@ -95,9 +95,9 @@ class ExecutionContext(object):
     @staticmethod
     def add_args(parser):
 
-        parser.add_argument('-c', '--commandsFile', help='Path to json command file', metavar='json_file')
+        parser.add_argument('-c', '--commandsFile', help='Path to json command file', required=True, metavar='json_file')
         parser.add_argument('-o', '--outDir', help='Path where output maps will be created.', default='./', metavar='out_dir')
-        parser.add_argument('-i', '--inputFile', help='Path to input grib.', metavar='input_file')
+        parser.add_argument('-i', '--inputFile', help='Path to input grib.', metavar='input_file', required=True)
         parser.add_argument('-I', '--inputFile2', help='Path to 2nd resolution input grib.', metavar='input_file_2nd')
 
         # grib messages selectors
@@ -113,8 +113,10 @@ class ExecutionContext(object):
 
         # output file naming (first extension number, extension number step, prefix
         parser.add_argument('-f', '--fmap', help='First map number', type=int, default=1, metavar='fmap')
-        parser.add_argument('-F', '--format', default='notset', choices=['netcdf', 'pcraster', 'notset'],
-                            help='Output format', metavar='format')
+        # output file format
+        parser.add_argument('-F', '--format', metavar='format',
+                            default='notset', choices=['netcdf', 'pcraster', 'notset'],
+                            help='Output format. Available options: netcdf,  pcraster. Default pcraster')
         parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1, metavar='extension_step')
         parser.add_argument('-n', '--namePrefix', help='Prefix name for maps', metavar='outfiles_prefix')
 
@@ -123,8 +125,8 @@ class ExecutionContext(object):
                             choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'], metavar='log_level')
 
         # interpolation lookup tables reading/writing
-        parser.add_argument('-N', '--intertableDir', help='interpolation tables dir', metavar='intertable_dir')
-        parser.add_argument('-B', '--createIntertable', help='create intertable file',
+        parser.add_argument('-N', '--intertableDir', help='Alternate interpolation tables dir', metavar='intertable_dir')
+        parser.add_argument('-B', '--createIntertable', help='Flag to create intertable file',
                             action='store_true', default=False)
         parser.add_argument('-X', '--interpolationParallel',
                             help='Use parallelization tools to make interpolation faster.'
@@ -149,7 +151,7 @@ class ExecutionContext(object):
                             action='store_true', default=False)
         parser.add_argument('-A', '--underApi', help=argparse.SUPPRESS,
                             action='store_true', default=False)
-        parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,
+        parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,  # mostly used in development
                             action='store_true', default=False)
 
     def get(self, param, default=None):

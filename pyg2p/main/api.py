@@ -27,12 +27,12 @@ class Command(object):
     Usage:
     c = Command()
     c = c.with_cmdpath('average.json').with_inputfile('rain.grb').with_outdir('./')
-    c = c.with_create_intertable().with_parallel()  # boolean args are created without args
+    c = c.with_create_intertable().with_parallel().with_out_format('netcdf')  # boolean args are created without args
     """
     cmds_map = {'cmdpath': '-c', 'inputfile': '-i', 'second_input_file': '-I',
                 'eps': '-m', 'tend': '-e', 'tstart': '-s', 'datatime': '-T', 'datadate': '-D',
                 'ext': '-x', 'fmap': '-f', 'outdir': '-o', 'nameprefix': '-n',
-                'log_level': '-l', 'log_dir': '-d',
+                'log_level': '-l', 'log_dir': '-d', 'out_format': '-F',
                 'create_intertable': '-B', 'parallel': '-X', 'intertable_dir': '-N'}
 
     def _a(self, opt, param=''):
