@@ -1,5 +1,6 @@
 import time
 
+import numpy as np
 from netCDF4 import Dataset
 
 from pyg2p.main.readers.pcr import PCRasterReader
@@ -15,9 +16,14 @@ class NetCDFWriter(Writer):
         self.nf = None
         self.filepath = None
         lats_map, lons_map = args[1], args[2]
-        self.area = PCRasterReader(self._clone_map).values
-        self.lats = PCRasterReader(lats_map).values
+        area = PCRasterReader(self._clone_map)
+        self.area = area.values
+        self.lats_map = PCRasterReader(lats_map)
+        self.coordinates_mv = self.lats_map.missing_value
+        self.lats = self.lats_map.values
         self.lons = PCRasterReader(lons_map).values
+        self.lats[self.lats == self.coordinates_mv] = np.nan
+        self.lons[self.lons == self.coordinates_mv] = np.nan
 
     def init_dataset(self, out_filename):
         self.nf = Dataset(out_filename, 'w', format='NETCDF4_CLASSIC')
