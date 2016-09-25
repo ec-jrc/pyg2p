@@ -1,11 +1,11 @@
 class Step(object):
-    def __init__(self, start_step_, end_step_, points_meridian_, input_step_):
-        self.start_step = start_step_
-        self.end_step = end_step_
+    def __init__(self, start_step, end_step, points_meridian, input_step):
+        self.start_step = start_step
+        self.end_step = end_step
         # spatial resolution
-        self.resolution = points_meridian_
+        self.resolution = points_meridian
         # temporal resolution
-        self.input_step = input_step_
+        self.input_step = input_step
 
     def __hash__(self):
         return hash((self.start_step, self.end_step, self.resolution, self.input_step))

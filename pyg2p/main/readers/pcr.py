@@ -34,6 +34,7 @@ class PCRasterReader(object):
     @property
     def values(self):
         data = self._band.ReadAsArray(0, 0, self._cols, self._rows)
+        self.close()
         return data
 
     @property

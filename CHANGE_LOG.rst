@@ -1,9 +1,17 @@
 CHANGE LOG
 ==========
 
+v 2.1
+-----
+* **67** NETCDF4 CLASSIC format output. Enabled by command line -F netcdf
+         or in execution JSON file OutMaps format attribute
+* **66** INTERTABLES_PATH, GEOPOTENTIALS_PATH user folders are optional for the user. Need to setup
+         only for writing new intertables/geopotentials in user folders
+* **65** Correct handling of GRIB masked values
+
+
 v 2.0.1
 -------
-* **65** Fixed wrong masking
 * **64** Minor fixes in API
 * **63** Minor fixes in logging
 

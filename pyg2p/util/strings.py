@@ -38,4 +38,5 @@ FALSE_STRINGS = ['FALSE', 'F', 'f', 'False', 'false', 'NO', 'no', 'No', '0']
 
 
 def now_string(fmt='%Y-%m-%d %H:%M'):
+    # noinspection PyTypeChecker
     return datetime.strftime(datetime.now(), fmt)

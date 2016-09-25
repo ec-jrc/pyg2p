@@ -6,8 +6,7 @@ from pyg2p.main.manipulation.aggregator import ACCUMULATION
 
 import pyg2p.util.strings
 import pyg2p.util.files
-from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, \
-    INTERTABLE_DIR_NOT_FOUND, NOT_A_NUMBER
+from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER
 from pyg2p.util.strings import now_string, FALSE_STRINGS
 
 
@@ -335,7 +334,6 @@ class ExecutionContext(object):
         return 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None
 
     def create_select_cmd_for_reader(self, start_, end_):
-
         # 'var' suffix is for multiresolution 240 step message (global EUE files)
         reader_args = {
             'shortName': [self._vars['parameter.shortName'], self._vars['parameter.shortName'].upper(),
@@ -397,12 +395,3 @@ class ExecutionContext(object):
 
     def geo_file(self, grid_id):
         return self.input_file_with_geopotential or self.configuration.geopotentials.get_filepath(grid_id)
-
-    def get_writer(self):
-        out_format = self._vars['outMaps.format']
-        if out_format == 'pcraster':
-            from pyg2p.main.writers.pcraster import PCRasterWriter
-            return PCRasterWriter(self._vars['outMaps.clone'])
-        # netcdf
-        from pyg2p.main.writers.netcdf import NetCDFWriter
-        return NetCDFWriter(self._vars['outMaps.clone'])

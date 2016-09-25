@@ -31,7 +31,7 @@ class Interpolator(object):
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
         self._rotated_target_grid = exec_ctx.get('interpolation.rotated_target')
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
-        self._mv_efas = self._target_coords.missing_value
+        self.mv_out = self._target_coords.missing_value
         self.parallel = exec_ctx.get('interpolation.parallel')
         self.format_intertablename = partial(self._format_intertable, source_file=pyg2p.util.files.normalize_filename(self._source_filename),
                                              target_size=self._target_coords.lats.size,
@@ -152,7 +152,7 @@ class Interpolator(object):
                 raise ApplicationException.get_exc(5000)
 
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
-            invdisttree = InverseDistance(longrib, latgrib, grid_details, v.ravel(), nnear, self._mv_efas,
+            invdisttree = InverseDistance(longrib, latgrib, grid_details, v.ravel(), nnear, self.mv_out,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
                                           parallel=self.parallel)
             _, weights, indexes = invdisttree.interpolate(lonefas, latefas)
@@ -176,7 +176,7 @@ class Interpolator(object):
         if not intertable_name:
             intertable_id, intertable_name = self._intertable_filename(grid_id)
         result = np.empty(self._target_coords.longs.shape)
-        result.fill(self._mv_efas)
+        result.fill(self.mv_out)
         if gid == -1 and not pyg2p.util.files.exists(intertable_name):
             # calling recursive grib_nearest
             # aux_gid and aux_values are only used to create the interlookuptable
@@ -219,7 +219,7 @@ class Interpolator(object):
             intertable_id, intertable_name = self._intertable_filename(grid_id)
 
         result = np.empty(self._target_coords.longs.shape)
-        result.fill(self._mv_efas)
+        result.fill(self.mv_out)
 
         # check if gid is due to the recursive call
         if gid == -1 and not pyg2p.util.files.exists(intertable_name):
@@ -289,7 +289,7 @@ class Interpolator(object):
 
     @property
     def mv_output(self):
-        return self._mv_efas
+        return self.mv_out
 
     def _log(self, message, level='DEBUG'):
         self._logger.log(message, level)

@@ -168,6 +168,7 @@ class GRIBReader(object):
             type_of_level = grib_get(self._selected_grbs[0], 'levelType')
 
             missing_value = grib_get(self._selected_grbs[0], 'missingValue')
+            data_date = grib_get(self._selected_grbs[0], 'dataDate')
             all_values = {}
             all_values_second_res = {}
             grid2 = None
@@ -180,7 +181,7 @@ class GRIBReader(object):
                     # second time resolution
                     input_step = self._step_grib2
 
-                key = Step(start_step, end_step, points_meridian, input_step)
+                step_key = Step(start_step, end_step, points_meridian, input_step)
 
                 if points_meridian != grid.num_points_along_meridian and grid.get_2nd_resolution() is None:
                     # found second resolution messages
@@ -199,14 +200,14 @@ class GRIBReader(object):
                     values = ma.masked_where(bitmap == 0, values, copy=False)
 
                 if not grid2:
-                    all_values[key] = values
+                    all_values[step_key] = values
                 elif points_meridian != grid.num_points_along_meridian:
-                    all_values_second_res[key] = values
+                    all_values_second_res[step_key] = values
 
             if grid2:
                 key_2nd_spatial_res = min(all_values_second_res.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
-            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, grid, all_values_second_res), short_name
+            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, grid, all_values_second_res, data_date=data_date), short_name
         # no messages found
         else:
             raise ApplicationException.get_exc(NO_MESSAGES, details="using {}".format(kwargs))

@@ -1,11 +1,12 @@
 import gc
+from datetime import datetime
 
 from pyg2p.util.logger import Logger
 
 
 class Messages(object):
 
-    def __init__(self, values, mv, unit, type_of_level, type_of_step, grid_details, val_2nd=None):
+    def __init__(self, values, mv, unit, type_of_level, type_of_step, grid_details, val_2nd=None, data_date=None):
         self._logger = Logger.get_logger()
         self.values_first_or_single_res = values
         self.values_second_res = val_2nd or {}
@@ -13,6 +14,7 @@ class Messages(object):
         self.type_of_level = type_of_level
         self.unit = unit
         self.missing_value = mv
+        self.data_date = datetime.strptime(str(data_date), '%Y%m%d')
 
         self.grid_details = grid_details
         # order key list to get first step
