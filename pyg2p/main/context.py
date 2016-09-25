@@ -95,9 +95,9 @@ class ExecutionContext(object):
     @staticmethod
     def add_args(parser):
 
-        parser.add_argument('-c', '--commandsFile', help='Path to json command file', required=True, metavar='json_file')
+        parser.add_argument('-c', '--commandsFile', help='Path to json command file', metavar='json_file')
         parser.add_argument('-o', '--outDir', help='Path where output maps will be created.', default='./', metavar='out_dir')
-        parser.add_argument('-i', '--inputFile', help='Path to input grib.', metavar='input_file', required=True)
+        parser.add_argument('-i', '--inputFile', help='Path to input grib.', metavar='input_file')
         parser.add_argument('-I', '--inputFile2', help='Path to 2nd resolution input grib.', metavar='input_file_2nd')
 
         # grib messages selectors
