@@ -26,8 +26,8 @@ def setup_data_files(setup_args_):
     data_files.append((os.path.join(user_conf_dir, 'docs'), ['./Docs/UserManual.pdf']))
     setup_args_.update({'data_files': data_files})
 
-packages_deps = ['ujson', 'xmljson', 'numpy>=1.10.1', 'scipy>=0.16.0', 'GDAL>=1.9.0',
-                 'numexpr>=2.4.6', 'dask[bag]', 'dask[array]', 'toolz']
+packages_deps = ['ujson', 'xmljson', 'numpy', 'scipy',
+                 'numexpr', 'dask[bag]', 'dask[array]', 'toolz']
 
 setup_args = dict(name='pyg2p',
                   version='2.0.1',
