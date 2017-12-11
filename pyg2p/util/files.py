@@ -44,7 +44,7 @@ def has_perms(pathnames, perm):
     if not isinstance(pathnames, (tuple, list)):
         pathnames = [pathnames]
     for path in pathnames:
-        if not os.access(path, perm):
+        if path and not os.access(path, perm):
             return False
     return True
 
@@ -100,8 +100,8 @@ def normalize_filename(name):
     normalized_name = without_ext(name).lower()
     # remove long numbers (like dates 20151225)
     normalized_name = re.sub(r'([0-9]{8,10})', '', normalized_name) or normalized_name
-    # remove - and _
-    normalized_name = normalized_name.replace('-', '').replace('_', '')
+    # remove ., - and _
+    normalized_name = normalized_name.replace('-', '').replace('_', '').replace('.', '')
     # remove extension
 
     if len(normalized_name) < 3:

@@ -1,16 +1,14 @@
 import gdal
 import numpy.ma as ma
 
-from pyg2p.util.logger import Logger
+from pyg2p.main.writers import Writer
 
 
-class PCRasterWriter(object):
+class PCRasterWriter(Writer):
     FORMAT = 'PCRaster'
 
-    def __init__(self, clone_map):
-        self._clone_map = clone_map
-        self._logger = Logger.get_logger()
-        self._log("Set PCRaster clone for writing maps: " + self._clone_map)
+    def __init__(self, *args):
+        super(PCRasterWriter, self).__init__(*args)
         # =============================================================================
         # Create a MEM clone of the source file.
         # =============================================================================
@@ -30,9 +28,6 @@ class PCRasterWriter(object):
         rs = ma.masked_values(rs, self.mv)
         self._mask = ma.getmask(rs)
 
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
-
     def write(self, output_map_name, values):
         drv = gdal.GetDriverByName(self.FORMAT)
         masked_values = self._mask_values(values)
@@ -40,11 +35,15 @@ class PCRasterWriter(object):
         self._mem_ds.GetRasterBand(1).SetNoDataValue(self.mv)
         self._mem_ds.GetRasterBand(1).WriteArray(masked_values)
         out_ds = drv.CreateCopy(output_map_name.encode('utf-8'), self._mem_ds)
-        self._log('%s written!' % output_map_name, 'INFO')
+        self._log('{} written!'.format(output_map_name), 'INFO')
         out_ds = None
+        del out_ds
 
     def _mask_values(self, values):
-        masked = ma.masked_where(self._mask == True, values, copy=False)
+        if isinstance(values, ma.core.MaskedArray):
+            masked = ma.masked_where((self._mask | values.mask), values.data, copy=False)
+        else:
+            masked = ma.masked_where(self._mask, values, copy=False)
         masked = ma.filled(masked, self.mv)
         return masked
 

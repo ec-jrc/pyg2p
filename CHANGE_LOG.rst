@@ -1,9 +1,20 @@
 CHANGE LOG
 ==========
 
+v 2.1
+-----
+* **67** Improvement (major)
+         NETCDF4 CLASSIC format output. Enabled by command line -F netcdf
+         or in execution JSON file OutMaps format attribute
+* **66** Improvement (major)
+         INTERTABLES, GEOPOTENTIALS user folders are optional for the user.
+         Need to setup in ./pyg2p/myfile.conf only for writing new intertables/geopotentials in user folders
+* **65** Bug fix (major)
+         Correct handling of GRIB missing values
+
+
 v 2.0.1
 -------
-* **65** Fixed wrong masking
 * **64** Minor fixes in API
 * **63** Minor fixes in logging
 

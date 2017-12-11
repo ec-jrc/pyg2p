@@ -1,0 +1,21 @@
+{
+    "Execution": {
+        "@name": "test missing values",
+
+        "OutMaps": {
+            "@cloneMap": "/dataset/maps/europe/dem.map",
+            "@ext": 1,
+            "@fmap": 1,
+            "@namePrefix": "cin",
+            "@unitTime": 24,
+            "Interpolation": {
+                "@latMap": "/dataset/maps/europe/lat.map",
+                "@lonMap": "/dataset/maps/europe/lon.map",
+                "@mode": "grib_nearest"
+            }
+        },
+        "Parameter": {
+            "@shortName": "cin"
+        }
+    }
+}

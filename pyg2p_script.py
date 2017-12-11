@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# used only for debugging. It doesn't use installed package but current source code
+# so that we can test without installing package
+
 import sys
 import pyg2p.main.exceptions as appexcmodule
 from pyg2p.main.config import Configuration

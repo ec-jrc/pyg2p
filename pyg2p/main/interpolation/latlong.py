@@ -1,4 +1,4 @@
-from pyg2p.main.readers.pcraster import PCRasterReader
+from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.util.logger import Logger
 
 
@@ -19,9 +19,6 @@ class LatLong(object):
         self._lonMapValues = reader2.values
 
         self._id = '{}_{}'.format(reader.identifier(), reader2.identifier())
-        # TODO Add lat/lon info (min_lat, min_lon, max_lat, max_lon, grid shape)
-        reader.close()
-        reader2.close()
 
     @property
     def identifier(self):
@@ -53,7 +50,6 @@ class DemBuffer(object):
         reader = PCRasterReader(self._dem_map)
         self._missing_value = reader.missing_value
         self._values = reader.values
-        reader.close()
 
     @property
     def values(self):

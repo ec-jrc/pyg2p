@@ -5,8 +5,8 @@ import time
 from subprocess import call, STDOUT
 
 import numpy as np
-from pyg2p.main.readers.pcraster import PCRasterReader
-from pyg2p.main.writers.pcraster import PCRasterWriter
+from pyg2p.main.readers.pcr import PCRasterReader
+from pyg2p.main.writers.pcr import PCRasterWriter
 from memory_profiler import memory_usage
 
 import pyg2p
@@ -61,15 +61,12 @@ class TestDiffMixin(object):
         reader_diff = PCRasterReader(diff_map_path)
         diff_values = reader_diff.values
         diff_values = diff_values[diff_values != reader_diff.missing_value]
-        reader_diff.close()
         reader_g = PCRasterReader(g_map_path)
         orig_g_values = reader_g.values
         g_values = orig_g_values[orig_g_values != reader_g.missing_value]
-        reader_g.close()
         reader_p = PCRasterReader(p_map_path)
         orig_p_values = reader_p.values
         p_values = orig_p_values[orig_p_values != reader_p.missing_value]
-        reader_p.close()
 
         # start checks
         same_size = p_values.size == g_values.size
@@ -113,7 +110,6 @@ class TestDiffMixin(object):
 
 
 class TestRunner(TestDiffMixin):
-    # TODO change print statements to logger info
     def __init__(self, config, file_):
         self._ctx = TestContext(config, file_)
 

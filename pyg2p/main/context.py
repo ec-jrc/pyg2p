@@ -6,7 +6,7 @@ from pyg2p.main.manipulation.aggregator import ACCUMULATION
 
 import pyg2p.util.strings
 import pyg2p.util.files
-from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS
+from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER
 from pyg2p.util.strings import now_string, FALSE_STRINGS
 
 
@@ -72,6 +72,7 @@ class ExecutionContext(object):
         self._vars['interpolation.create'] = parsed_args['createIntertable']
         self._vars['interpolation.parallel'] = parsed_args['interpolationParallel']
         self._vars['outMaps.fmap'] = parsed_args['fmap']
+        self._vars['outMaps.format'] = parsed_args['format']
         self._vars['outMaps.ext'] = parsed_args['ext']
         self._vars['outMaps.namePrefix'] = parsed_args['namePrefix']
         self._vars['outMaps.outDir'] = parsed_args['outDir']
@@ -112,6 +113,10 @@ class ExecutionContext(object):
 
         # output file naming (first extension number, extension number step, prefix
         parser.add_argument('-f', '--fmap', help='First map number', type=int, default=1, metavar='fmap')
+        # output file format
+        parser.add_argument('-F', '--format', metavar='format',
+                            default='notset', choices=['netcdf', 'pcraster', 'notset'],
+                            help='Output format. Available options: netcdf,  pcraster. Default pcraster')
         parser.add_argument('-x', '--ext', help='Extension number step', type=int, default=1, metavar='extension_step')
         parser.add_argument('-n', '--namePrefix', help='Prefix name for maps', metavar='outfiles_prefix')
 
@@ -120,8 +125,8 @@ class ExecutionContext(object):
                             choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'], metavar='log_level')
 
         # interpolation lookup tables reading/writing
-        parser.add_argument('-N', '--intertableDir', help='interpolation tables dir', metavar='intertable_dir')
-        parser.add_argument('-B', '--createIntertable', help='create intertable file',
+        parser.add_argument('-N', '--intertableDir', help='Alternate interpolation tables dir', metavar='intertable_dir')
+        parser.add_argument('-B', '--createIntertable', help='Flag to create intertable file',
                             action='store_true', default=False)
         parser.add_argument('-X', '--interpolationParallel',
                             help='Use parallelization tools to make interpolation faster.'
@@ -146,11 +151,11 @@ class ExecutionContext(object):
                             action='store_true', default=False)
         parser.add_argument('-A', '--underApi', help=argparse.SUPPRESS,
                             action='store_true', default=False)
-        parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,
+        parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,  # mostly used in development
                             action='store_true', default=False)
 
     def get(self, param, default=None):
-        return self._vars.get(param, default) or default
+        return self._vars.get(param, default)
 
     def __getitem__(self, param):
         return self._vars[param]
@@ -171,6 +176,7 @@ class ExecutionContext(object):
         if not pyg2p.util.files.exists(self._input_args['commandsFile']):
             raise ApplicationException.get_exc(0, self._input_args['commandsFile'])
 
+        # read json command file (passed with -c)
         with open(self._input_args['commandsFile']) as f:
             u = json.load(f)
 
@@ -217,6 +223,9 @@ class ExecutionContext(object):
             self._vars['outMaps.fmap'] = exec_conf['OutMaps'].get('@fmap') or 1
         if self._vars['outMaps.ext'] == 1:
             self._vars['outMaps.ext'] = exec_conf['OutMaps'].get('@ext') or 1
+        if self._vars['outMaps.format'] == 'notset':
+            # default out format to pcraster if not set from commandline nor in execution command json
+            self._vars['outMaps.format'] = exec_conf['OutMaps'].get('@format') or 'pcraster'
 
         # if start, end and dataTime are defined via command line input args, these are ignored.
         # if missing, GribReader will read all timesteps for the parameter
@@ -295,13 +304,10 @@ class ExecutionContext(object):
             except Exception, exc:
                 raise ApplicationException(exc, None, str(exc))
 
-            if not pyg2p.util.files.exists(self._vars['interpolation.dirs']['user'], is_folder=True):
-                raise ApplicationException.get_exc(1320, self._vars['interpolation.dirs']['user'])
-
             # check all numbers
 
             if self._vars['parameter.level'] and not self._vars['parameter.level'].isdigit():
-                raise ApplicationException.get_exc(1400, 'Parameter level')
+                raise ApplicationException.get_exc(NOT_A_NUMBER, 'Parameter level')
             self._vars['parameter.level'] = int(self._vars['parameter.level']) if self._vars.get('parameter.level') else None
 
             self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else self.default_values['outMaps.unitTime']
@@ -325,15 +331,15 @@ class ExecutionContext(object):
     def add_geopotential(self):
         return self._to_add_geopotential
 
+    @property
     def has_perturbation_number(self):
         return 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None
 
     def create_select_cmd_for_reader(self, start_, end_):
-
         # 'var' suffix is for multiresolution 240 step message (global EUE files)
         reader_args = {
-            'shortName': [str(self._vars['parameter.shortName']), str(self._vars['parameter.shortName']).upper(),
-                          str(self._vars['parameter.shortName'] + 'var')]}
+            'shortName': [self._vars['parameter.shortName'], self._vars['parameter.shortName'].upper(),
+                          self._vars['parameter.shortName'] + 'var']}
 
         if self._vars['parameter.level'] is not None:
             reader_args['level'] = self._vars['parameter.level']
@@ -342,7 +348,7 @@ class ExecutionContext(object):
         if self._vars['parameter.dataDate'] is not None:
             reader_args['dataDate'] = self._vars['parameter.dataDate']
 
-        if self.has_perturbation_number():
+        if self.has_perturbation_number:
             reader_args['perturbationNumber'] = self._vars['parameter.perturbationNumber']
 
         # start_step, end_step

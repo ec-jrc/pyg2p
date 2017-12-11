@@ -46,7 +46,6 @@ def grib_nearest(gid, target_lats, target_lons, mv):
             stdout.flush()
         if not (lon <= -1.0e+10 or lon == mv):
             try:
-                # TODO CHECK IF asscalar is really needed here
                 n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(lat), np.asscalar(lon))
             except gribapi.GribInternalError:
                 outs += 1
@@ -92,7 +91,6 @@ def grib_invdist(gid, target_lats, target_lons, mv):
         if not (lon < -1.0e+10 or lon == mv):
 
             try:
-                # TODO CHECK IF asscalar is really needed here
                 n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(lat), np.asscalar(lon), npoints=4)
             except gribapi.GribInternalError:
                 # tipically "out of grid" error
@@ -197,7 +195,6 @@ def invdist_parallel_step(chunk, gid, mv):
     inv1 = inv2 = inv3 = inv4 = np.NaN
     if not (lon < -1.0e+10 or lon == mv):
         try:
-            # TODO CHECK IF asscalar is really needed here
             n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(lat), np.asscalar(lon), npoints=4)
         except gribapi.GribInternalError:
             # tipically "out of grid" error

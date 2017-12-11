@@ -1,7 +1,8 @@
 import numexpr as ne
+from numpy import ma
 
 from pyg2p.util.logger import Logger
-
+import pyg2p.util.numeric
 
 class Converter:
     def __init__(self, func=None, cut_off=False):
@@ -36,7 +37,11 @@ class Converter:
     def convert(self, x):
         if not self._identity:
             mv = self._mv
-            return ne.evaluate(self._numexpr_eval)
+            res = ne.evaluate(self._numexpr_eval)
+            # preserve maskes as numexpr just ignores them
+            if isinstance(x, ma.core.MaskedArray):
+                res = ma.masked_where(x.mask, res, copy=False)
+            return res
         else:
             return x
 

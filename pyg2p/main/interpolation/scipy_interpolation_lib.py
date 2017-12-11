@@ -43,18 +43,12 @@ class InverseDistance(object):
 
         self._mv_target = mv_target
         self._mv_source = mv_source
-        # TODO: min upper bound (max distance for NN search) must be calculated according resolution of grid:
         # we can calculate resolution in KM as described here:
         # http://math.boisestate.edu/~wright/montestigliano/NearestNeighborSearches.pdf
         # sphdist = R*acos(1-maxdist^2/2);
-        # import ipdb
-        # ipdb.set_trace()
         # Finding actual resolution of source GRID
         distances, indexes = self.tree.query(source_locations, k=2, n_jobs=self.njobs)
-        # max_dist = np.max(distances)
-        # res = ne.evaluate('r * acos(1 - max_dist ** 2 / 2')
-        # res = self.geodetic_info.get('radius') * acos(1 - max_dist ** 2 / 2)
-        # self.min_upper_bound = self.geodetic_info.get('radius') * pi / self.geodetic_info.get('Nj')
+        # set max of distances as min upper bound and add an empirical correction value
         self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
         stdout.write('Skipping neighbors at distance > {}\n'.format(self.min_upper_bound))
 
@@ -63,11 +57,6 @@ class InverseDistance(object):
         # Example of target rotated coords are COSMO lat/lon/dem PCRASTER maps
         x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
         efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
-
-        # TODO check if we still need this qdim if
-        qdim = efas_locations.ndim
-        if qdim == 1:
-            efas_locations = np.array([efas_locations])
 
         stdout.write('Finding indexes for nearest neighbour k={}\n'.format(self.nnear))
 
@@ -112,11 +101,9 @@ class InverseDistance(object):
         return x, y, z
 
     def _build_nn(self, distances, indexes):
-        # z = mask_it(self.z, self._mv_source)
         z = self.z
-        # TODO probably we don't need to mask but just an empty array
-        # result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
-        result = np.empty((len(distances),) + np.shape(z[0]))
+        result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
+        # result = np.empty((len(distances),) + np.shape(z[0]))
         jinterpol = 0
         num_cells = result.size
         back_char, progress_step = progress_step_and_backchar(num_cells)
@@ -146,10 +133,7 @@ class InverseDistance(object):
 
     def _build_weights(self, distances, indexes, nnear):
 
-        # TODO CHECK: maybe we don't need to mask here
-        z = mask_it(self.z, self._mv_source)
-        # no intertable found for inverse distance nnear = 8
-        # TODO CHECK if we need mask here (maybe just need an empty array)
+        z = self.z
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
         jinterpol = 0
         num_cells = result.size
