@@ -1023,5 +1023,27 @@
             1500,
             3600
         ]
+    },
+    "I0_359.929_M_2560_6599680_reduced_gg_-180_90_0_0_-59.95_89.95_-180_90_0_0_0.05_359.95scipy_nearest":{
+        "filename":"O1280_6599680_to_1500x3600_nearest.npy",
+        "method":"nearest",
+        "source_shape":[
+            6599680
+        ],
+        "target_shape":[
+            1500,
+            3600
+        ]
+    },
+    "I0_359.93_M_2560_6599680_reduced_gg_-180_90_0_0_-59.95_89.95_-180_90_0_0_0.05_359.95scipy_nearest":{
+        "filename":"N640@O1280_6599680_to_1500x3600_nearest.npy",
+        "method":"nearest",
+        "source_shape":[
+            6599680
+        ],
+        "target_shape":[
+            1500,
+            3600
+        ]
     }
 }
