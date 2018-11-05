@@ -15,8 +15,8 @@ src_root=.
 
 # Which static dataset should this installation
 # use (geopotentials, interpolation tables).
-static_data_root=/gpfs/lxc/efas/emos/data/pyg2p/2.1.0 #LXC
-#static_data_root=/gpfs/lxop/efas/emos/data/pyg2p/2.1.0 #LXOP
+#static_data_root=/gpfs/lxc/efas/emos/data/pyg2p/2.1.0 #LXC
+static_data_root=/gpfs/lxop/efas/emos/data/pyg2p/2.1.0 #LXOP
 
 
 
