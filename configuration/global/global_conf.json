@@ -1,5 +1,5 @@
 {
-    "geopotentials": "/gpfs/lxop/efas/emos/data/pyg2p/2.1.0/geopotentials",
-    "intertables": "/gpfs/lxop/efas/emos/data/pyg2p/2.1.0/intertables"
+    "geopotentials": "/gpfs/lxc/efas/emos/data/pyg2p/2.1.0/geopotentials",
+    "intertables": "/gpfs/lxc/efas/emos/data/pyg2p/2.1.0/intertables"
 }
 
