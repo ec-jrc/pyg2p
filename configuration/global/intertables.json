@@ -1122,5 +1122,16 @@
             950,
             1000
         ]
+    },
+    "I0_359.723_M_640_421120_reduced_gg_-180_90_0_0_-59.95_89.95_-180_90_0_0_0.05_359.95scipy_nearest":{
+        "filename":"O320_421120B_to_1500x3600_nearest.npy",
+        "method":"nearest",
+        "source_shape":[
+            421120
+        ],
+        "target_shape":[
+            1500,
+            3600
+        ]
     }
 }
