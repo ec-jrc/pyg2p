@@ -67,10 +67,10 @@ class ApplicationException(Exception):
         WRONG_ARGS: 'Failed to parse input arguments.',
     }
 
-    @staticmethod
-    def error_description(code):
-        if code in ApplicationException._errorMessages:
-            return ApplicationException._errorMessages[code]
+    @classmethod
+    def error_description(cls, code):
+        if code in cls._errorMessages:
+            return cls._errorMessages[code]
         else:
             return 'Unknown Error Code: {}'.format(code)
 
@@ -81,7 +81,7 @@ class ApplicationException(Exception):
     def __init__(self, inner, code, error):
         self._innerException = inner
         self._code = code
-        if isinstance(error, basestring):
+        if isinstance(error, str):
             self.message = error
 
     def __str__(self):

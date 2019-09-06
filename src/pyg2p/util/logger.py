@@ -3,9 +3,12 @@ import logging
 import os
 import sys
 
-import gribapi
+from eccodes import GribInternalError
 
-from pyg2p.util.generics import FAIL, YELLOW, ENDC
+from .generics import FAIL, YELLOW, ENDC
+
+# FIXME we should use std logging lib. No clue why I needed this complex structure...
+#  Maybe there is a reason but must be documented
 
 LOGGERS_REGISTER = {}
 
@@ -53,12 +56,12 @@ class Logger(object):
         if level in ('ERROR', 'WARN', 'WARNING'):
             color = FAIL if level == 'ERROR' else YELLOW
             message = '{}{}{}'.format(color, message, ENDC)
-        message = '{} {}'.format(self._caller_info(), message)
+        # message = '{} {}'.format(self._caller_info(), message)
         if self.is_debug:
             # add traceback only at debug
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            if not isinstance(exc_obj, gribapi.GribInternalError) and exc_type:
-                print str(exc_obj)
+            if not isinstance(exc_obj, GribInternalError) and exc_type:
+                print(str(exc_obj))
                 trace_it = 1
         self._logger.log(self._get_int_level(level), message, exc_info=trace_it)
 
@@ -75,7 +78,7 @@ class Logger(object):
             (callermodulepath, callermodule) = os.path.split(caller[1])
             callerfunction = caller[3]
             callerlinenumber = caller[2]
-        except Exception as exc:
+        except (IndexError, TypeError) as exc:
             return '[No source information]'
         return '[{callermodule:s} {callerfunction:s}:{callerlinenumber:d}]'.format(**locals())
 
@@ -111,4 +114,3 @@ class Logger(object):
     def detach_config_logger(self):
         self._logger.removeHandler(self._ch)
         self._logger.handlers = self._temp_handlers
-

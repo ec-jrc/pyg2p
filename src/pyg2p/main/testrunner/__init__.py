@@ -16,10 +16,10 @@ from pyg2p.util.logger import Logger
 from pyg2p.util.strings import to_argv
 import pyg2p.util.files
 
-from pyg2p.scripts.pyg2p_script import main as pyg2p_main
+from pyg2p.main import main as pyg2p_main
 
 
-class TestDiffMixin(object):
+class TestDiffMixin:
     def _diff_maps(self, p_num_maps, test_, o_num_maps, o_maps, results):
         if p_num_maps != o_num_maps:
             self._print_colored(FAIL, 'xxxxxxx! ATTENTION!!! Potential misconfiguration or bug!')
@@ -90,7 +90,7 @@ class TestDiffMixin(object):
                 diff_mv_p_values = np.where(orig_p_values != reader_p.missing_value, 0., 1000.)
                 diff_mv_map_p_path = os.path.join(test_.out_dir, 'diff_mv_p.{}'.format(num_map))
                 writer_diff_mv.write(diff_mv_map_p_path, diff_mv_p_values)
-                print 'aguila {}'.format(diff_mv_map_p_path)
+                print('aguila {}'.format(diff_mv_map_p_path))
 
             if perc_wrong > 5:  # more than 5% of differences
                 test_result['failed'] = True
@@ -106,7 +106,7 @@ class TestDiffMixin(object):
                                     'Maps {}: {:3.4f}% of differences with max diff: {:3.4f}'.format(num_map, perc_wrong, max_diff))
 
             if large_diff or perc_wrong >= 0.3:
-                print 'aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path)
+                print('aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path))
 
 
 class TestRunner(TestDiffMixin):
@@ -165,7 +165,7 @@ class TestRunner(TestDiffMixin):
             if test_.g2p_command:
                 pyg2p.util.files.create_dir(test_.out_dir, recreate=True)
                 a = time.time()
-                print 'Running grib2pcraster...'
+                print('Running grib2pcraster...')
                 for g2p_comm in test_.g2p_command:
                     self._run_job(to_argv(g2p_comm.strip()))
                 elapsed_g2p = time.time() - a
@@ -173,7 +173,7 @@ class TestRunner(TestDiffMixin):
                 g_num_maps, g_maps = self._count_maps('g', test_.out_dir)
 
             if test_.pyg2p_scipy_command:
-                print 'Running pyg2p with scipy interpolation...'
+                print('Running pyg2p with scipy interpolation...')
                 a = time.time()
 
                 t = (pyg2p_main, to_argv(test_.pyg2p_scipy_command.strip()))
@@ -183,7 +183,7 @@ class TestRunner(TestDiffMixin):
                 max_mem_scipy = max(mem_usage)
                 z_num_maps, z_maps = self._count_maps('z', test_.out_dir)
 
-            print 'Running pyg2p...'
+            print('Running pyg2p...')
             a = time.time()
 
             t = (pyg2p_main, to_argv(test_.pyg2p_command.strip()))
@@ -202,7 +202,7 @@ class TestRunner(TestDiffMixin):
             else:
                 # test with only pyg2p commands. No comparisons.
                 for p_map in p_maps:
-                    print 'aguila {}'.format(os.path.join(test_.out_dir, p_map))
+                    print('aguila {}'.format(os.path.join(test_.out_dir, p_map)))
 
             self.print_test_summary(avg_mem, avg_mem_scipy, elapsed_g2p, elapsed_pyg2p, elapsed_pyg2p_scipy, max_mem, max_mem_scipy, test_)
 
@@ -211,7 +211,7 @@ class TestRunner(TestDiffMixin):
 
     @staticmethod
     def _print_colored(color, message):
-        print color + message + ENDC
+        print(color + message + ENDC)
 
     @staticmethod
     def _run_job(*args, **kwargs):

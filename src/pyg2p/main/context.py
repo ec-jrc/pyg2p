@@ -2,12 +2,9 @@ import argparse
 import ujson as json
 import os
 
-from pyg2p.main.manipulation.aggregator import ACCUMULATION
-
-import pyg2p.util.strings
-import pyg2p.util.files
-from pyg2p.main.exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER
-from pyg2p.util.strings import now_string, FALSE_STRINGS
+from ..util import files, strings
+from .manipulation.aggregator import ACCUMULATION
+from .exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER
 
 
 class ExecutionContext(object):
@@ -173,7 +170,7 @@ class ExecutionContext(object):
         if self._input_args['commandsFile'].startswith('./') or self._input_args['commandsFile'].startswith('../'):
             self._input_args['commandsFile'] = os.path.join(os.getcwd(), self._input_args['commandsFile'])
 
-        if not pyg2p.util.files.exists(self._input_args['commandsFile']):
+        if not files.exists(self._input_args['commandsFile']):
             raise ApplicationException.get_exc(0, self._input_args['commandsFile'])
 
         # read json command file (passed with -c)
@@ -196,7 +193,7 @@ class ExecutionContext(object):
             conversion = self.configuration.parameters.get_conversion(parameter, self._vars['parameter.conversionId'])
             self._vars['parameter.conversionUnit'] = conversion['@unit']
             self._vars['parameter.conversionFunction'] = conversion['@function']
-            self._vars['parameter.cutoffnegative'] = pyg2p.util.strings.to_boolean(conversion.get('@cutOffNegative'))
+            self._vars['parameter.cutoffnegative'] = strings.to_boolean(conversion.get('@cutOffNegative'))
 
         if exec_conf['Parameter'].get('@correctionFormula') and exec_conf['Parameter'].get('@gem') and exec_conf['Parameter'].get('@demMap'):
             self._vars['execution.doCorrection'] = True
@@ -244,7 +241,7 @@ class ExecutionContext(object):
             self._vars['aggregation.step'] = exec_conf['Aggregation'].get('@step')
             self._vars['aggregation.type'] = exec_conf['Aggregation'].get('@type')
             self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) and bool(self._vars.get('aggregation.type'))
-            self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == ACCUMULATION and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in FALSE_STRINGS
+            self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == ACCUMULATION and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in strings.FALSE_STRINGS
 
         # string interpolation for custom user configurations (i.e. dataset folders)
         self.configuration.user.interpolate_strings(self)
@@ -267,28 +264,28 @@ class ExecutionContext(object):
     def _check_exec_params(self):
 
         if self.run_tests:
-            if not pyg2p.util.files.exists(self._vars['test.cmds']):
+            if not files.exists(self._vars['test.cmds']):
                 raise ApplicationException.get_exc(7000, self._vars['test.cmds'])
         elif self.add_geopotential:
-            if not pyg2p.util.files.exists(self._vars['geopotential']):
+            if not files.exists(self._vars['geopotential']):
                 raise ApplicationException.get_exc(7001, self._vars['geopotential'])
         elif self.convert_conf:
-            if not pyg2p.util.files.exists(self._vars['path_to_convert'], is_folder=True):
+            if not files.exists(self._vars['path_to_convert'], is_folder=True):
                 raise ApplicationException.get_exc(7002, self._vars['path_to_convert'])
         elif self.download_conf or self.check_conf:
             pass
         elif self.convert_intertables:
-            if not pyg2p.util.files.exists(self._vars['path_to_intertables_to_convert'], is_folder=True):
+            if not files.exists(self._vars['path_to_intertables_to_convert'], is_folder=True):
                 raise ApplicationException.get_exc(7003, self._vars['path_to_intertables_to_convert'])
         else:
 
             if not self._vars.get('input.file'):
                 raise ApplicationException.get_exc(1001)
-            if not pyg2p.util.files.exists(self._vars['input.file']):
+            if not files.exists(self._vars['input.file']):
                 raise ApplicationException.get_exc(1000, self._vars['input.file'])
-            if not pyg2p.util.files.exists(self._vars['interpolation.lonMap']) or not pyg2p.util.files.exists(self._vars['interpolation.latMap']):
+            if not files.exists(self._vars['interpolation.lonMap']) or not files.exists(self._vars['interpolation.latMap']):
                 raise ApplicationException.get_exc(1300)
-            if not pyg2p.util.files.exists(self._vars['outMaps.clone']):
+            if not files.exists(self._vars['outMaps.clone']):
                 raise ApplicationException.get_exc(1310)
 
             if not self._vars['interpolation.mode'] in self.allowed_interp_methods:
@@ -299,9 +296,9 @@ class ExecutionContext(object):
                 if self._vars['outMaps.outDir'] != './':
                     if not self._vars['outMaps.outDir'].endswith('/'):
                         self._vars['outMaps.outDir'] += '/'
-                    if not pyg2p.util.files.exists(self._vars['outMaps.outDir'], is_folder=True):
-                        pyg2p.util.files.create_dir(self._vars['outMaps.outDir'])
-            except Exception, exc:
+                    if not files.exists(self._vars['outMaps.outDir'], is_folder=True):
+                        files.create_dir(self._vars['outMaps.outDir'])
+            except Exception as exc:
                 raise ApplicationException(exc, None, str(exc))
 
             # check all numbers
@@ -323,7 +320,7 @@ class ExecutionContext(object):
                 raise ApplicationException.get_exc(4200, self._vars['correction.demMap'])
 
     def __str__(self):
-        mess = '\n\n============ pyg2p: Execution parameters: {} {} ============\n\n'.format(self._vars['execution.name'], now_string())
+        mess = '\n\n============ pyg2p: Execution parameters: {} {} ============\n\n'.format(self._vars['execution.name'], strings.now_string())
         params_str = ['{}={}'.format(par, self._vars[par]) for par in sorted(self._vars.iterkeys()) if self._vars[par]]
         return '{}{}'.format(mess, '\n'.join(params_str))
 

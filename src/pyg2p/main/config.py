@@ -18,6 +18,7 @@ from pyg2p.main.exceptions import (
     NO_WRITE_PERMISSIONS, NOT_EXISTING_PATH, NO_FILE_GEOPOTENTIAL, NO_READ_PERMISSIONS)
 
 import pyg2p.util.files as file_util
+from pyg2p.util.logger import Logger
 
 
 class UserConfiguration(object):
@@ -89,6 +90,7 @@ class BaseConfiguration(object):
     GLOBAL_CONFIG_DIR = 'configuration/'  # data dir in package to read as resource stream
 
     def __init__(self, user_configuration):
+
         self.configuration_mode = False
         self.user_configuration = user_configuration
         self.config_file = os.path.join(user_configuration.config_dir, self.config_file_)
@@ -97,6 +99,8 @@ class BaseConfiguration(object):
         self.data_path = user_configuration.get(self.data_path_var)
         self.vars = self.load_global()
         self.user_vars = {}
+        logger = Logger.get_logger()
+        logger.info('Check configuration: [{}]'.format(self.__class__.__name__))
         if self.global_data_path_var:
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)
             if not file_util.can_read(self.global_data_path):
@@ -139,6 +143,7 @@ class BaseConfiguration(object):
             f.write(json.dumps(user_vars, sort_keys=True, indent=4))
 
     def check_write(self):
+
         if not self.data_path:
             # user hasn't defined his own data folder for geopotentials.
             raise ApplicationException.get_exc(NO_VAR_DEFINED, self.data_path_var)
@@ -264,9 +269,9 @@ class IntertablesConfiguration(BaseConfiguration):
 class TestsConfiguration(BaseConfiguration):
     config_file_ = 'test.json'
     description = 'Config file for tests. Set paths to executables here.'
-    init_dict = {'TestConfiguration': {'atol': 0.1,
-                                       'PcRasterDiff': '/PCRaster-3.0/bin/pcrcalc',
-                                       'g2p': '/usr/local/bin/grib2pcraster'
+    init_dict = {'TestConfiguration': {'atol': 0.05,
+                                       'PcRasterDiff': os.path.join(os.getenv('PCRASTER_HOME', '/opt/pcraster'), '/bin/pcrcalc'),
+                                       'g2p': os.getenv('GRIB2PCRASTER', '/usr/local/bin/grib2pcraster'),
                                        }
                  }
 

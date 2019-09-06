@@ -1,6 +1,4 @@
-# development packages
-# need to install GRIB API Python and netCDF4 python package with dependencies
-# netCDF4
+netCDF4
 ujson
 xmljson
 numpy>=1.10.1
@@ -9,7 +7,7 @@ GDAL
 memory_profiler
 psutil
 numexpr>=2.4.6
-# pip install numexpr separately otherwise won't find numpy
+eccodes-python  # replacing old GRIB API
 
 # dask packages for parallel interpolation
 dask[bag]

@@ -52,7 +52,7 @@ class OutputWriter(object):
         grid_id = messages.grid_id
         time_values = []
         out_values = []
-        for i, (timestep, v) in enumerate(values.iteritems()):
+        for i, (timestep, v) in enumerate(values.items()):
             # note: timestep and change_res_step are instances of domain.step.Step class
             # writing map i
             if messages.have_resolution_change() and timestep == change_res_step:
@@ -86,7 +86,7 @@ class OutputWriter(object):
         geodetic_info = messages.grid_details
         grid_id = messages.grid_id
 
-        for i, (timestep, v) in enumerate(values.iteritems()):
+        for i, (timestep, v) in enumerate(values.items()):
             # note: timestep and change_res_step are instances of domain.step.Step class
             # writing map i
             if messages.have_resolution_change() and timestep == change_res_step:
@@ -104,7 +104,7 @@ class OutputWriter(object):
     def write_maps(self, values, messages, change_res_step=None):
         write_method = getattr(self, '_write_maps_{}'.format(self.ctx.get('outMaps.format')))
         # Ordering values happens only here now - 12/04/2015
-        values = collections.OrderedDict(sorted(values.iteritems(), key=lambda (k, _): int(k.end_step)))
+        values = collections.OrderedDict(sorted(values.keys(), key=lambda k: int(k.end_step)))
         write_method(values, messages, change_res_step)
 
     def _name_netcdf_file(self):

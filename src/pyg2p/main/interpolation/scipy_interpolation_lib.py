@@ -1,10 +1,7 @@
-from __future__ import division
-
-from itertools import izip
 from math import radians
 from sys import stdout
 
-import gribapi
+import eccodes
 import numexpr as ne
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
@@ -19,7 +16,7 @@ class InverseDistance(object):
     """
     http://docs.scipy.org/doc/scipy/reference/spatial.html
     """
-    gribapi_version = map(int, gribapi.grib_get_api_version().split('.'))
+    gribapi_version = list(map(int, eccodes.codes_get_api_version().split('.')))
     rotated_bugfix_gribapi = gribapi_version[0] > 1 or (gribapi_version[0] == 1 and gribapi_version[1] > 14) or (gribapi_version[0] == 1 and gribapi_version[1] == 14 and gribapi_version[2] >= 3)
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, mv_target, mv_source, target_is_rotated=False, parallel=False):
@@ -74,7 +71,7 @@ class InverseDistance(object):
         return result, weights, indexes
 
     def to_3d(self, lons, lats, rotate=False, to_regular=False):
-
+        # these variables are used. Do NOT remove as they are used by numexpr
         lons = np.radians(lons)
         lats = np.radians(lats)
         x_formula = 'cos(lons) * cos(lats)'
@@ -103,17 +100,16 @@ class InverseDistance(object):
     def _build_nn(self, distances, indexes):
         z = self.z
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
-        # result = np.empty((len(distances),) + np.shape(z[0]))
         jinterpol = 0
         num_cells = result.size
         back_char, progress_step = progress_step_and_backchar(num_cells)
-
         stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
         stdout.flush()
+
         idxs = empty((len(indexes),), fill_value=z.size, dtype=int)
         # wsum will be saved in intertable
         outs = 0
-        for dist, ix in izip(distances, indexes):
+        for dist, ix in zip(distances, indexes):
             if jinterpol % progress_step == 0:
                 stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)'.format(back_char, jinterpol, num_cells, outs, jinterpol * 100. / num_cells))
                 stdout.flush()
@@ -132,22 +128,20 @@ class InverseDistance(object):
         return result, idxs
 
     def _build_weights(self, distances, indexes, nnear):
-
         z = self.z
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
         jinterpol = 0
         num_cells = result.size
-
         back_char, progress_step = progress_step_and_backchar(num_cells)
-
         stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
         stdout.flush()
+
         # weights will be saved in intertable along with indexes
         weights = empty((len(distances),) + (nnear,))
         idxs = empty((len(indexes),) + (nnear,), fill_value=z.size, dtype=int)
         empty_array = empty(z[0].shape, self._mv_target)
         outs = 0
-        for dist, ix in izip(distances, indexes):
+        for dist, ix in zip(distances, indexes):
             if jinterpol % progress_step == 0:
                 stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)'.format(back_char, jinterpol, num_cells, outs, jinterpol * 100. / num_cells))
                 stdout.flush()

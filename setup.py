@@ -1,7 +1,17 @@
-#!/usr/bin/env python
 import os
+import sys
+import glob
 from setuptools import setup, find_packages
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(current_dir, './src/'))
+
 import pyg2p.util.files as fm
+from pyg2p import __version__
+
+readme_file = os.path.join(current_dir, 'README.md')
+with open(readme_file, 'r') as f:
+    long_description = f.read()
 
 
 def setup_data_files(setup_args_):
@@ -26,22 +36,45 @@ def setup_data_files(setup_args_):
     data_files.append((os.path.join(user_conf_dir, 'docs'), ['./Docs/UserManual.pdf']))
     setup_args_.update({'data_files': data_files})
 
+
 packages_deps = ['ujson', 'xmljson', 'numpy', 'scipy',
                  'numexpr', 'dask[bag]', 'dask[array]', 'toolz']
 
 setup_args = dict(name='pyg2p',
-                  version='2.1',
+                  version=__version__,
                   description="Convert GRIB files to PCRaster",
+                  long_description=long_description,
                   license="Commercial",
                   install_requires=packages_deps,
                   author="Domenico Nappo",
                   author_email="domenico.nappo@gmail.com",
-                  packages=find_packages(),
-                  keywords="GRIB PCRaster pyg2p",
-                  entry_points={'console_scripts': ['pyg2p = pyg2p.scripts.pyg2p_script:main_script']},
-                  zip_safe=True)
+                  package_dir={'': 'src/'},
+                  py_modules=[os.path.splitext(os.path.basename(path))[0] for path in glob.glob('src/*.py*')],
+                  include_package_data=True,
+                  package_data={'pyg2p': ['*.xml']},
+                  packages=find_packages('src'),
+                  keywords="NetCDF GRIB PCRaster pyg2p",
+                  scripts=['bin/pyg2p'],
+                  # entry_points={'console_scripts': ['pyg2p = pyg2p.scripts.pyg2p_script:main_script']},
+                  zip_safe=True,
+                  classifiers=[
+                      # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
+                      'Development Status :: 4 - Beta',
+                      'Intended Audience :: Developers',
+                      'Intended Audience :: Education',
+                      'Intended Audience :: Financial and Insurance Industry',
+                      'Intended Audience :: Other Audience',
+                      'Intended Audience :: Science/Research',
+                      'License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)',
+                      'Operating System :: Unix',
+                      'Operating System :: POSIX',
+                      'Operating System :: Microsoft :: Windows',
+                      'Operating System :: MacOS :: MacOS X',
+                      'Programming Language :: Python',
+                      'Programming Language :: Python :: 3',
+                      'Topic :: Scientific/Engineering :: Physics',
+                  ])
 
 setup_data_files(setup_args)
 
 setup(**setup_args)
-

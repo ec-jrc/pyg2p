@@ -1,20 +1,12 @@
-#!/usr/bin/env python
-
 import sys
-import pyg2p.main.exceptions as appexcmodule
+
+from .exceptions import MISSING_CONFIG_FILES, ApplicationException, NO_MESSAGES
 from pyg2p.main.config import Configuration
 from pyg2p.main.controller import Controller
 
 from pyg2p.main.context import ExecutionContext
 from pyg2p.main.exceptions import MISSING_CONFIG_FILES
 from pyg2p.util.logger import Logger
-
-__version__ = '2.0.1'
-
-
-def main_script():
-    # Entry point
-    sys.exit(main(sys.argv[1:]))
 
 
 def main(*args):
@@ -26,7 +18,7 @@ def main(*args):
         # (parameters, geopotentials, intertables, custom user paths, ftp, static data paths)
         conf = Configuration()
         exc_ctx = ExecutionContext(conf, args)
-    except appexcmodule.ApplicationException as err:
+    except ApplicationException as err:
         # error during initalization
         logger = Logger.get_logger(level='INFO')
         logger.error('\nError: {}\n\n'.format(err))
@@ -43,7 +35,7 @@ def main(*args):
         try:
             config_command(conf, exc_ctx, logger)
             return 0
-        except appexcmodule.ApplicationException as err:
+        except ApplicationException as err:
             logger.error('\nError while running a configuration command: {}\n\n'.format(err))
             logger.flush()
             return 1
@@ -58,14 +50,13 @@ def execution_command(conf, exc_ctx, logger):
     ret_value = 0
     try:
         if conf.missing_config:
-            raise appexcmodule.ApplicationException.get_exc(MISSING_CONFIG_FILES,
-                                                            details='{}'.format(','.join(conf.missing_config)))
+            raise ApplicationException.get_exc(MISSING_CONFIG_FILES, details='{}'.format(','.join(conf.missing_config)))
         controller = Controller(exc_ctx)
         controller.log_execution_context()
         controller.execute()
-    except appexcmodule.ApplicationException as err:
+    except ApplicationException as err:
         logger.error('\n\nError: {}'.format(err))
-        if not err.get_code() == appexcmodule.NO_MESSAGES:
+        if not err.get_code() == NO_MESSAGES:
             ret_value = 1
     finally:
         controller.close()
@@ -107,6 +98,7 @@ def config_command(conf, exc_ctx, logger):
     elif exc_ctx.check_conf:  # -K
         # check unused intertables (intertables that are not in configuration and can be deleted
         conf.check_conf(logger)
+
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
