@@ -26,12 +26,12 @@ class NetCDFWriter(Writer):
         self.lons[self.lons == self.coordinates_mv] = np.nan
 
     def init_dataset(self, out_filename):
-        self.nf = Dataset(out_filename, 'w', format='NETCDF4_CLASSIC')
+        self.nf = Dataset(out_filename, 'w', format='NETCDF4')
         self.filepath = out_filename
         time_created = time.ctime(time.time())
         self.nf.history = 'Created {}'.format(time_created)
         self.nf.Conventions = 'CF-1.6'
-        self.nf.Source_Software = 'Python netCDF4'
+        self.nf.Source_Software = 'pyg2p 3'
         self.nf.source = 'ECMWF'
         self.nf.reference = 'ECMWF'
 
