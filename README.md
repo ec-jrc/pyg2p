@@ -248,13 +248,13 @@ Usage of user defined paths in JSON command file:
 
 ### Full list of options
 
-<table>
-    <thead>
-        <tr>
-            <th>Section</th>
-            <th>Attribute</th>
-            <th>Description</th>
-        </tr>
+<table> 
+    <thead> 
+        <tr> 
+            <th>Section</th> 
+            <th>Attribute</th> 
+            <th>Description</th> 
+        </tr> 
     </thead>
     <tbody>
         <tr>
