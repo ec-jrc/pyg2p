@@ -4,18 +4,16 @@ import os
 import time
 from subprocess import call, STDOUT
 
+from memory_profiler import memory_usage
 import numpy as np
+
 from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.main.writers.pcr import PCRasterWriter
-from memory_profiler import memory_usage
-
-import pyg2p
 from pyg2p.main.testrunner.context import TestContext
 from pyg2p.util.generics import GREEN, FAIL, WARN, YELLOW, ENDC, DEFAULT
 from pyg2p.util.logger import Logger
 from pyg2p.util.strings import to_argv
 import pyg2p.util.files
-
 from pyg2p.main import main as pyg2p_main
 
 
@@ -108,10 +106,9 @@ class TestDiffMixin:
             if large_diff or perc_wrong >= 0.3:
                 print('aguila {} {} {}'.format(diff_map_path, g_map_path, p_map_path))
 
-
-class TestRunner(TestDiffMixin):
-    def __init__(self, config, file_):
-        self._ctx = TestContext(config, file_)
+    @staticmethod
+    def _print_colored(color, message):
+        print(color + message + ENDC)
 
     def _print_time_diffs(self, elapsed_counter_part, elapsed_pyg2p, test_, from_scipy=False):
         txt_ = 'pyg2p with scipy interpol ' if from_scipy else 'grib2pcraster'
@@ -146,6 +143,21 @@ class TestRunner(TestDiffMixin):
         self._print_colored(WARN, 'Problematic tests: {}'.format(str(results['2'])))
         self._print_colored(GREEN, 'Successful tests: {}'.format(str(results['0'])))
         self._print_colored(YELLOW, '\n\n=================== END ======================\n')
+
+    @staticmethod
+    def _count_maps(param, out_dir):
+        count = 0
+        maps = []
+        for i in os.listdir(out_dir):
+            if i.startswith(param):
+                count += 1
+                maps.append(i)
+        return count, maps
+
+
+class TestRunner(TestDiffMixin):
+    def __init__(self, config, file_):
+        self._ctx = TestContext(config, file_)
 
     def run(self):
 
@@ -210,19 +222,5 @@ class TestRunner(TestDiffMixin):
         Logger.reset_logger()
 
     @staticmethod
-    def _print_colored(color, message):
-        print(color + message + ENDC)
-
-    @staticmethod
     def _run_job(*args, **kwargs):
         call(*args, **kwargs)
-
-    @staticmethod
-    def _count_maps(param, out_dir):
-        count = 0
-        maps = []
-        for i in os.listdir(out_dir):
-            if i.startswith(param):
-                count += 1
-                maps.append(i)
-        return count, maps
