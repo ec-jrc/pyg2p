@@ -37,7 +37,7 @@ def setup_data_files(setup_args_):
     setup_args_.update({'data_files': data_files})
 
 
-packages_deps = ['ujson', 'xmljson', 'numpy', 'scipy',
+packages_deps = ['ujson', 'xmljson', 'numpy', 'scipy', 'eccodes-python',
                  'numexpr', 'dask[bag]', 'dask[array]', 'toolz']
 
 setup_args = dict(name='pyg2p',

@@ -1,6 +1,14 @@
 CHANGE LOG
 ==========
 
+v 3.0
+-----
+
+* **68** Improvement (major)
+         Python3 version
+         Changed from NETCDF4_CLASSIC to NETCDF4 for netCDF outputs
+         Manual is in Markdown now, available on github.com as README.md
+
 v 2.1
 -----
 * **67** Improvement (major)
