@@ -1,4 +1,5 @@
 import os
+import logging
 from collections import namedtuple
 
 from eccodes import (codes_no_fail_on_wrong_length, codes_is_defined,
@@ -14,19 +15,20 @@ from ..domain.step import Step
 
 from pyg2p.util import generics as utils
 from pyg2p.main.exceptions import ApplicationException, NO_MESSAGES
-from pyg2p.util.logger import Logger
+from pyg2p import Loggable
 
 GRIBInfo = namedtuple('GRIBInfo', 'input_step, input_step2, change_step_at, type_of_param, start, end, mv')
 
 
-class GRIBReader(object):
+class GRIBReader(Loggable):
 
     def __init__(self, grib_file, w_perturb=False):
         # codes_no_fail_on_wrong_length(True)
+        super().__init__()
         self._grib_file = os.path.abspath(grib_file)
         self._file_handler = None
         self._grbindx = None
-        self._logger = Logger.get_logger()
+        self._logger = logging.getLogger()
         self._log('Opening GRIBReader for {}'.format(self._grib_file))
 
         try:
@@ -67,9 +69,6 @@ class GRIBReader(object):
             else:
                 return False
         return True
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
 
     def close(self):
         self._log('Closing gribs messages from {}'.format(self._grib_file))

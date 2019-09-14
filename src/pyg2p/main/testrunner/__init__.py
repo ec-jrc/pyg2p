@@ -11,7 +11,6 @@ from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.main.writers.pcr import PCRasterWriter
 from pyg2p.main.testrunner.context import TestContext
 from pyg2p.util.generics import GREEN, FAIL, WARN, YELLOW, ENDC, DEFAULT
-from pyg2p.util.logger import Logger
 from pyg2p.util.strings import to_argv
 import pyg2p.util.files
 from pyg2p.main import pyg2p_exe as pyg2p_main
@@ -173,10 +172,10 @@ class TestRunner(TestDiffMixin):
             elapsed_g2p = elapsed_pyg2p_scipy = None
             self._print_colored(DEFAULT, '\n\n =====================> Running Test {}'.format(test_))
             pyg2p.util.files.delete_files_from_dir(test_.out_dir)
-
+            a = time.time()
             if test_.g2p_command:
                 pyg2p.util.files.create_dir(test_.out_dir, recreate=True)
-                a = time.time()
+
                 print('Running grib2pcraster...')
                 for g2p_comm in test_.g2p_command:
                     self._run_job(to_argv(g2p_comm.strip()))
@@ -186,7 +185,6 @@ class TestRunner(TestDiffMixin):
 
             if test_.pyg2p_scipy_command:
                 print('Running pyg2p with scipy interpolation...')
-                a = time.time()
 
                 t = (pyg2p_main, to_argv(test_.pyg2p_scipy_command.strip()))
                 mem_usage = memory_usage(t)  # here it runs
@@ -219,7 +217,6 @@ class TestRunner(TestDiffMixin):
             self.print_test_summary(avg_mem, avg_mem_scipy, elapsed_g2p, elapsed_pyg2p, elapsed_pyg2p_scipy, max_mem, max_mem_scipy, test_)
 
         self.print_test_suite_summary(elapsed_test, num_tests, results)
-        Logger.reset_logger()
 
     @staticmethod
     def _run_job(*args, **kwargs):

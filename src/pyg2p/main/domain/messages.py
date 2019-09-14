@@ -1,13 +1,14 @@
 import gc
+import logging
 from datetime import datetime
 
-from pyg2p.util.logger import Logger
+from pyg2p import Loggable
 
 
-class Messages(object):
+class Messages(Loggable):
 
     def __init__(self, values, mv, unit, type_of_level, type_of_step, grid_details, val_2nd=None, data_date=None):
-        self._logger = Logger.get_logger()
+        super().__init__()
         self.values_first_or_single_res = values
         self.values_second_res = val_2nd or {}
         self.type_of_step = type_of_step
@@ -55,9 +56,6 @@ class Messages(object):
 
     def change_resolution_step(self):
         return self.grid_details.get_change_res_step()
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
 
     def apply_conversion(self, converter):
         converter.set_unit_to_convert(self.unit)

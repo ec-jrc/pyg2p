@@ -1,5 +1,6 @@
-import ujson as json
+import json
 import os
+import logging
 import re
 from copy import deepcopy
 from ftplib import FTP
@@ -17,7 +18,7 @@ from pyg2p.main.exceptions import (
     NO_WRITE_PERMISSIONS, NOT_EXISTING_PATH, NO_FILE_GEOPOTENTIAL, NO_READ_PERMISSIONS)
 
 import pyg2p.util.files as file_util
-from pyg2p.util.logger import Logger
+# from pyg2p.util.logger import Logger
 
 
 class UserConfiguration(object):
@@ -98,7 +99,7 @@ class BaseConfiguration(object):
         self.data_path = user_configuration.get(self.data_path_var)
         self.vars = self.load_global()
         self.user_vars = {}
-        logger = Logger.get_logger()
+        logger = logging.getLogger()
         logger.info('Check configuration: [{}]'.format(self.__class__.__name__))
         if self.global_data_path_var:
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)

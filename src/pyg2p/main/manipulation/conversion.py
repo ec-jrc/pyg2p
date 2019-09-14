@@ -1,13 +1,12 @@
 import numexpr as ne
 from numpy import ma
+from pyg2p import Loggable
 
-from pyg2p.util.logger import Logger
-import pyg2p.util.numeric
 
-class Converter:
+class Converter(Loggable):
     def __init__(self, func=None, cut_off=False):
 
-        self._logger = Logger.get_logger()
+        super().__init__()
         self._initial_unit = None
         self._identity = False
         self._mv = -1
@@ -20,9 +19,6 @@ class Converter:
                 self._identity = True
             else:
                 self._numexpr_eval = 'where(x!=mv, {}, mv)'.format(self._function_str.replace('x=', ''))
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
 
     def set_unit_to_convert(self, unit):
         self._initial_unit = unit

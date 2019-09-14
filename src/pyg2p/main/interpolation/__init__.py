@@ -1,19 +1,20 @@
 import os
+import logging
 from functools import partial
 
 import numpy as np
 import numpy.ma as ma
-from pyg2p.main.interpolation import grib_interpolation_lib
-from pyg2p.main.interpolation.latlong import LatLong
-from pyg2p.main.interpolation.scipy_interpolation_lib import InverseDistance
+from pyg2p import Loggable
 
-from pyg2p.main.exceptions import ApplicationException, NO_INTERTABLE_CREATED
-from pyg2p.util.logger import Logger
+from . import grib_interpolation_lib
+from .latlong import LatLong
+from .scipy_interpolation_lib import InverseDistance
+from ..exceptions import ApplicationException, NO_INTERTABLE_CREATED
 import pyg2p.util.files
 import pyg2p.util.numeric
 
 
-class Interpolator(object):
+class Interpolator(Loggable):
     _LOADED_INTERTABLES = {}
     _prefix = 'I'
     scipy_modes_nnear = {'nearest': 1, 'invdist': 4}
@@ -22,12 +23,13 @@ class Interpolator(object):
     _format_intertable = 'tbl{prognum}_{source_file}_{target_size}_{suffix}.npy'.format
 
     def __init__(self, exec_ctx, mv_input):
+        super().__init__()
         self._mv_grib = mv_input
         self.interpolate_with_grib = exec_ctx.interpolate_with_grib
         self._mode = exec_ctx.get('interpolation.mode')
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]
-        self._logger = Logger.get_logger()
+        self._logger = logging.getLogger()
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
         self._rotated_target_grid = exec_ctx.get('interpolation.rotated_target')
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
@@ -291,6 +293,3 @@ class Interpolator(object):
     @property
     def mv_output(self):
         return self.mv_out
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)

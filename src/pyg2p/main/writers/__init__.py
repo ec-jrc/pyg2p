@@ -1,11 +1,11 @@
 import os
 import datetime
+import logging
 import abc
 import collections
 
 import numpy as np
 
-from pyg2p.util.logger import Logger
 from pyg2p.main.interpolation import Interpolator
 from pyg2p.main.manipulation.correction import Corrector
 
@@ -16,11 +16,12 @@ class Writer(object):
 
     def __init__(self, *args):
         self._clone_map = args[0]
-        self._logger = Logger.get_logger()
+        self._logger = logging.getLogger()
+        # self._logger.setLevel()
         self._log('Set clone for writing {} maps: {}'.format(self.FORMAT, self._clone_map))
 
     def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
+        self._logger.log(logging._checkLevel(level), message)
 
     @abc.abstractmethod
     def write(self, *args, **kwargs):
@@ -35,7 +36,8 @@ class OutputWriter(object):
         self.ctx = ctx
         self.interpolator = Interpolator(ctx, mv_input=grib_info.mv)
         self.writer = self.get_writer()  # instance of PCRasterWriter or NetCDFWriter
-        self.logger = Logger.get_logger()
+        self.logger = logging.getLogger(__file__)
+        self.logger.setLevel(ctx['logger.level'])
 
     def aux_for_intertable_generation(self, aux_g, aux_v, aux_g2, aux_v2):
         self.interpolator.aux_for_intertable_generation(aux_g, aux_v, aux_g2, aux_v2)

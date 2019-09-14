@@ -1,9 +1,10 @@
-import gribapi
+import logging
+import eccodes
 
-from pyg2p.util.logger import Logger
+from pyg2p import Loggable
 
 
-class GribGridDetails(object):
+class GribGridDetails(Loggable):
     """
     # Managed grid types:
         * regular_gg, regular_ll
@@ -21,17 +22,17 @@ class GribGridDetails(object):
 
     def __init__(self, gid):
 
-        self._logger = Logger.get_logger()
+        self._logger = logging.getLogger()
         self._gid = gid
         self._geo_keys = {
-            key_: getattr(gribapi, 'grib_get_{}'.format(type_))(gid, key_)
+            key_: getattr(eccodes, 'codes_get_{}'.format(type_))(gid, key_)
             for key_, type_ in self.keys
-            if gribapi.grib_is_defined(gid, key_)
+            if eccodes.codes_is_defined(gid, key_)
         }
         self._missing_keys = {
             key_: 'MISSING'
             for key_ in self.check_for_missing_keys
-            if gribapi.grib_is_missing(gid, key_)
+            if eccodes.codes_is_missing(gid, key_)
         }
         self._grid_type = self._geo_keys.get('gridType')
         self._points_meridian = self._geo_keys.get('Nj')
@@ -53,9 +54,6 @@ class GribGridDetails(object):
         grid_id = '{}${}${}${}${}${}'.format(long_first, long_last, ni, nj, num_of_values, self._grid_type)
         return grid_id
 
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
-
     def set_2nd_resolution(self, grid2nd, step_range_):
         self._log('Grib resolution changes at key {}'.format(step_range_))
         self._grid_details_2nd = grid2nd
@@ -72,8 +70,8 @@ class GribGridDetails(object):
     @staticmethod
     def _compute_latlongs(gid):
 
-        lats = gribapi.grib_get_double_array(gid, 'latitudes')
-        lons = gribapi.grib_get_double_array(gid, 'longitudes')
+        lats = eccodes.codes_get_double_array(gid, 'latitudes')
+        lons = eccodes.codes_get_double_array(gid, 'longitudes')
         return lats, lons
 
     @property

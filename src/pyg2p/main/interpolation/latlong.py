@@ -1,13 +1,16 @@
+import logging
+
+from pyg2p import Loggable
 from pyg2p.main.readers.pcr import PCRasterReader
-from pyg2p.util.logger import Logger
 
 
-class LatLong(object):
+class LatLong(Loggable):
 
     def __init__(self, lat_map, long_map):
+        super().__init__()
         self._lat_map = lat_map
         self._long_map = long_map
-        self._logger = Logger.get_logger()
+        self._logger = logging.getLogger()
 
         self._log('Reading latitudes values from: {}'.format(self._lat_map))
         reader = PCRasterReader(self._lat_map)
@@ -33,19 +36,20 @@ class LatLong(object):
         return self._lonMapValues
 
     def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
+        self._logger.log(logging._checkLevel(level), message)
 
     @property
     def missing_value(self):
         return self._missing_value
 
 
-class DemBuffer(object):
+class DemBuffer(Loggable):
     _demCache = {}
 
     def __init__(self, dem_map):
+        super().__init__()
         self._dem_map = dem_map
-        self._logger = Logger.get_logger()
+        self._logger = logging.getLogger()
         self._log('Reading altitude values from: {}'.format(dem_map))
         reader = PCRasterReader(self._dem_map)
         self._missing_value = reader.missing_value
@@ -58,6 +62,3 @@ class DemBuffer(object):
     @property
     def missing_value(self):
         return self._missing_value
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
