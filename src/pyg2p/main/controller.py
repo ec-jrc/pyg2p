@@ -61,7 +61,7 @@ class Controller(object):
         values2 = m2.do_manipulation(messages.second_resolution_values())
         values.update(values2)
         # overwrite change_step resolution because of manipulation
-        change_step = sorted(values2.iterkeys(), key=lambda k: int(k.end_step))[0]
+        change_step = sorted(values2.keys(), key=lambda k: int(k.end_step))[0]
         return change_step, values
 
     def read_2nd_res_messages(self, cmd_args, messages):

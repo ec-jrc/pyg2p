@@ -64,8 +64,8 @@ class Messages(object):
         converter.set_missing_value(self.missing_value)
         # convert all values
         self._log(converter, 'INFO')
-        self.values_first_or_single_res = {key: converter.convert(values) for key, values in self.values_first_or_single_res.iteritems()}
-        self.values_second_res = {key: converter.convert(values) for key, values in self.values_second_res.iteritems()}
+        self.values_first_or_single_res = {key: converter.convert(values) for key, values in self.values_first_or_single_res.items()}
+        self.values_second_res = {key: converter.convert(values) for key, values in self.values_second_res.items()}
         gc.collect()
 
     def __len__(self):

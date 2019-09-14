@@ -33,7 +33,8 @@ class Interpolator(object):
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
         self.mv_out = self._target_coords.missing_value
         self.parallel = exec_ctx.get('interpolation.parallel')
-        self.format_intertablename = partial(self._format_intertable, source_file=pyg2p.util.files.normalize_filename(self._source_filename),
+        self.format_intertablename = partial(self._format_intertable,
+                                             source_file=pyg2p.util.files.normalize_filename(self._source_filename),
                                              target_size=self._target_coords.lats.size,
                                              suffix=self._suffix)
         # values used for interpolation table computation
@@ -128,7 +129,7 @@ class Interpolator(object):
             if isinstance(orig_mask, np.ndarray):
                 # there are masks. logic sum of masks from all values used
                 mask = None
-                for i in xrange(0, indexes.shape[1]):
+                for i in range(0, indexes.shape[1]):
                     mask = orig_mask[indexes.T[i]] if mask is None else mask | orig_mask[indexes.T[i]]
                 result = ma.masked_where(mask, result, copy=False)
         return result

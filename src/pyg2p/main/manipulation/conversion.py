@@ -47,7 +47,7 @@ class Converter:
 
     def cut_off_negative(self, xs):
         self._log('Cutting off negative values...')
-        for timestep, values in xs.iteritems():
+        for timestep, values in xs.items():
             xs[timestep] = ne.evaluate('where(values<0, 0, values)')
         return xs
 

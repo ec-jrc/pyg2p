@@ -44,7 +44,7 @@ class Command(object):
         self._d = {} if not cmd_string else to_argdict('{} -A'.format(cmd_string))
         if '-l' not in self._d.keys():
             self._a('-l', 'ERROR')
-        for method_suffix, opt in self.cmds_map.iteritems():
+        for method_suffix, opt in self.cmds_map.items():
             setattr(self, 'with_{}'.format(method_suffix), MethodType(partial(_a, opt), self, Command))
 
     def __str__(self):

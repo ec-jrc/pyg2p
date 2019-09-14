@@ -9,7 +9,7 @@ from pyg2p.main.exceptions import MISSING_CONFIG_FILES
 from pyg2p.util.logger import Logger
 
 
-def main(*args):
+def pyg2p_exe(*args):
     if isinstance(args[0], list):
         args = args[0]
     # read execution configuration (command.json, commandline arguments)
@@ -98,7 +98,3 @@ def config_command(conf, exc_ctx, logger):
     elif exc_ctx.check_conf:  # -K
         # check unused intertables (intertables that are not in configuration and can be deleted
         conf.check_conf(logger)
-
-
-if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))

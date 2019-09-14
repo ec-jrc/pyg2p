@@ -104,7 +104,7 @@ class OutputWriter(object):
     def write_maps(self, values, messages, change_res_step=None):
         write_method = getattr(self, '_write_maps_{}'.format(self.ctx.get('outMaps.format')))
         # Ordering values happens only here now - 12/04/2015
-        values = collections.OrderedDict(sorted(values.keys(), key=lambda k: int(k.end_step)))
+        values = collections.OrderedDict(sorted(values.items(), key=lambda k: int(k[0].end_step)))
         write_method(values, messages, change_res_step)
 
     def _name_netcdf_file(self):

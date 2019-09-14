@@ -86,8 +86,10 @@ class ExecutionContext(object):
         self._vars['under_api'] = parsed_args['underApi']
         self._vars['check_conf'] = parsed_args['checkConf']
         user_intertables = self._vars['interpolation.dir'] or self.configuration.default_interpol_dir
-        self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path, 'user': user_intertables}
-        self.is_config_command = (self.add_geopotential or self.run_tests or self.convert_conf or self.download_conf or self.convert_intertables or self.check_conf)
+        self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path,
+                                            'user': user_intertables}
+        self.is_config_command = (self.add_geopotential or self.run_tests or self.convert_conf
+                                  or self.download_conf or self.convert_intertables or self.check_conf)
 
     @staticmethod
     def add_args(parser):
@@ -316,12 +318,12 @@ class ExecutionContext(object):
             # check both correction params are present
             if self._vars['execution.doCorrection'] and not (self._vars.get('correction.gemFormula') and self._vars.get('correction.demMap') and self._vars.get('correction.formula')):
                 raise ApplicationException.get_exc(4100)
-            if self._vars['execution.doCorrection'] and not pyg2p.util.files.exists(self._vars['correction.demMap']):
+            if self._vars['execution.doCorrection'] and not files.exists(self._vars['correction.demMap']):
                 raise ApplicationException.get_exc(4200, self._vars['correction.demMap'])
 
     def __str__(self):
         mess = '\n\n============ pyg2p: Execution parameters: {} {} ============\n\n'.format(self._vars['execution.name'], strings.now_string())
-        params_str = ['{}={}'.format(par, self._vars[par]) for par in sorted(self._vars.iterkeys()) if self._vars[par]]
+        params_str = ['{}={}'.format(par, self._vars[par]) for par in sorted(self._vars.keys()) if self._vars[par]]
         return '{}{}'.format(mess, '\n'.join(params_str))
 
     @property

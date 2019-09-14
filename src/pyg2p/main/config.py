@@ -2,8 +2,7 @@ import ujson as json
 import os
 import re
 from copy import deepcopy
-from xml.etree.ElementTree import fromstring
-
+from ftplib import FTP
 import itertools
 from pkg_resources import resource_stream
 
@@ -112,7 +111,10 @@ class BaseConfiguration(object):
         try:
             res = self._load(resource_stream(pyg2p.__name__, self.global_config_file))
         except IOError:
-            res = self._load(open(self.global_config_file_debug, 'r'))
+            try:
+                res = self._load(open(self.global_config_file_debug, 'r'))
+            except IOError as e:
+                res = {}
         return res
 
     def merge_with_user_conf(self):
@@ -312,29 +314,8 @@ class Configuration(object):
             new_data[p['@shortName']] = p
         return new_data
 
-    @classmethod
-    def convert_to_v2(cls, path, logger):
-        logger.attach_config_logger()
-        from xmljson import badgerfish as bf
-        logger.debug('Entering in {}'.format(path))
-        for f in os.listdir(path):
-            filepath = os.path.join(path, f)
-            if file_util.is_dir(filepath):
-                cls.convert_to_v2(filepath, logger)
-            elif file_util.is_xml(filepath) and 'logger' not in f:
-                logger.info('Converting {} ...'.format(filepath))
-                with open(filepath) as f_:
-                    res = bf.data(fromstring(f_.read()))
-                    res = getattr(cls, 'convert_{}'.format(f[:-4]), lambda x: x)(res)
-                    new_file = os.path.join(path, f.replace('.xml', '.json'))
-                    new_file_ = open(new_file, 'w')
-                    new_file_.write(json.dumps(res, sort_keys=True, indent=4))
-                    new_file_.close()
-                    logger.info('+ New config file {}'.format(new_file_.name))
-        logger.detach_config_logger()
-
     def download_data(self, dataset, logger):
-        from ftplib import FTP
+
         logger.attach_config_logger()
         remote_path = dataset
         local_path = getattr(self.user, '{}_path'.format(dataset))
@@ -486,7 +467,7 @@ class Configuration(object):
                 logger.info('Geopotential file is not in configuration: {} - You could delete it'.format(f))
 
         user_intertables = deepcopy(self.intertables.user_vars)
-        for k, i in user_intertables.iteritems():
+        for k, i in user_intertables.items():
             fullpath = os.path.join(self.intertables.data_path, i['filename'])
             if not file_util.exists(fullpath):
                 logger.info('{} - Non existing. Removing item from intertables.json'.format(fullpath))

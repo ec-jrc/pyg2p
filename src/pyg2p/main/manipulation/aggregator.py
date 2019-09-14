@@ -78,9 +78,10 @@ class Aggregator(object):
     def _cumulation(self, values):
 
         out_values = {}
-        resolution = values.keys()[0].resolution
-        shape_iter = values[values.keys()[0]].shape
-        v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
+        item_keys = list(values.keys())[0]
+        resolution = item_keys.resolution
+        shape_iter = values[item_keys].shape
+        v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
         self._log('Accumulation at resolution: {}'.format(resolution))
 
         if self._start == 0:
@@ -88,7 +89,7 @@ class Aggregator(object):
             self._start = self._aggregation_step
 
         created_zero_array = False
-        for iter_ in xrange(self._start, self._end + 1, self._aggregation_step):
+        for iter_ in range(self._start, self._end + 1, self._aggregation_step):
             if iter_ not in v_ord.keys():
 
                 ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_)
@@ -163,11 +164,11 @@ class Aggregator(object):
         else:
 
             out_values = {}
-            first_key = values.keys()[0]
+            first_key = list(values.keys())[0]
             resolution_1 = first_key.resolution
             shape_iter = values[first_key].shape
 
-            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
+            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
             if self._start > 0 and not self._second_t_res:
                 iter_start = self._start - self._aggregation_step + 1
             elif self._second_t_res:
@@ -175,7 +176,7 @@ class Aggregator(object):
             else:
                 iter_start = 0
 
-            for iter_ in xrange(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
+            for iter_ in range(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
 
                 if self._start == 0:
                     iter_from = iter_ + 1
@@ -187,14 +188,14 @@ class Aggregator(object):
                 temp_sum = np.zeros(shape_iter)
                 v_ord_keys = v_ord.keys()
 
-                for iterator_avg in xrange(iter_from, iter_to, 1):
+                for iterator_avg in range(iter_from, iter_to, 1):
                     if iterator_avg in v_ord_keys:
                         if self._logger.is_debug:
                             self._log('temp_sum += grib[{}]'.format(iterator_avg))
                         v_ma = v_ord[iterator_avg]
                     else:
-                        ind_next_ = bisect.bisect_left(v_ord_keys, iterator_avg)
-                        next_ = v_ord_keys[ind_next_]
+                        ind_next_ = bisect.bisect_left(list(v_ord_keys), iterator_avg)
+                        next_ = list(v_ord_keys)[ind_next_]
                         if self._logger.is_debug:
                             self._log('temp_sum += grib[{}] from -> grib[{}]'.format(iterator_avg, next_))
                         v_ma = v_ord[next_]
@@ -229,7 +230,7 @@ class Aggregator(object):
             shape_iter = values[values.keys()[0]].shape
 
             # sets a new dict with different key (using only endstep)
-            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
+            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
 
             for iter_ in range(start, self._end + 1, self._aggregation_step):
                 res_inst = np.zeros(shape_iter)

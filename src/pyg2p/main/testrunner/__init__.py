@@ -14,7 +14,7 @@ from pyg2p.util.generics import GREEN, FAIL, WARN, YELLOW, ENDC, DEFAULT
 from pyg2p.util.logger import Logger
 from pyg2p.util.strings import to_argv
 import pyg2p.util.files
-from pyg2p.main import main as pyg2p_main
+from pyg2p.main import pyg2p_exe as pyg2p_main
 
 
 class TestDiffMixin:
@@ -165,10 +165,10 @@ class TestRunner(TestDiffMixin):
         g_maps = z_maps = []
         results = {'0': [], '1': [], '2': []}   # 0: succes, 1: errors, 2: problematic (with differences but up to 3%)
 
-        ordered_tests = collections.OrderedDict(sorted(self._ctx.get('tests').iteritems(), key=lambda k: int(k[0])))
+        ordered_tests = collections.OrderedDict(sorted(self._ctx.get('tests').items(), key=lambda k: int(k[0])))
         elapsed_test = time.time()
 
-        for key_, test_ in ordered_tests.iteritems():
+        for key_, test_ in ordered_tests.items():
             num_tests += 1
             elapsed_g2p = elapsed_pyg2p_scipy = None
             self._print_colored(DEFAULT, '\n\n =====================> Running Test {}'.format(test_))

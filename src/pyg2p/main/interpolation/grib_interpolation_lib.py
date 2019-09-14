@@ -122,7 +122,7 @@ def grib_invdist(gid, target_lats, target_lons, mv):
 def _compute_coeffs_and_idxs(n_nearest):
     exact_position = False
     exact_position_idx = - 1
-    for ig in xrange(4):
+    for ig in range(4):
         if n_nearest[ig]['distance'] == 0:
             exact_position = True
             exact_position_idx = ig
@@ -173,9 +173,9 @@ def grib_nearest_parallel(gid, target_lats, target_lons, mv):
 
 
 def concatenate_nearest_result(nchunks, result):
-    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
-    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
-    idxs = np.concatenate([result[i][2] for i in xrange(nchunks)])
+    xs = np.concatenate([result[i][0] for i in range(nchunks)])
+    ys = np.concatenate([result[i][1] for i in range(nchunks)])
+    idxs = np.concatenate([result[i][2] for i in range(nchunks)])
     xs = xs[xs != int_fill_value]
     ys = ys[ys != int_fill_value]
     idxs = idxs[idxs != int_fill_value]
@@ -232,16 +232,16 @@ def grib_invdist_parallel(gid, target_lats, target_lons, mv):
 
 
 def concatenate_invdist_result(nchunks, result):
-    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
-    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
-    idxs1 = np.concatenate([result[i][2] for i in xrange(nchunks)])
-    idxs2 = np.concatenate([result[i][3] for i in xrange(nchunks)])
-    idxs3 = np.concatenate([result[i][4] for i in xrange(nchunks)])
-    idxs4 = np.concatenate([result[i][5] for i in xrange(nchunks)])
-    invs1 = np.concatenate([result[i][6] for i in xrange(nchunks)])
-    invs2 = np.concatenate([result[i][7] for i in xrange(nchunks)])
-    invs3 = np.concatenate([result[i][8] for i in xrange(nchunks)])
-    invs4 = np.concatenate([result[i][9] for i in xrange(nchunks)])
+    xs = np.concatenate([result[i][0] for i in range(nchunks)])
+    ys = np.concatenate([result[i][1] for i in range(nchunks)])
+    idxs1 = np.concatenate([result[i][2] for i in range(nchunks)])
+    idxs2 = np.concatenate([result[i][3] for i in range(nchunks)])
+    idxs3 = np.concatenate([result[i][4] for i in range(nchunks)])
+    idxs4 = np.concatenate([result[i][5] for i in range(nchunks)])
+    invs1 = np.concatenate([result[i][6] for i in range(nchunks)])
+    invs2 = np.concatenate([result[i][7] for i in range(nchunks)])
+    invs3 = np.concatenate([result[i][8] for i in range(nchunks)])
+    invs4 = np.concatenate([result[i][9] for i in range(nchunks)])
     xs = xs.astype(int, copy=False)
     ys = ys.astype(int, copy=False)
     idxs1 = idxs1.astype(int, copy=False)

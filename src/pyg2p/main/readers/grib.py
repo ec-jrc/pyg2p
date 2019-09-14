@@ -22,7 +22,7 @@ GRIBInfo = namedtuple('GRIBInfo', 'input_step, input_step2, change_step_at, type
 class GRIBReader(object):
 
     def __init__(self, grib_file, w_perturb=False):
-        codes_no_fail_on_wrong_length(True)
+        # codes_no_fail_on_wrong_length(True)
         self._grib_file = os.path.abspath(grib_file)
         self._file_handler = None
         self._grbindx = None
