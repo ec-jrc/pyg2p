@@ -1,5 +1,5 @@
 {
-    "geopotentials": "/perm/ma/ma9/efas/data/eefas/pyg2pData/configuration/geopotentials",
-    "intertables": "/perm/ma/ma9/efas/data/eefas/pyg2pData/configuration/intertables"
+    "geopotentials": "/gpfs/lxc/efas/emos/data/pyg2p/2.1.0/geopotentials",
+    "intertables": "/gpfs/lxc/efas/emos/data/pyg2p/2.1.0/intertables"
 }
 
