@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -ex
+
+mod_version=${1:-2.1.1}
+assets_version=$mod_version
+
+# Where is pyg2p source code
+src_dir=$PWD
+src_host=$HOST
+
+# where to install it
+dest_dir=/usr/local/apps/pyg2p/$mod_version
+
+#for host in localhost lxc ecgb lxop cca ccb; do
+for dest_host in lxc lxop cca ccb; do
+
+    case $dest_host in
+        lxc* )  static_data_root=/gpfs/lxc/efas/emos/data/pyg2p/$assets_version ;;
+        lxop* ) static_data_root=/gpfs/lxop/efas/emos/data/pyg2p/$assets_version ;;
+        cca* )  static_data_root=/sc1/tcwork/emos/emos_data/efas/assets/pyg2p/$assets_version ;;
+        ccb* )  static_data_root=/sc2/tcwork/emos/emos_data/efas/assets/pyg2p/$assets_version ;;
+        *   )   "unexpected target host $dest_host"; false ;;
+    esac
+
+    echo installing pyg2p/$mod_version in $dest_host ....
+    if ssh $dest_host [[ -d $dest_dir ]]; then
+        case $mod_version in
+            dev | test ) echo "reinstalling pyg2p/$mod_version" ;;
+            * ) echo "module pyg2p/$mod_version is already installed on $dest_host. skipping."; continue ;;
+        esac
+    fi
+    ssh $dest_host bash -l << END
+        module unload python
+        module load python/2.7.15-01
+        umask 022
+        set -eux
+        echo \$TMPDIR
+        cd \$TMPDIR
+        rsync -avz --exclude='.git/' $src_host:$src_dir .
+        cd pyg2p
+        echo '{
+            "geopotentials": "$static_data_root/geopotentials",
+            "intertables": "$static_data_root/intertables"
+        }
+        ' > configuration/global/global_conf.json
+        export HTTPS_PROXY=http://proxy.ecmwf.int:3333
+        export PYTHONPATH=/usr/local/apps/pyg2p/$mod_version/lib/python2.7/site-packages
+        python setup.py clean --all
+        mkdir -p \$PYTHONPATH
+        python setup.py install --prefix=/usr/local/apps/pyg2p/$mod_version
+END
+    echo done
+done
