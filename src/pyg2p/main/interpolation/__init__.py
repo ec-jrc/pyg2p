@@ -157,14 +157,15 @@ class Interpolator(object):
                                           parallel=self.parallel)
             _, weights, indexes = invdisttree.interpolate(lonefas, latefas)
             result = self._interpolate_scipy_invdist(v, weights, indexes, nnear)
+
             # saving interpolation lookup table
             intertable = np.rec.fromarrays((indexes, weights), names=('indexes', 'coeffs'))
             np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
-            # reshape to target (e.g. efas, glofas...)
         else:
             raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
+        # reshape to target (e.g. efas, glofas...)
         grid_data = result.reshape(lonefas.shape)
         return grid_data
 

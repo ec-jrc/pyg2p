@@ -41,10 +41,11 @@ class Command(object):
 
     def __init__(self, cmd_string=None):
         # adding flag underApi
+        cmd_string = cmd_string.lstrip('pyg2p').strip()
         self._d = {} if not cmd_string else to_argdict('{} -A'.format(cmd_string))
         if '-l' not in self._d.keys():
             self._a('-l', 'ERROR')
-        for method_suffix, opt in self.cmds_map.iteritems():
+        for method_suffix, opt in self.cmds_map.items():
             setattr(self, 'with_{}'.format(method_suffix), MethodType(partial(_a, opt), self, Command))
 
     def __str__(self):
@@ -52,3 +53,7 @@ class Command(object):
         self._d = collections.OrderedDict(sorted(self._d.items(), key=lambda k: k[0]))
         args = ''.join(['%s %s ' % (key, value) for (key, value) in self._d.items()]).strip()
         return cmd + args
+
+    def run(self):
+        argv = to_argv(str(self))
+        return main(argv[1:])

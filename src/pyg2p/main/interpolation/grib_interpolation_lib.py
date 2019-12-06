@@ -4,14 +4,11 @@ Interpolating between global grids it takes 3 days on Intel(R) Core(TM) i7-3610Q
 Parallelized versions gives 4x gain at least.
 """
 
-from __future__ import division
-
-import itertools
 import warnings
 from functools import partial
 from sys import stdout
 
-import gribapi
+import eccodes
 import numexpr as ne
 import numpy as np
 from dask import bag
@@ -40,14 +37,14 @@ def grib_nearest(gid, target_lats, target_lons, mv):
     stdout.write(format_progress(back_char, 0, num_cells, outs, 0))
     stdout.flush()
 
-    for lat, lon in itertools.izip(target_lats.flat, target_lons.flat):
+    for lat, lon in zip(target_lats.flat, target_lons.flat):
         if i % progress_step == 0:
             stdout.write(format_progress(back_char, i, num_cells, outs, i * 100. / num_cells))
             stdout.flush()
         if not (lon <= -1.0e+10 or lon == mv):
             try:
-                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(lat), np.asscalar(lon))
-            except gribapi.GribInternalError:
+                n_nearest = eccodes.codes_grib_find_nearest(gid, lat.item(), lon.item())
+            except eccodes.GribInternalError:
                 outs += 1
                 xs[i] = int_fill_value
                 ys[i] = int_fill_value
@@ -58,7 +55,9 @@ def grib_nearest(gid, target_lats, target_lons, mv):
     stdout.write(format_progress(back_char, i, num_cells, outs, 100))
     stdout.write('End interpolation: {}\n\n'.format(now_string()))
     stdout.flush()
-    return xs[xs != int_fill_value], ys[ys != int_fill_value], idxs[idxs != int_fill_value]
+    return (xs[xs != int_fill_value],
+            ys[ys != int_fill_value],
+            idxs[idxs != int_fill_value])
 
 
 def grib_invdist(gid, target_lats, target_lons, mv):
@@ -84,15 +83,15 @@ def grib_invdist(gid, target_lats, target_lons, mv):
     stdout.write(format_progress(back_char, 0, num_cells, outs, 0))
     stdout.flush()
 
-    for lat, lon in itertools.izip(target_lats.flat, target_lons.flat):
+    for lat, lon in zip(target_lats.flat, target_lons.flat):
         if i % progress_step == 0:
             stdout.write(format_progress(back_char, i, num_cells, outs, i * 100. / num_cells))
             stdout.flush()
         if not (lon < -1.0e+10 or lon == mv):
 
             try:
-                n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(lat), np.asscalar(lon), npoints=4)
-            except gribapi.GribInternalError:
+                n_nearest = eccodes.codes_grib_find_nearest(gid, lat.item(), lon.item(), npoints=4)
+            except eccodes.GribInternalError:
                 # tipically "out of grid" error
                 outs += 1
                 xs[i] = int_fill_value
@@ -101,6 +100,8 @@ def grib_invdist(gid, target_lats, target_lons, mv):
                 invs1[i], invs2[i], invs3[i], invs4[i], idxs1[i], idxs2[i], idxs3[i], idxs4[i] = _compute_coeffs_and_idxs(n_nearest)
         i += 1
 
+    # variables seems unused but they are in numexpress expressions (see ne.evaluate())
+    # DO NOT DELETE
     invs1 = invs1[~np.isnan(invs1)]
     invs2 = invs2[~np.isnan(invs2)]
     invs3 = invs3[~np.isnan(invs3)]
@@ -114,15 +115,16 @@ def grib_invdist(gid, target_lats, target_lons, mv):
     stdout.write(format_progress(back_char, i, num_cells, outs, 100))
     stdout.write('End interpolation: {}\n\n'.format(now_string()))
     stdout.flush()
-    return xs[xs != int_fill_value], ys[ys != int_fill_value], \
-        idxs1[idxs1 != int_fill_value], idxs2[idxs2 != int_fill_value], idxs3[idxs3 != int_fill_value], idxs4[idxs4 != int_fill_value], \
-        coeffs1, coeffs2, coeffs3, coeffs4
+    return (xs[xs != int_fill_value], ys[ys != int_fill_value],
+            idxs1[idxs1 != int_fill_value], idxs2[idxs2 != int_fill_value],
+            idxs3[idxs3 != int_fill_value], idxs4[idxs4 != int_fill_value],
+            coeffs1, coeffs2, coeffs3, coeffs4)
 
 
 def _compute_coeffs_and_idxs(n_nearest):
     exact_position = False
     exact_position_idx = - 1
-    for ig in xrange(4):
+    for ig in range(4):
         if n_nearest[ig]['distance'] == 0:
             exact_position = True
             exact_position_idx = ig
@@ -152,8 +154,8 @@ def nearest_parallel_step(chunk, gid, mv):
     idx = int_fill_value
     if not (lon <= -1.0e+10 or lon == mv):
         try:
-            n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(lat), np.asscalar(lon))
-        except gribapi.GribInternalError:
+            n_nearest = eccodes.codes_grib_find_nearest(gid, lat.item(), lon.item())
+        except eccodes.GribInternalError:
             x = int_fill_value
             y = int_fill_value
         else:
@@ -173,9 +175,9 @@ def grib_nearest_parallel(gid, target_lats, target_lons, mv):
 
 
 def concatenate_nearest_result(nchunks, result):
-    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
-    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
-    idxs = np.concatenate([result[i][2] for i in xrange(nchunks)])
+    xs = np.concatenate([result[i][0] for i in range(nchunks)])
+    ys = np.concatenate([result[i][1] for i in range(nchunks)])
+    idxs = np.concatenate([result[i][2] for i in range(nchunks)])
     xs = xs[xs != int_fill_value]
     ys = ys[ys != int_fill_value]
     idxs = idxs[idxs != int_fill_value]
@@ -195,8 +197,8 @@ def invdist_parallel_step(chunk, gid, mv):
     inv1 = inv2 = inv3 = inv4 = np.NaN
     if not (lon < -1.0e+10 or lon == mv):
         try:
-            n_nearest = gribapi.grib_find_nearest(gid, np.asscalar(lat), np.asscalar(lon), npoints=4)
-        except gribapi.GribInternalError:
+            n_nearest = eccodes.codes_grib_find_nearest(gid, lat.item(), lon.item(), npoints=4)
+        except eccodes.GribInternalError:
             # tipically "out of grid" error
             x = int_fill_value
             y = int_fill_value
@@ -232,16 +234,16 @@ def grib_invdist_parallel(gid, target_lats, target_lons, mv):
 
 
 def concatenate_invdist_result(nchunks, result):
-    xs = np.concatenate([result[i][0] for i in xrange(nchunks)])
-    ys = np.concatenate([result[i][1] for i in xrange(nchunks)])
-    idxs1 = np.concatenate([result[i][2] for i in xrange(nchunks)])
-    idxs2 = np.concatenate([result[i][3] for i in xrange(nchunks)])
-    idxs3 = np.concatenate([result[i][4] for i in xrange(nchunks)])
-    idxs4 = np.concatenate([result[i][5] for i in xrange(nchunks)])
-    invs1 = np.concatenate([result[i][6] for i in xrange(nchunks)])
-    invs2 = np.concatenate([result[i][7] for i in xrange(nchunks)])
-    invs3 = np.concatenate([result[i][8] for i in xrange(nchunks)])
-    invs4 = np.concatenate([result[i][9] for i in xrange(nchunks)])
+    xs = np.concatenate([result[i][0] for i in range(nchunks)])
+    ys = np.concatenate([result[i][1] for i in range(nchunks)])
+    idxs1 = np.concatenate([result[i][2] for i in range(nchunks)])
+    idxs2 = np.concatenate([result[i][3] for i in range(nchunks)])
+    idxs3 = np.concatenate([result[i][4] for i in range(nchunks)])
+    idxs4 = np.concatenate([result[i][5] for i in range(nchunks)])
+    invs1 = np.concatenate([result[i][6] for i in range(nchunks)])
+    invs2 = np.concatenate([result[i][7] for i in range(nchunks)])
+    invs3 = np.concatenate([result[i][8] for i in range(nchunks)])
+    invs4 = np.concatenate([result[i][9] for i in range(nchunks)])
     xs = xs.astype(int, copy=False)
     ys = ys.astype(int, copy=False)
     idxs1 = idxs1.astype(int, copy=False)

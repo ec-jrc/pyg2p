@@ -6,7 +6,7 @@ import numexpr as ne
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 
-from pyg2p.main.exceptions import ApplicationException, WEIRD_STUFF
+from ..exceptions import ApplicationException, WEIRD_STUFF
 from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
 from pyg2p.util.strings import now_string
@@ -47,7 +47,6 @@ class InverseDistance(object):
         distances, indexes = self.tree.query(source_locations, k=2, n_jobs=self.njobs)
         # set max of distances as min upper bound and add an empirical correction value
         self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
-        stdout.write('Skipping neighbors at distance > {}\n'.format(self.min_upper_bound))
 
     def interpolate(self, target_lons, target_lats):
         # Target coordinates  HAVE to be rotated coords in case GRIB grid is rotated
@@ -103,6 +102,7 @@ class InverseDistance(object):
         jinterpol = 0
         num_cells = result.size
         back_char, progress_step = progress_step_and_backchar(num_cells)
+        stdout.write('Skipping neighbors at distance > {}\n'.format(self.min_upper_bound))
         stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
         stdout.flush()
 
@@ -133,6 +133,8 @@ class InverseDistance(object):
         jinterpol = 0
         num_cells = result.size
         back_char, progress_step = progress_step_and_backchar(num_cells)
+
+        stdout.write('Skipping neighbors at distance > {}\n'.format(self.min_upper_bound))
         stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
         stdout.flush()
 

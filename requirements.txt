@@ -1,7 +1,7 @@
 netCDF4
 ujson
 xmljson
-numpy>=1.10.1
+numpy>=1.17
 scipy>=0.16.0
 GDAL
 memory_profiler
