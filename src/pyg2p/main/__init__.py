@@ -72,16 +72,15 @@ def config_command(conf, exc_ctx):
 
     elif exc_ctx.add_geopotential:  # -g
         # add geopotential GRIB file to geopotentials.json and copy it into user configuration folder
-        conf.add_geopotential(exc_ctx.get('geopotential'))
-        logger.info('Added geopotential {} to configuration'.format(exc_ctx.get('geopotential')))
+        geo = exc_ctx['geopotential']
+        conf.add_geopotential(geo)
+        logger.info(f'Added geopotential {geo} to configuration')
 
     elif exc_ctx.run_tests:  # -t
         # comparison tests (grib2pcraster vs pyg2p, pyg2p scipy interpol vs pyg2p GRIBAPI interpol)
         from pyg2p.main.testrunner import TestRunner
-        # logger.reset_logger()  # remove logger. tests will instantiate other loggers
         TestRunner(conf.tests.vars, exc_ctx.get('test.cmds')).run()
-        # logger.flush()
 
     elif exc_ctx.check_conf:  # -K
         # check unused intertables (intertables that are not in configuration and can be deleted
-        conf.check_conf(logger)
+        conf.check_conf()

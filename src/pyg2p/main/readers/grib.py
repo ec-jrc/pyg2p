@@ -245,7 +245,8 @@ class GRIBReader(Loggable):
             start_grib, end_grib, self._step_grib, self._step_grib2, self._change_step_at = self._find_start_end_steps(_gribs_for_utils)
             self._log("Grib input step %d [type of step: %s]" % (self._step_grib, type_of_step))
             self._log('Gribs from %d to %d' % (start_grib, end_grib))
-            [codes_release(g) for g in _gribs_for_utils]
+            for g in _gribs_for_utils:
+                codes_release(g)
             _gribs_for_utils = None
             del _gribs_for_utils
             info = GRIBInfo(input_step=self._step_grib, input_step2=self._step_grib2,

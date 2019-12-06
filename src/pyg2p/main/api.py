@@ -2,7 +2,7 @@ import collections
 from functools import partial
 from types import MethodType
 
-from pyg2p.main import main
+from pyg2p.main import pyg2p_exe
 from pyg2p.util.strings import to_argv, to_argdict
 
 
@@ -12,7 +12,7 @@ def command(*args):
 
 def run_command(cmd):
     argv = to_argv(str(cmd))
-    return main(argv[1:])
+    return pyg2p_exe(argv[1:])
 
 
 def _a(opt, self, param=''):
@@ -56,4 +56,4 @@ class Command(object):
 
     def run(self):
         argv = to_argv(str(self))
-        return main(argv[1:])
+        return pyg2p_exe(argv[1:])
