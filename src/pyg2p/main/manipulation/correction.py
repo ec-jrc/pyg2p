@@ -1,17 +1,19 @@
+import logging
+
 import numexpr as ne
 import numpy as np
 from numpy import ma
+from pyg2p import Loggable
 
 from pyg2p.main.interpolation import Interpolator
 from pyg2p.main.interpolation.latlong import DemBuffer
 from pyg2p.main.readers.grib import GRIBReader
 
 from pyg2p.main.config import GeopotentialsConfiguration
-from pyg2p.util.logger import Logger
 import pyg2p.util.numeric
 
 
-class Corrector(object):
+class Corrector(Loggable):
 
     instances = {}
 
@@ -28,7 +30,7 @@ class Corrector(object):
             return instance
 
     def __init__(self, ctx, grid_id, geo_file_):
-        self._logger = Logger.get_logger()
+        super().__init__()
         self.grid_id = grid_id
         dem_map = ctx.get('correction.demMap')
         self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
@@ -58,9 +60,6 @@ class Corrector(object):
             # mask out values (here is already output values with destination shape)
             values = ma.masked_where(pyg2p.util.numeric.get_masks(p), values)
         return values
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
 
     def _read_geo(self, grib_file, ctx):
         is_grib_interpolation = ctx.interpolate_with_grib

@@ -1,15 +1,17 @@
+import logging
+
 from pyg2p.main.manipulation.aggregator import Aggregator
 from pyg2p.main.readers.grib import GRIBReader
 from pyg2p.main.writers import OutputWriter
 
 from pyg2p.main.manipulation.conversion import Converter
-from pyg2p.util.logger import Logger
 
 
 class Controller(object):
     def __init__(self, exec_ctx):
-        self.ctx = exec_ctx # Context object, holding all execution parameters
-        self._logger = Logger.get_logger()
+        self.ctx = exec_ctx  # Context object, holding all execution parameters
+        self._logger = logging.getLogger()
+        self._logger.setLevel(exec_ctx['logger.level'])
         self.grib_reader = None
         # GRIB reader for second spatial resolution file
         self.grib_reader2 = None
@@ -17,7 +19,7 @@ class Controller(object):
         self._writer = None
 
     def log_execution_context(self):
-        self._log(str(self.ctx), 'INFO')
+        self._logger.info(str(self.ctx))
 
     def init_execution(self):
         aggregator = None
@@ -61,7 +63,7 @@ class Controller(object):
         values2 = m2.do_manipulation(messages.second_resolution_values())
         values.update(values2)
         # overwrite change_step resolution because of manipulation
-        change_step = sorted(values2.iterkeys(), key=lambda k: int(k.end_step))[0]
+        change_step = sorted(values2.keys(), key=lambda k: int(k.end_step))[0]
         return change_step, values
 
     def read_2nd_res_messages(self, cmd_args, messages):
@@ -122,7 +124,7 @@ class Controller(object):
 
         if converter and converter.must_cut_off:
             values = converter.cut_off_negative(values)
-        self._log('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
+        self._logger.debug('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
         self._writer.write_maps(values, messages, change_res_step=change_res_step)
 
     def close(self):
@@ -136,4 +138,4 @@ class Controller(object):
             self._writer.close()
 
     def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
+        self._logger.log(logging._checkLevel(level), message)

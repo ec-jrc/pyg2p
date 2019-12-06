@@ -25,12 +25,11 @@ def _is_empty_string(string_):
 
 def to_argv(string_):
     c = csv.reader(csv.StringIO(string_), delimiter=" ")
-    return filter(_is_empty_string, list(c)[0])
+    return list(filter(_is_empty_string, list(c)[0]))
 
 
 def to_argdict(string_):
     c = re.split(' |=', string_.strip(), maxsplit=0)
-    l = filter(_is_empty_string, list(c)[0])
     return dict(zip(c[0::2], c[1::2]))
 
 

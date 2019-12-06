@@ -1,5 +1,6 @@
 import bisect
 import collections
+import logging
 import gc
 
 import numexpr as ne
@@ -7,9 +8,9 @@ import numpy as np
 from numpy import ma
 
 import pyg2p.util.numeric
+from pyg2p import Loggable
 from pyg2p.main.domain.step import Step
 from pyg2p.main.exceptions import ApplicationException, NOT_IMPLEMENTED
-from pyg2p.util.logger import Logger
 
 # types of manipulation
 AVERAGE = 'average'
@@ -22,10 +23,10 @@ PARAM_AVG = 'avg'
 PARAM_CUM = 'accum'
 
 
-class Aggregator(object):
+class Aggregator(Loggable):
 
     def __init__(self, **kwargs):
-
+        super().__init__()
         self._mv_grib = kwargs.get('mv_grib')
         self._step_type = kwargs.get('step_type')  # stepType from grib
         self._input_step = int(kwargs.get('input_step'))  # timestep from grib. should be in hours
@@ -39,7 +40,7 @@ class Aggregator(object):
         self._end = int(kwargs.get('end_step'))
         self._second_t_res = kwargs.get('sec_temp_res')
 
-        self._logger = Logger.get_logger()
+        # self._logger = logging.getLogger()
 
         if self._input_step != 0:
             self._usable_start = (self._start - self._aggregation_step)
@@ -52,9 +53,6 @@ class Aggregator(object):
         self._functs = {ACCUMULATION: self._cumulation,
                         AVERAGE: self._average,
                         INSTANTANEOUS: self._instantaneous}
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(message, level)
 
     def change_end_step(self,end_first_res):
         self._log('Changing end step to {}'.format(end_first_res))
@@ -78,9 +76,10 @@ class Aggregator(object):
     def _cumulation(self, values):
 
         out_values = {}
-        resolution = values.keys()[0].resolution
-        shape_iter = values[values.keys()[0]].shape
-        v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
+        item_keys = list(values.keys())[0]
+        resolution = item_keys.resolution
+        shape_iter = values[item_keys].shape
+        v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
         self._log('Accumulation at resolution: {}'.format(resolution))
 
         if self._start == 0:
@@ -88,7 +87,7 @@ class Aggregator(object):
             self._start = self._aggregation_step
 
         created_zero_array = False
-        for iter_ in xrange(self._start, self._end + 1, self._aggregation_step):
+        for iter_ in range(self._start, self._end + 1, self._aggregation_step):
             if iter_ not in v_ord.keys():
 
                 ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_)
@@ -151,7 +150,7 @@ class Aggregator(object):
             out_value = ne.evaluate('(v_iter_ma-v_iter_1_ma)*_unit_time/_aggr_step')
             out_values[key] = ma.masked_where(pyg2p.util.numeric.get_masks(v_iter_ma, v_iter_1_ma), out_value, copy=False)
 
-            if self._logger.is_debug:
+            if self._logger.isEnabledFor(logging.DEBUG):
                 self._log('out[{}] = (grib[{}] - grib[{}])  * ({}/{}))'.format(key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
 
         return out_values
@@ -163,11 +162,11 @@ class Aggregator(object):
         else:
 
             out_values = {}
-            first_key = values.keys()[0]
+            first_key = list(values.keys())[0]
             resolution_1 = first_key.resolution
             shape_iter = values[first_key].shape
 
-            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
+            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
             if self._start > 0 and not self._second_t_res:
                 iter_start = self._start - self._aggregation_step + 1
             elif self._second_t_res:
@@ -175,7 +174,7 @@ class Aggregator(object):
             else:
                 iter_start = 0
 
-            for iter_ in xrange(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
+            for iter_ in range(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
 
                 if self._start == 0:
                     iter_from = iter_ + 1
@@ -187,15 +186,15 @@ class Aggregator(object):
                 temp_sum = np.zeros(shape_iter)
                 v_ord_keys = v_ord.keys()
 
-                for iterator_avg in xrange(iter_from, iter_to, 1):
+                for iterator_avg in range(iter_from, iter_to, 1):
                     if iterator_avg in v_ord_keys:
-                        if self._logger.is_debug:
+                        if self._logger.isEnabledFor(logging.DEBUG):
                             self._log('temp_sum += grib[{}]'.format(iterator_avg))
                         v_ma = v_ord[iterator_avg]
                     else:
-                        ind_next_ = bisect.bisect_left(v_ord_keys, iterator_avg)
-                        next_ = v_ord_keys[ind_next_]
-                        if self._logger.is_debug:
+                        ind_next_ = bisect.bisect_left(list(v_ord_keys), iterator_avg)
+                        next_ = list(v_ord_keys)[ind_next_]
+                        if self._logger.isEnabledFor(logging.DEBUG):
                             self._log('temp_sum += grib[{}] from -> grib[{}]'.format(iterator_avg, next_))
                         v_ma = v_ord[next_]
                     ne.evaluate('temp_sum + v_ma', out=temp_sum)
@@ -208,7 +207,7 @@ class Aggregator(object):
                 res = ne.evaluate('temp_sum/aggregation_step')
                 # mask result with all maskes from GRIB original values used in average (if existing any)
                 out_values[key] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ord.values()), res, copy=False)
-                if self._logger.is_debug:
+                if self._logger.isEnabledFor(logging.DEBUG):
                     self._log('out[{}] = temp_sum/{}'.format(key, self._aggregation_step))
 
             return out_values
@@ -229,25 +228,25 @@ class Aggregator(object):
             shape_iter = values[values.keys()[0]].shape
 
             # sets a new dict with different key (using only endstep)
-            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.iteritems()).iteritems(), key=lambda k: k))
+            v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
 
             for iter_ in range(start, self._end + 1, self._aggregation_step):
                 res_inst = np.zeros(shape_iter)
                 key = Step(iter_, iter_, resolution_1, self._aggregation_step)
                 if iter_ in v_ord.keys():
-                    if self._logger.is_debug:
+                    if self._logger.isEnabledFor(logging.DEBUG):
                         self._log('out[{}] = grib[{}]'.format(key, iter_))
                     res_inst += v_ord[iter_]
                 else:
                     if iter_ == 0:
                         # left out as zero arrays if 0 step is not in the grib
-                        if self._logger.is_debug:
+                        if self._logger.isEnabledFor(logging.DEBUG):
                             self._log('out[{}] = zeros'.format(key))
                         pass
                     else:
                         ind_next_ = bisect.bisect_right(v_ord.keys(), iter_)
                         next_ = v_ord.keys()[ind_next_]
-                        if self._logger.is_debug:
+                        if self._logger.isEnabledFor(logging.DEBUG):
                             self._log('out[{}] = grib[{}]'.format(key, next_))
                         res_inst += v_ord[next_]
                 out_values[key] = res_inst
