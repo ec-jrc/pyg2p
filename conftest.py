@@ -20,6 +20,7 @@ def options(request):
     options['intertables'] = options['dataroot'].joinpath('intertables/')
     options['geopotentials'] = options['dataroot'].joinpath('geopotentials/')
     options['maps'] = options['dataroot'].joinpath('maps/')
+    options['results'] = options['dataroot'].joinpath('results/')
     options['dataset'] = ['cosmo', 'dwd', 'eue', 'eud']
     request.cls.options = options
     return options

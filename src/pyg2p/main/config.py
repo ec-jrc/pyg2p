@@ -31,7 +31,7 @@ class UserConfiguration(object):
     sep = '='
     comment_char = '#'
     conf_to_interpolate = ('correction.demMap', 'outMaps.clone', 'interpolation.latMap', 'interpolation.lonMap')
-    regex_var = re.compile(r'{(?P<var>[a-zA-Z_]+)}')
+    re_var = re.compile(r'{(?P<var>[a-zA-Z_]+)}')
     geopotentials_path_var = 'GEOPOTENTIALS'
     intertables_path_var = 'INTERTABLES'
 
@@ -55,26 +55,26 @@ class UserConfiguration(object):
         props = {}
         with open(filepath, "rt") as f:
             for line in f:
-                l = line.strip()
-                if l and not l.startswith(self.comment_char):
-                    key_value = l.split(self.sep)
+                line = line.strip()
+                if line and not line.startswith(self.comment_char):
+                    key_value = line.split(self.sep)
                     props[key_value[0].strip()] = key_value[1].strip('" \t')
         return props
 
-    def interpolate_strings(self, execution_context):
+    def interpolate_strings(self, exe_ctx):
         """
         Change configuration strings in json commands files
         with user variables defined in ~/.pyg2p/*.conf files
         Strings like {CONF_DIR}/{MAPS_DIR}lat.map will be replaced with corresponding variables values
-        execution_context: instance of ExecutionContext
+        exe_ctx: instance of ExecutionContext
         """
-        vars_with_variables = [var for var in self.conf_to_interpolate if self.regex_var.search(execution_context.get(var, ''))]
+        vars_with_variables = [var for var in self.conf_to_interpolate if self.re_var.search(exe_ctx.get(var, ''))]
         for var in vars_with_variables:
             # we can have multiple variables {CONF_DIR}/{MAPS_DIR}lat.map
-            execution_context[var] = execution_context[var].format(**self.vars)
-            if self.regex_var.search(execution_context[var]):
+            exe_ctx[var] = exe_ctx[var].format(**self.vars)
+            if self.re_var.search(exe_ctx[var]):
                 # some variables where not string-interpolated so they are missing in user configuration
-                vars_not_defined = self.regex_var.findall(execution_context[var])
+                vars_not_defined = self.re_var.findall(exe_ctx[var])
                 raise ApplicationException.get_exc(NO_VAR_DEFINED, str(vars_not_defined))
 
 
@@ -99,11 +99,11 @@ class BaseConfiguration(object):
         self.vars = self.load_global()
         self.user_vars = {}
         logger = logging.getLogger()
-        logger.info('Check configuration: [{}]'.format(self.__class__.__name__))
+        logger.debug(f'Check configuration: [{self.__class__.__name__}]')
         if self.global_data_path_var:
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)
             if not file_util.can_read(self.global_data_path):
-                raise ApplicationException.get_exc(NO_READ_PERMISSIONS, details='{}'.format(self.global_data_path))
+                raise ApplicationException.get_exc(NO_READ_PERMISSIONS, details=f'{self.global_data_path}')
         if not self.only_global_conf:
             self.merge_with_user_conf()
 
@@ -113,7 +113,7 @@ class BaseConfiguration(object):
         except IOError:
             try:
                 res = self._load(open(self.global_config_file_debug, 'r'))
-            except IOError as e:
+            except IOError:
                 res = {}
         return res
 
@@ -233,7 +233,9 @@ class GeopotentialsConfiguration(BaseConfiguration):
         args = {'shortName': self.short_names}
         id_ = GRIBReader.get_id(filepath, reader_args=args)
         if id_ in self.vars:
-            raise ApplicationException.get_exc(EXISTING_GEOPOTENTIAL, details='{} for file {}. File was not added: {}'.format(id_, self.vars[id_], filepath))
+            raise ApplicationException.get_exc(EXISTING_GEOPOTENTIAL,
+                                               details=f'{id_} for file {self.vars[id_]}. '
+                                                       f'File was not added: {filepath}')
 
         name = file_util.filename(filepath)
         self.check_write()
@@ -243,7 +245,7 @@ class GeopotentialsConfiguration(BaseConfiguration):
         self.dump()
 
     def remove(self, filename):
-        for g in self.user_vars.iterkeys():
+        for g in self.user_vars.keys():
             if self.user_vars[g] == filename:
                 del self.user_vars[g]
                 self.dump()
@@ -257,7 +259,9 @@ class GeopotentialsConfiguration(BaseConfiguration):
         if not path or not file_util.exists(path):
             path = os.path.join(self.global_data_path, filename)
         if not file_util.exists(path):
-            raise ApplicationException.get_exc(NO_FILE_GEOPOTENTIAL, details='id:{} {} Searched in: {}'.format(grid_id, path, (self.data_path, self.global_data_path)))
+            raise ApplicationException.get_exc(NO_FILE_GEOPOTENTIAL,
+                                               details=f'id:{grid_id} {path} '
+                                                       f'Searched in: {(self.data_path, self.global_data_path)}')
         return path
 
 
@@ -271,8 +275,9 @@ class IntertablesConfiguration(BaseConfiguration):
 class TestsConfiguration(BaseConfiguration):
     config_file_ = 'test.json'
     description = 'Config file for tests. Set paths to executables here.'
+    pcr_home = os.getenv('PCRASTER_HOME', '/opt/pcraster')
     init_dict = {'TestConfiguration': {'atol': 0.05,
-                                       'PcRasterDiff': os.path.join(os.getenv('PCRASTER_HOME', '/opt/pcraster'), '/bin/pcrcalc'),
+                                       'PcRasterDiff': os.path.join(pcr_home, '/bin/pcrcalc'),
                                        'g2p': os.getenv('GRIB2PCRASTER', '/usr/local/bin/grib2pcraster'),
                                        }
                  }

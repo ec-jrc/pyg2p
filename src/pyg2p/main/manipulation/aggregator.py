@@ -88,45 +88,45 @@ class Aggregator(Loggable):
 
         created_zero_array = False
         for iter_ in range(self._start, self._end + 1, self._aggregation_step):
-            if iter_ not in v_ord.keys():
+            v_ord_keys = list(v_ord.keys())
+            if iter_ not in v_ord_keys:
 
-                ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_)
-                next_ts = v_ord.keys()[ind_next_ts]
+                ind_next_ts = bisect.bisect_left(v_ord_keys, iter_)
+                next_ts = v_ord_keys[ind_next_ts]
                 v_nts_ma = v_ord[next_ts]
 
-                ind_originalts = bisect.bisect_right(v_ord.keys(), iter_)
+                ind_originalts = bisect.bisect_right(v_ord_keys, iter_)
                 if ind_originalts == ind_next_ts:
                     ind_originalts -= 1
-                originalts = v_ord.keys()[ind_originalts]
+                originalts = v_ord_keys[ind_originalts]
                 v_ots_ma = v_ord[originalts]
 
-                if self._logger.is_debug:
-                    self._log('Message {} not in {}.'.format(iter_, str(v_ord.keys())))
-                    self._log('Creating grib[{}] as grib[{}]+(grib[{}]-grib[{}])*(({}-{})/({}-{}))'.format(iter_, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
+                if self._logger.isEnabledFor(logging.DEBUG):
+                    self._log(f'Message {iter_} not in {v_ord_keys}.')
+                    self._log(f'Creating grib[{iter_}] as grib[{originalts}]+(grib[{next_ts}]-grib[{originalts}])*(({iter_}-{originalts})/({next_ts}-{originalts}))')
 
                 v_out = ne.evaluate('v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))')
                 v_ord[iter_] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ots_ma, v_nts_ma), v_out, copy=False)
 
-            if iter_ - self._aggregation_step >= 0 and iter_ - self._aggregation_step not in v_ord.keys() and not created_zero_array:
-                ind_next_ts = bisect.bisect_left(v_ord.keys(), iter_ - self._aggregation_step)
-                next_ts = v_ord.keys()[ind_next_ts]
+            if iter_ - self._aggregation_step >= 0 and iter_ - self._aggregation_step not in v_ord_keys and not created_zero_array:
+                ind_next_ts = bisect.bisect_left(v_ord_keys, iter_ - self._aggregation_step)
+                next_ts = v_ord_keys[ind_next_ts]
 
                 if iter_ - self._aggregation_step == 0:
-                    if self._logger.is_debug:
-                        self._log('Message 0 not in dataset. Creating it as zero values array')
+                    self._log('Message 0 not in dataset. Creating it as zero values array')
                     v_ord[0] = np.zeros(shape_iter)
-                    originalts = 0
+                    originalts = 0  # do not delete: used by numexpr evaluation
                     created_zero_array = True
                 else:
                     v_nts_ma = v_ord[next_ts]
-                    ind_originalts = bisect.bisect_right(v_ord.keys(), iter_ - self._aggregation_step)
+                    ind_originalts = bisect.bisect_right(v_ord_keys, iter_ - self._aggregation_step)
                     if ind_originalts == ind_next_ts:
                         ind_originalts -= 1
-                    originalts = v_ord.keys()[ind_originalts]
+                    originalts = v_ord_keys[ind_originalts]
                     # variables needed for numexpr evaluator namespace
                     v_ots_ma = v_ord[originalts]
 
-                    if self._logger.is_debug:
+                    if self._logger.isEnabledFor(logging.DEBUG):
                         self._log('Creating message grib[{}] as grib[{}]+(grib[{}]-grib[{}])*(({}-{})/({}-{}))'.format(iter_ - self._aggregation_step, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
                     v_out = ne.evaluate('v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))')
                     v_ord[iter_ - self._aggregation_step] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ots_ma, v_nts_ma), v_out, copy=False)
@@ -151,7 +151,7 @@ class Aggregator(Loggable):
             out_values[key] = ma.masked_where(pyg2p.util.numeric.get_masks(v_iter_ma, v_iter_1_ma), out_value, copy=False)
 
             if self._logger.isEnabledFor(logging.DEBUG):
-                self._log('out[{}] = (grib[{}] - grib[{}])  * ({}/{}))'.format(key, iter_, (iter_ - self._aggregation_step), self._unit_time, self._aggregation_step))
+                self._log(f'out[{key}] = (grib[{iter_}] - grib[{(iter_ - self._aggregation_step)}])  * ({self._unit_time}/{self._aggregation_step}))')
 
         return out_values
 
@@ -184,18 +184,18 @@ class Aggregator(Loggable):
                     iter_to = iter_ + self._aggregation_step
 
                 temp_sum = np.zeros(shape_iter)
-                v_ord_keys = v_ord.keys()
+                v_ord_keys = list(v_ord.keys())
 
                 for iterator_avg in range(iter_from, iter_to, 1):
                     if iterator_avg in v_ord_keys:
                         if self._logger.isEnabledFor(logging.DEBUG):
-                            self._log('temp_sum += grib[{}]'.format(iterator_avg))
+                            self._log(f'temp_sum += grib[{iterator_avg}]')
                         v_ma = v_ord[iterator_avg]
                     else:
                         ind_next_ = bisect.bisect_left(list(v_ord_keys), iterator_avg)
                         next_ = list(v_ord_keys)[ind_next_]
                         if self._logger.isEnabledFor(logging.DEBUG):
-                            self._log('temp_sum += grib[{}] from -> grib[{}]'.format(iterator_avg, next_))
+                            self._log(f'temp_sum += grib[{iterator_avg}] from -> grib[{next_}]')
                         v_ma = v_ord[next_]
                     ne.evaluate('temp_sum + v_ma', out=temp_sum)
 
@@ -208,7 +208,7 @@ class Aggregator(Loggable):
                 # mask result with all maskes from GRIB original values used in average (if existing any)
                 out_values[key] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ord.values()), res, copy=False)
                 if self._logger.isEnabledFor(logging.DEBUG):
-                    self._log('out[{}] = temp_sum/{}'.format(key, self._aggregation_step))
+                    self._log('out[{key}] = temp_sum/{self._aggregation_step}')
 
             return out_values
 
@@ -220,34 +220,35 @@ class Aggregator(Loggable):
 
     def _instantaneous(self, values):
         if self._step_type in [PARAM_CUM]:
-            raise ApplicationException.get_exc(NOT_IMPLEMENTED, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
+            raise ApplicationException.get_exc(NOT_IMPLEMENTED, details=f'Manipulation {self._aggregation} for parameter type: {self._step_type}')
         else:
             out_values = {}
             start = self._find_start()
-            resolution_1 = values.keys()[0].resolution
-            shape_iter = values[values.keys()[0]].shape
 
             # sets a new dict with different key (using only endstep)
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
-
+            v_ord_keys = list(v_ord.keys())
+            values_keys = list(values.keys())
+            resolution_1 = values_keys[0].resolution
+            shape_iter = values[values_keys[0]].shape
             for iter_ in range(start, self._end + 1, self._aggregation_step):
                 res_inst = np.zeros(shape_iter)
                 key = Step(iter_, iter_, resolution_1, self._aggregation_step)
-                if iter_ in v_ord.keys():
+                if iter_ in v_ord_keys:
                     if self._logger.isEnabledFor(logging.DEBUG):
-                        self._log('out[{}] = grib[{}]'.format(key, iter_))
+                        self._log(f'out[{key}] = grib[{iter_}]')
                     res_inst += v_ord[iter_]
                 else:
                     if iter_ == 0:
                         # left out as zero arrays if 0 step is not in the grib
                         if self._logger.isEnabledFor(logging.DEBUG):
-                            self._log('out[{}] = zeros'.format(key))
+                            self._log(f'out[{key}] = zeros')
                         pass
                     else:
-                        ind_next_ = bisect.bisect_right(v_ord.keys(), iter_)
-                        next_ = v_ord.keys()[ind_next_]
+                        ind_next_ = bisect.bisect_right(v_ord_keys, iter_)
+                        next_ = list(v_ord_keys)[ind_next_]
                         if self._logger.isEnabledFor(logging.DEBUG):
-                            self._log('out[{}] = grib[{}]'.format(key, next_))
+                            self._log(f'out[{key}] = grib[{next_}]')
                         res_inst += v_ord[next_]
                 out_values[key] = res_inst
 

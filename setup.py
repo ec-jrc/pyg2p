@@ -1,7 +1,8 @@
 import os
 import sys
 import glob
-from setuptools import setup, find_packages
+from shutil import rmtree
+from setuptools import setup, find_packages, Command
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(current_dir, './src/'))
@@ -14,16 +15,53 @@ with open(readme_file, 'r') as f:
     long_description = f.read()
 
 
+class UploadCommand(Command):
+    """Support setup.py upload."""
+
+    description = 'Publish pyg2p package.'
+    user_options = []
+
+    @staticmethod
+    def print_console(s):
+        print('\033[1m{0}\033[0m'.format(s))
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        try:
+            self.print_console('Removing previous builds...')
+            rmtree(os.path.join(current_dir, 'dist'))
+        except OSError:
+            pass
+
+        self.print_console('Building Source and Wheel (universal) distribution...')
+        os.system('{0} setup.py sdist'.format(sys.executable))
+
+        self.print_console('Uploading the package to PyPI via Twine...')
+        os.system('twine upload dist/*')
+
+        self.print_console('Pushing git tags...')
+        os.system('git tag v{0}'.format(__version__))
+        os.system('git push --tags')
+
+        sys.exit()
+
+
+
 def setup_data_files(setup_args_):
     user_conf_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
     fm.create_dir(user_conf_dir)
     list_files = {t: [os.path.join(t, f) for f in os.listdir(t) if f.endswith('.json')]
-                  for t in ('./execution_templates_devel',
+                  for t in ('./templates',
                             './configuration',
                             './configuration/global')}
     for_user_to_copy = [f for f in list_files['./configuration'] if
                         not fm.exists(os.path.join(user_conf_dir, fm.filename(f)))]
-    templates_to_copy = [f for f in list_files['./execution_templates_devel'] if
+    templates_to_copy = [f for f in list_files['./templates'] if
                          not fm.exists(os.path.join(user_conf_dir, 'templates_samples', fm.filename(f)))]
     data_files = [('pyg2p/configuration/', list_files['./configuration/global'])]
 
@@ -37,14 +75,14 @@ def setup_data_files(setup_args_):
     setup_args_.update({'data_files': data_files})
 
 
-packages_deps = ['ujson', 'xmljson', 'numpy', 'scipy', 'eccodes-python',
-                 'numexpr', 'dask[bag]', 'dask[array]', 'toolz']
+packages_deps = ['ujson', 'numpy>1.17.0', 'scipy>=0.16', 'eccodes-python',
+                 'numexpr>=2.4.6', 'dask[bag]', 'dask[array]', 'toolz']
 
 setup_args = dict(name='pyg2p',
                   version=__version__,
-                  description="Convert GRIB files to PCRaster",
+                  description="Convert GRIB files to netCDF or PCRaster",
                   long_description=long_description,
-                  license="Commercial",
+                  license="EUPL 1.2",
                   install_requires=packages_deps,
                   author="Domenico Nappo",
                   author_email="domenico.nappo@gmail.com",
@@ -53,9 +91,8 @@ setup_args = dict(name='pyg2p',
                   include_package_data=True,
                   package_data={'pyg2p': ['*.xml']},
                   packages=find_packages('src'),
-                  keywords="NetCDF GRIB PCRaster pyg2p",
+                  keywords="NetCDF GRIB PCRaster Lisflood EFAS GLOFAS",
                   scripts=['bin/pyg2p'],
-                  # entry_points={'console_scripts': ['pyg2p = pyg2p.scripts.pyg2p_script:main_script']},
                   zip_safe=True,
                   classifiers=[
                       # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers

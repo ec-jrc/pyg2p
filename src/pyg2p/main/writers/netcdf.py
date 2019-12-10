@@ -36,32 +36,31 @@ class NetCDFWriter(Writer):
         self.nf.reference = 'ECMWF'
 
         # Dimensions
-        self.nf.createDimension('xc', self.area.shape[1])
-        self.nf.createDimension('yc', self.area.shape[0])
+        self.nf.createDimension('lon', self.area.shape[1])
+        self.nf.createDimension('lat', self.area.shape[0])
         self.nf.createDimension('time', None)
 
     def write(self, values, time_values, **varargs):
         # Variables
-        longitude = self.nf.createVariable('lon', 'f', ('yc', 'xc'))
+        longitude = self.nf.createVariable('lon', 'f4', ('lat', 'lon'))
         longitude.standard_name = 'longitude'
         longitude.long_name = 'longitude coordinate'
         longitude.units = 'degrees_east'
 
-        latitude = self.nf.createVariable('lat', 'f', ('yc', 'xc'))
+        latitude = self.nf.createVariable('lat', 'f4', ('lat', 'lon'))
         latitude.standard_name = 'latitude'
         latitude.long_name = 'latitude coordinate'
         latitude.units = 'degrees_north'
 
-        time_nc = self.nf.createVariable('time', 'd', ('time',))
+        time_nc = self.nf.createVariable('time', 'f', ('time',))
         time_nc.standard_name = 'time'
         time_nc.units = 'hours since {}'.format(varargs.get('data_date'))
         time_nc.calendar = 'proleptic_gregorian'
         time_nc[:] = time_values
 
-        values_nc = self.nf.createVariable(varargs.get('prefix', ''), 'f',
-                                           ('time', 'yc', 'xc'),
-                                           zlib=True,
-                                           least_significant_digit=2)
+        values_nc = self.nf.createVariable(varargs.get('prefix', ''), 'f8',
+                                           ('time', 'lat', 'lon'), zlib=False,
+                                           )
         values_nc.coordinates = 'lon lat'
         values_nc.esri_pe_string = self.esri_pe_string
         values_nc.standard_name = varargs.get('prefix', '')

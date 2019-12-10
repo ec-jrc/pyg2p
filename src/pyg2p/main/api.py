@@ -1,13 +1,14 @@
 import collections
 from functools import partial
+from pathlib import Path
 from types import MethodType
 
 from pyg2p.main import pyg2p_exe
 from pyg2p.util.strings import to_argv, to_argdict
 
 
-def command(*args):
-    return Command(*args)
+def command(*args, **kwargs):
+    return Command(*args, **kwargs)
 
 
 def run_command(cmd):
@@ -39,14 +40,22 @@ class Command(object):
         self._d[opt] = param
         return self
 
-    def __init__(self, cmd_string=None):
-        # adding flag underApi
+    def __init__(self, cmd_string=None, **params):
         cmd_string = cmd_string.lstrip('pyg2p').strip()
-        self._d = {} if not cmd_string else to_argdict('{} -A'.format(cmd_string))
+        if params:
+            opts = params.copy()
+            # string interpolation
+            for var in opts:
+                opts[var] = opts[var].as_posix() if isinstance(opts[var], Path) else str(opts[var])  # as string
+                cmd_string = cmd_string.replace('{%s}' % var, opts[var])
+        # adding flag underApi
+        self._d = {} if not cmd_string else to_argdict(f'{cmd_string} -A')
+        # adding log level
         if '-l' not in self._d.keys():
             self._a('-l', 'ERROR')
+        # generate API
         for method_suffix, opt in self.cmds_map.items():
-            setattr(self, 'with_{}'.format(method_suffix), MethodType(partial(_a, opt), self, Command))
+            setattr(self, 'with_{}'.format(method_suffix), MethodType(partial(_a, opt), self))
 
     def __str__(self):
         cmd = 'pyg2p '

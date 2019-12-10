@@ -78,8 +78,6 @@ class ExecutionContext(object):
         self._vars['input.two_resolution'] = bool(self._vars['input.file2'])
         self._vars['geopotential'] = parsed_args['addGeopotential']
         self._to_add_geopotential = bool(self._vars['geopotential'])
-        self._vars['path_to_convert'] = parsed_args['convertConf']
-        self._vars['path_to_intertables_to_convert'] = parsed_args['convertIntertables']
         self._vars['test.cmds'] = parsed_args['test']
         self._vars['download_configuration'] = parsed_args['downloadConf']
         self._vars['under_test'] = parsed_args['underTest']
@@ -88,8 +86,7 @@ class ExecutionContext(object):
         user_intertables = self._vars['interpolation.dir'] or self.configuration.default_interpol_dir
         self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path,
                                             'user': user_intertables}
-        self.is_config_command = (self.add_geopotential or self.run_tests or self.convert_conf
-                                  or self.download_conf or self.convert_intertables or self.check_conf)
+        self.is_config_command = (self.add_geopotential or self.run_tests or self.download_conf or self.check_conf)
 
     @staticmethod
     def add_args(parser):
@@ -140,9 +137,6 @@ class ExecutionContext(object):
         parser.add_argument('-g', '--addGeopotential', help='''Add the file to geopotentials.json configuration file, to use for correction.
         \nThe file will be copied into the right folder (configuration/geopotentials)
         \nNote: shortName of geopotential must be "fis" or "z"''', metavar='geopotential')
-        parser.add_argument('-C', '--convertConf', help='Convert old xml configuration to new json format', metavar='path')
-        parser.add_argument('-z', '--convertIntertables', metavar='path',
-                            help='Convert old pyg2p intertables to new version and copy to user folders')
         parser.add_argument('-W', '--downloadConf',
                             help='Download intertables and geopotentials (FTP settings defined in ftp.json)',
                             metavar='dataset', choices=['geopotentials', 'intertables'])
@@ -271,14 +265,6 @@ class ExecutionContext(object):
         elif self.add_geopotential:
             if not files.exists(self._vars['geopotential']):
                 raise ApplicationException.get_exc(7001, self._vars['geopotential'])
-        elif self.convert_conf:
-            if not files.exists(self._vars['path_to_convert'], is_folder=True):
-                raise ApplicationException.get_exc(7002, self._vars['path_to_convert'])
-        elif self.download_conf or self.check_conf:
-            pass
-        elif self.convert_intertables:
-            if not files.exists(self._vars['path_to_intertables_to_convert'], is_folder=True):
-                raise ApplicationException.get_exc(7003, self._vars['path_to_intertables_to_convert'])
         else:
 
             if not self._vars.get('input.file'):
@@ -377,14 +363,6 @@ class ExecutionContext(object):
     @property
     def from_api(self):
         return bool(self._vars.get('under_api'))
-
-    @property
-    def convert_conf(self):
-        return bool(self._vars.get('path_to_convert'))
-
-    @property
-    def convert_intertables(self):
-        return bool(self._vars.get('path_to_intertables_to_convert'))
 
     @property
     def download_conf(self):

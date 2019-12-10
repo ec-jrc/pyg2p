@@ -1,6 +1,5 @@
 netCDF4
 ujson
-xmljson
 numpy>=1.17
 scipy>=0.16.0
 GDAL

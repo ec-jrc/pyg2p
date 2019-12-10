@@ -30,7 +30,7 @@ class ApplicationException(Exception):
         SHORTNAME_NOT_FOUND: 'shortName not found in parameters.json.',
         CONVERSION_NOT_FOUND: 'shortName - conversionId combination not found in parameters.json.',
         1300: "Latitude or longitude maps doesn't exist. Check filenames in commands json file.",
-        1310: 'Clone map doesn''t exist. Check filename in commands xml file.',
+        1310: 'Clone map doesn''t exist. Check filename in json config',
         INTERTABLE_DIR_NOT_FOUND: 'Interlookuptables dir must exist. Check name in commands json file or create it.',
         NOT_A_NUMBER: 'Not a number. Check configuration.',
         1500: 'TStart <= TEnd. Check configuration.',
@@ -50,7 +50,6 @@ class ApplicationException(Exception):
         NOT_IMPLEMENTED: 'Not implemented.',
         7000: 'Commands text file for tests was not found',
         7001: 'Geopotential grib file was not found',
-        7002: 'Path to old xml configuration was not found',
         7003: 'Path to grib api intertables was not found',
         NO_VAR_DEFINED: 'To add intertables/geopotentials to configuration you need to set paths to folder in variables.\n'
                         'Following var(s) were not found in any of your *.conf files.\n'
