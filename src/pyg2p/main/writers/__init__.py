@@ -10,8 +10,7 @@ from pyg2p.main.interpolation import Interpolator
 from pyg2p.main.manipulation.correction import Corrector
 
 
-class Writer(Loggable):
-    __metaclass__ = abc.ABCMeta
+class Writer(Loggable, metaclass=abc.ABCMeta):
     FORMAT = None
 
     def __init__(self, *args):
@@ -133,6 +132,10 @@ class OutputWriter(Loggable):
         self.writer.close()
 
     def get_writer(self):
+        """
+        Inspect outMaps.format and return the right Writer class
+        return: instance of Writer (PCRasterWriter or NetCDFWriter)
+        """
         out_format = self.ctx.get('outMaps.format')
         map_clone = self.ctx.get('outMaps.clone')
         lat_map = self.ctx.get('interpolation.latMap')

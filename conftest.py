@@ -23,4 +23,3 @@ def options(request):
     options['results'] = options['dataroot'].joinpath('results/')
     options['dataset'] = ['cosmo', 'dwd', 'eue', 'eud']
     request.cls.options = options
-    return options

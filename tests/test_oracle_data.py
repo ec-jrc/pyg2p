@@ -1,10 +1,10 @@
-import pytest
+import unittest
 
-from lisfloodutilities.compare import PCRComparator
+import pytest
 
 from pyg2p.main import api
 
-from . import logger
+from . import logger, check_dataset
 
 
 @pytest.mark.usefixtures("options")
@@ -13,13 +13,12 @@ class TestOracleData:
     def setup_class(cls):
         # Execute all exemplary pyg2p validated results
         for ds in cls.options['dataset']:
-            if ds != 'eud':
+            if ds != 'dwd':
                 continue
             result_dir = cls.options['results'].joinpath(f'{ds}')
             logger.info(f'\n[!] Removing old test results from {result_dir}')
             for f in result_dir.glob('*'):
                 # remove old results
-                logger.warning(f'Removing {f}')
                 f.unlink()
             commands_file = cls.options['commands'].joinpath(f'{ds}/commands')
             with open(commands_file) as cfh:
@@ -32,12 +31,14 @@ class TestOracleData:
                     logger.info(f'\n\n===========> Executing {cmd}')
                     cmd.run()
 
-    def test_results(self):
-        for ds in self.options['dataset']:
-            if ds != 'eud':
-                continue
-            result_dir = self.options['results'].joinpath(f'{ds}')
-            reference_dir = self.options['reference'].joinpath(f'{ds}')
-            comparator = PCRComparator()
-            diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix())
-            assert not diffs
+    def test_dwd(self):
+        check_dataset(self, 'dwd')
+
+    def test_eue(self):
+        check_dataset(self, 'eue')
+
+    def test_eud(self):
+        check_dataset(self, 'eud')
+
+    def test_cosmo(self):
+        check_dataset(self, 'cosmo')

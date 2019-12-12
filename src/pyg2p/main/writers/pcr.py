@@ -1,4 +1,4 @@
-import gdal
+from osgeo import gdal
 import numpy.ma as ma
 
 from pyg2p.main.writers import Writer

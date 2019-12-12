@@ -102,8 +102,6 @@ class BaseConfiguration(object):
         logger.debug(f'Check configuration: [{self.__class__.__name__}]')
         if self.global_data_path_var:
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)
-            if not file_util.can_read(self.global_data_path):
-                raise ApplicationException.get_exc(NO_READ_PERMISSIONS, details=f'{self.global_data_path}')
         if not self.only_global_conf:
             self.merge_with_user_conf()
 
@@ -145,7 +143,6 @@ class BaseConfiguration(object):
             f.write(json.dumps(user_vars, sort_keys=True, indent=4))
 
     def check_write(self):
-
         if not self.data_path:
             # user hasn't defined his own data folder for geopotentials.
             raise ApplicationException.get_exc(NO_VAR_DEFINED, self.data_path_var)
