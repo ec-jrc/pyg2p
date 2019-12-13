@@ -13,8 +13,6 @@ class TestOracleData:
     def setup_class(cls):
         # Execute all exemplary pyg2p validated results
         for ds in cls.options['dataset']:
-            if ds != 'dwd':
-                continue
             result_dir = cls.options['results'].joinpath(f'{ds}')
             logger.info(f'\n[!] Removing old test results from {result_dir}')
             for f in result_dir.glob('*'):

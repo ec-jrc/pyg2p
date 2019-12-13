@@ -12,5 +12,6 @@ def check_dataset(self, ds):
     reference_dir = self.options['reference'].joinpath(f'{ds}')
     comparator = PCRComparator()
     diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix())
-    logger.info(diffs)
+    if diffs:
+        logger.info(diffs)
     assert not diffs
