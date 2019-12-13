@@ -71,7 +71,6 @@ def setup_data_files(setup_args_):
         data_files.append((os.path.join(user_conf_dir, 'templates_samples'), templates_to_copy))
     if not fm.exists(os.path.join(user_conf_dir, 'tests/commands.txt')):
         data_files.append((os.path.join(user_conf_dir, 'tests'), ['configuration/tests/commands.txt']))
-    data_files.append((os.path.join(user_conf_dir, 'docs'), ['./Docs/UserManual.pdf']))
     setup_args_.update({'data_files': data_files})
 
 
@@ -89,7 +88,7 @@ setup_args = dict(name='pyg2p',
                   package_dir={'': 'src/'},
                   py_modules=[os.path.splitext(os.path.basename(path))[0] for path in glob.glob('src/*.py*')],
                   include_package_data=True,
-                  package_data={'pyg2p': ['*.xml']},
+                  package_data={'pyg2p': ['*.json']},
                   packages=find_packages('src'),
                   keywords="NetCDF GRIB PCRaster Lisflood EFAS GLOFAS",
                   scripts=['bin/pyg2p'],

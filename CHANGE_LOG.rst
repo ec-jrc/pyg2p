@@ -3,6 +3,8 @@ CHANGE LOG
 
 v 3.0
 -----
+* **72** Pruned old test suite and test runner script. Using pytest with oracle data from latest version (v 2.1).
+    grib2pcraster is not used anymore
 * **71** Manual is in Markdown now, available on github.com as README.md
 * **70** Changed from NETCDF4_CLASSIC to NETCDF4 for netCDF outputs
 * **69** Replace GRIB_API with ecCodes
@@ -11,9 +13,9 @@ v 3.0
 v 2.1
 -----
 * **67** NETCDF4 CLASSIC format output. Enabled by command line -F netcdf
-         or in execution JSON file OutMaps format attribute
+    or in execution JSON file OutMaps format attribute
 * **66** INTERTABLES, GEOPOTENTIALS user folders are optional for the user.
-         Need to setup in ./pyg2p/myfile.conf only for writing new intertables/geopotentials in user folders
+    Need to setup in ./pyg2p/myfile.conf only for writing new intertables/geopotentials in user folders
 * **65** Bug fix: Correct handling of GRIB missing values
 
 

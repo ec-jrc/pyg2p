@@ -2,6 +2,7 @@ import argparse
 import ujson as json
 import os
 
+from .. import __version__
 from ..util import files, strings
 from .manipulation.aggregator import ACCUMULATION
 from .exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER
@@ -47,8 +48,8 @@ class ExecutionContext(object):
                     self.print_help()
                 raise ApplicationException.get_exc(WRONG_ARGS, message)
 
-        parser = ParserHelpOnError(description='''Execute the grib to pcraster conversion using parameters from the input json configuration.
-                                                        \n Read user manual.''')
+        parser = ParserHelpOnError(description=f'''Pyg2p {__version__}: \nExecute the grib to netCDF/PCRaster conversion, 
+        using parameters from  CLI/json configuration.''')
 
         self.add_args(parser)
         if len(argv) == 0:
@@ -78,15 +79,13 @@ class ExecutionContext(object):
         self._vars['input.two_resolution'] = bool(self._vars['input.file2'])
         self._vars['geopotential'] = parsed_args['addGeopotential']
         self._to_add_geopotential = bool(self._vars['geopotential'])
-        self._vars['test.cmds'] = parsed_args['test']
         self._vars['download_configuration'] = parsed_args['downloadConf']
-        self._vars['under_test'] = parsed_args['underTest']
         self._vars['under_api'] = parsed_args['underApi']
         self._vars['check_conf'] = parsed_args['checkConf']
         user_intertables = self._vars['interpolation.dir'] or self.configuration.default_interpol_dir
         self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path,
                                             'user': user_intertables}
-        self.is_config_command = (self.add_geopotential or self.run_tests or self.download_conf or self.check_conf)
+        self.is_config_command = (self.add_geopotential or self.download_conf or self.check_conf)
 
     @staticmethod
     def add_args(parser):
@@ -130,18 +129,12 @@ class ExecutionContext(object):
                                  ' it does not have any effect.',
                             action='store_true', default=False)
 
-        parser.add_argument('-t', '--test', help='''Path to a text file containing list of commands,
-        \n defining a battery of tests. Then it will create diff pcraster maps and log alerts
-        \nif differences are higher than a threshold (edit configuration in test.json)''', metavar='cmds_file')
-
         parser.add_argument('-g', '--addGeopotential', help='''Add the file to geopotentials.json configuration file, to use for correction.
         \nThe file will be copied into the right folder (configuration/geopotentials)
         \nNote: shortName of geopotential must be "fis" or "z"''', metavar='geopotential')
         parser.add_argument('-W', '--downloadConf',
                             help='Download intertables and geopotentials (FTP settings defined in ftp.json)',
                             metavar='dataset', choices=['geopotentials', 'intertables'])
-        parser.add_argument('-U', '--underTest', help=argparse.SUPPRESS,
-                            action='store_true', default=False)
         parser.add_argument('-A', '--underApi', help=argparse.SUPPRESS,
                             action='store_true', default=False)
         parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,  # mostly used in development
@@ -259,10 +252,7 @@ class ExecutionContext(object):
 
     def _check_exec_params(self):
 
-        if self.run_tests:
-            if not files.exists(self._vars['test.cmds']):
-                raise ApplicationException.get_exc(7000, self._vars['test.cmds'])
-        elif self.add_geopotential:
+        if self.add_geopotential:
             if not files.exists(self._vars['geopotential']):
                 raise ApplicationException.get_exc(7001, self._vars['geopotential'])
         else:
@@ -351,14 +341,6 @@ class ExecutionContext(object):
         if 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None:
             reader_arguments['perturbationNumber'] = self._vars['parameter.perturbationNumber']
         return reader_arguments
-
-    @property
-    def run_tests(self):
-        return bool(self._vars.get('test.cmds'))
-
-    @property
-    def is_a_test(self):
-        return bool(self._vars.get('under_test'))
 
     @property
     def from_api(self):

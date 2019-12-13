@@ -48,7 +48,6 @@ class ApplicationException(Exception):
               'with no more reference to original gribs, using grib_api interpolation methods.\n'
               'Interlookup table must be created, first. Otherwise, use other interpolation methods (nearest or invdist).',
         NOT_IMPLEMENTED: 'Not implemented.',
-        7000: 'Commands text file for tests was not found',
         7001: 'Geopotential grib file was not found',
         7003: 'Path to grib api intertables was not found',
         NO_VAR_DEFINED: 'To add intertables/geopotentials to configuration you need to set paths to folder in variables.\n'
