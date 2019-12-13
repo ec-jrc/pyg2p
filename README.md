@@ -1,4 +1,4 @@
-[ChangeLog](https://bitbucket.org/nappodo/pyg2p/wiki/Change%20Log)
+[ChangeLog](CHANGE_LOG.rst)
 
 
 # pyg2p
