@@ -6,7 +6,7 @@ from eccodes import (codes_no_fail_on_wrong_length, codes_is_defined,
                      codes_index_new_from_file, codes_new_from_index, codes_new_from_file, codes_index_select,
                      codes_index_release, codes_release,
                      codes_get, codes_get_double_array, codes_get_double,
-                     GribInternalError, codes_get_array)
+                     GribInternalError, codes_get_array, CODES_PRODUCT_GRIB)
 from numpy import ma
 
 from ..domain.grid_details import GribGridDetails
@@ -98,7 +98,7 @@ class GRIBReader(Loggable):
 
         elif self._file_handler:
             while 1:
-                gid = codes_new_from_file(self._file_handler)
+                gid = codes_new_from_file(self._file_handler, product_kind=CODES_PRODUCT_GRIB)
                 if gid is None:
                     break
                 has_geo = True
@@ -126,7 +126,7 @@ class GRIBReader(Loggable):
                         codes_release(gid)
         elif self._file_handler:
             while 1:
-                gid = codes_new_from_file(self._file_handler)
+                gid = codes_new_from_file(self._file_handler, product_kind=CODES_PRODUCT_GRIB)
                 if gid is None:
                     break
                 if GRIBReader._find(gid, **kwargs):
