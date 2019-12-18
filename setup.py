@@ -45,7 +45,7 @@ class UploadCommand(Command):
         os.system('twine upload dist/*')
 
         self.print_console('Pushing git tags...')
-        os.system('git tag v{0}'.format(__version__))
+        os.system('git tag {0}'.format(__version__))
         os.system('git push --tags')
 
         sys.exit()
@@ -95,6 +95,11 @@ setup_args = dict(name='pyg2p',
                   keywords="NetCDF GRIB PCRaster Lisflood EFAS GLOFAS",
                   scripts=['bin/pyg2p'],
                   zip_safe=True,
+                  # setup.py publish to pypi.
+                  cmdclass={
+                     'upload': UploadCommand,
+                     'publish': UploadCommand,
+                  },
                   classifiers=[
                       # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
                       'Development Status :: 4 - Beta',
