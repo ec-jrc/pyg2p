@@ -70,18 +70,20 @@ configured internally in pyg2p, you can setup new items (or overwrite internal c
 If you are extracting a parameter with shortName xy from a grib file that is not already globally
 configured, add an element as shown below (only part in bold has been added):
 
+
 ```json
 {
-    "xy": {
-        "@description": "Variable description",
-        "@shortName": "xy",
-        "@unit": "unitstring"
-    }
+  "xy": {
+    "@description": "Variable description",
+    "@shortName": "xy",
+    "@unit": "unitstring"
+  }
 }
 ```
 
 You can configure (more than) a conversion element with different ids and functions. You will use
 shortName and conversionId in the execution JSON templates.
+
 
 ```json
 {
