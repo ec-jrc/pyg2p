@@ -74,8 +74,10 @@ def setup_data_files(setup_args_):
     setup_args_.update({'data_files': data_files})
 
 
-packages_deps = ['ujson', 'numpy>1.17.0', 'scipy>=0.16', 'eccodes-python',
-                 'numexpr>=2.4.6', 'dask[bag]', 'dask[array]', 'toolz']
+packages_deps = ['ujson',
+                 'numpy>=1.16.0', 'scipy>=0.16', 'numexpr>=2.4.6', 'netCDF4',
+                 # 'eccodes-python',
+                 'dask[bag]', 'dask[array]', 'toolz']
 
 setup_args = dict(name='pyg2p',
                   version=__version__,

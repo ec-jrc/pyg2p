@@ -4,7 +4,11 @@ numpy>=1.16.0
 scipy>=0.16.0
 GDAL
 numexpr>=2.4.6
-# eccodes-python  # replacing old GRIB API
+eccodes-python  # replacing old GRIB API
+
+# profiling
+memory_profiler
+psutil
 
 # dask packages for parallel interpolation
 dask[bag]
