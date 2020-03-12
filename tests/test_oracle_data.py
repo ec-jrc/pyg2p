@@ -1,5 +1,3 @@
-import unittest
-
 import pytest
 
 from pyg2p.main import api
@@ -25,6 +23,7 @@ class TestOracleData:
                     command = command.strip()
                     if not command or command.startswith('#'):
                         continue
+                    command = f"{command} -N {cls.options['intertables']} -G {cls.options['geopotentials']}"
                     cmd = api.command(command, **cls.options)
                     logger.info(f'\n\n===========> Executing {cmd}')
                     cmd.run()

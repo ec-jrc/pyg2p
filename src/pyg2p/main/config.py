@@ -27,7 +27,7 @@ class UserConfiguration(object):
     Ex: in a json command file you can define "@latMap": "{EFAS_MAPS}/lat.map"
     and in ~/pyg2p/mysettings.conf you set EFAS_MAPS=/path/to/my/maps
     """
-    config_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
+    config_dir = f'{os.path.expanduser("~")}/.pyg2p/'
     sep = '='
     comment_char = '#'
     conf_to_interpolate = ('correction.demMap', 'outMaps.clone', 'interpolation.latMap', 'interpolation.lonMap')
@@ -131,7 +131,7 @@ class BaseConfiguration(object):
         try:
             content = json.load(f)
         except ValueError as e:
-            raise ApplicationException.get_exc(JSON_ERROR, details='{} {}'.format(e, self.config_file))
+            raise ApplicationException.get_exc(JSON_ERROR, details=f'{e} {self.config_file}')
         else:
             return content
         finally:
@@ -216,7 +216,7 @@ class ParametersConfiguration(BaseConfiguration):
                     return conversion
         elif isinstance(parameter.get('Conversion'), dict) and parameter['Conversion']['@id'] == id_:
             return parameter['Conversion']
-        raise ApplicationException.get_exc(CONVERSION_NOT_FOUND, '{} - {}'.format(parameter['@shortName'], id_))
+        raise ApplicationException.get_exc(CONVERSION_NOT_FOUND, f"{parameter['@shortName']} - {id_}")
 
 
 class GeopotentialsConfiguration(BaseConfiguration):
@@ -248,17 +248,21 @@ class GeopotentialsConfiguration(BaseConfiguration):
                 self.dump()
                 break
 
-    def get_filepath(self, grid_id):
+    def get_filepath(self, grid_id, additional=None):
         filename = self.vars.get(grid_id)
+        path = None
         if not filename:
             raise ApplicationException.get_exc(NO_GEOPOTENTIAL, grid_id)
-        path = None if not self.data_path else os.path.join(self.data_path, filename)
-        if not path or not file_util.exists(path):
-            path = os.path.join(self.global_data_path, filename)
-        if not file_util.exists(path):
-            raise ApplicationException.get_exc(NO_FILE_GEOPOTENTIAL,
-                                               details=f'id:{grid_id} {path} '
-                                                       f'Searched in: {(self.data_path, self.global_data_path)}')
+        for folder in (additional, self.data_path, self.global_data_path):
+            if folder and file_util.exists(os.path.join(folder, filename)):
+                path = os.path.join(folder, filename)
+                break
+        if not path:
+            additional = additional or "-G option not issued"
+            raise ApplicationException.get_exc(
+                NO_FILE_GEOPOTENTIAL,
+                details=f'id:{grid_id}, filename:{filename}, Searched in: {self.data_path}, {self.global_data_path}, {additional}'
+            )
         return path
 
 
@@ -280,6 +284,7 @@ class Configuration(pyg2p.Loggable):
         self.intertables = IntertablesConfiguration(self.user)
         self.ftp = FtpConfig(self.user)
         self.default_interpol_dir = self.intertables.data_path
+        self.default_geopotential_dir = self.geopotentials.data_path
         for conf in (self.parameters, self.geopotentials, self.intertables):
             if not conf.configuration_mode:
                 continue
@@ -308,7 +313,7 @@ class Configuration(pyg2p.Loggable):
     def download_data(self, dataset):
 
         remote_path = dataset
-        local_path = getattr(self.user, '{}_path'.format(dataset))
+        local_path = getattr(self.user, f'{dataset}_path')
 
         client = FTP(*self.ftp.access)
         self._log(f'=== Start downloading {remote_path} files to {local_path}', level='INFO')

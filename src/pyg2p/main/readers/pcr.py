@@ -1,5 +1,3 @@
-import logging
-
 from osgeo import gdal
 from osgeo.gdalconst import GA_ReadOnly
 from pyg2p import Loggable
@@ -11,7 +9,7 @@ class PCRasterReader(Loggable):
 
     def __init__(self, pcr_map):
         super().__init__()
-        self._log('Reading {}'.format(pcr_map))
+        self._log(f'Reading {pcr_map}')
 
         self._driver = gdal.GetDriverByName(self.FORMAT)
         i = self._driver.Register()
@@ -29,7 +27,6 @@ class PCRasterReader(Loggable):
         self._max = self._band.GetMaximum()
         self._mv = self._band.GetNoDataValue()
 
-
     @property
     def values(self):
         data = self._band.ReadAsArray(0, 0, self._cols, self._rows)
@@ -45,7 +42,5 @@ class PCRasterReader(Loggable):
         self._dataset = None
 
     def identifier(self):
-        return '{}_{}_{}_{}_{:.2f}_{:.2f}'.format(int(self._origX), int(self._origY),
-                                                  int(self._pxlW), int(self._pxlH),
-                                                  self._min, self._max)
+        return f'{int(self._origX)}_{int(self._origY)}_{int(self._pxlW)}_{int(self._pxlH)}_{self._min:.2f}_{self._max:.2f}'
 

@@ -35,7 +35,7 @@ class PCRasterWriter(Writer):
         self._mem_ds.GetRasterBand(1).SetNoDataValue(self.mv)
         self._mem_ds.GetRasterBand(1).WriteArray(masked_values)
         out_ds = drv.CreateCopy(output_map_name.encode('utf-8'), self._mem_ds)
-        self._log('{} written!'.format(output_map_name), 'INFO')
+        self._log(f'{output_map_name} written!', 'INFO')
         out_ds = None
         del out_ds
 

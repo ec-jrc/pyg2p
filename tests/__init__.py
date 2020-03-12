@@ -1,6 +1,13 @@
+import os
+import sys
 import logging
 
 from lisfloodutilities.compare import PCRComparator
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_path = os.path.join(current_dir, '../src/')
+print(src_path)
+sys.path.append(src_path)
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger()

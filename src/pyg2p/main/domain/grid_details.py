@@ -25,7 +25,7 @@ class GribGridDetails(Loggable):
         self._logger = logging.getLogger()
         self._gid = gid
         self._geo_keys = {
-            key_: getattr(eccodes, 'codes_get_{}'.format(type_))(gid, key_)
+            key_: getattr(eccodes, f'codes_get_{type_}')(gid, key_)
             for key_, type_ in self.keys
             if eccodes.codes_is_defined(gid, key_)
         }
@@ -51,11 +51,11 @@ class GribGridDetails(Loggable):
         num_of_values = self._geo_keys.get('numberOfValues')
         long_first = ('%.4f' % (self._geo_keys.get('longitudeOfFirstGridPointInDegrees'),)).rstrip('0').rstrip('.')
         long_last = ('%.4f' % (self._geo_keys.get('longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
-        grid_id = '{}${}${}${}${}${}'.format(long_first, long_last, ni, nj, num_of_values, self._grid_type)
+        grid_id = f'{long_first}${long_last}${ni}${nj}${num_of_values}${self._grid_type}'
         return grid_id
 
     def set_2nd_resolution(self, grid2nd, step_range_):
-        self._log('Grib resolution changes at key {}'.format(step_range_))
+        self._log(f'Grib resolution changes at key {step_range_}')
         self._grid_details_2nd = grid2nd
         self._change_resolution_step = step_range_
         # change of points along meridian!

@@ -22,10 +22,10 @@ def pyg2p_exe(*args):
         exc_ctx = ExecutionContext(conf, args)
     except ApplicationException as err:
         # error during initalization
-        logger.error('\nError: {}\n\n'.format(err))
+        logger.error(f'\nError: {err}\n\n')
         return 1
     except Exception as err:
-        logger.error('\nError: {}\n\n'.format(err))
+        logger.error(f'\nError: {err}\n\n')
         return 1
 
     if exc_ctx.is_config_command:
@@ -34,7 +34,7 @@ def pyg2p_exe(*args):
             config_command(conf, exc_ctx)
             return 0
         except ApplicationException as err:
-            logger.error('\nError while running a configuration command: {}\n\n'.format(err))
+            logger.error(f'\nError while running a configuration command: {err}\n\n')
             return 1
     else:
         # normal execution flow
@@ -53,12 +53,11 @@ def execution_command(conf, exc_ctx):
         controller.log_execution_context()
         controller.execute()
     except ApplicationException as err:
-        logger.error('\n\nError: {}'.format(err))
+        logger.error(f'\n\nError: {err}')
         if not err.get_code() == NO_MESSAGES:
             ret_value = 1
     finally:
         controller.close()
-        # logger.flush()
     return ret_value
 
 

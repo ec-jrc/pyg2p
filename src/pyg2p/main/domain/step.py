@@ -15,7 +15,7 @@ class Step(object):
                (other.start_step, other.end_step, other.resolution, other.input_step))
 
     def __str__(self):
-        return 's:{} e:{} res:{} step-lenght:{}'.format(self.start_step, self.end_step, self.resolution, self.input_step)
+        return f's:{self.start_step} e:{self.end_step} res:{self.resolution} step-lenght:{self.input_step}'
 
     def __lt__(self, other):
         return self.start_step < other.start_step

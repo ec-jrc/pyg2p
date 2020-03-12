@@ -83,10 +83,10 @@ class Interpolator(Loggable):
                 # will create a new intertable but with same filename/id
                 # as an existing configuration was already found but file is missing for some reasons
                 if not self.create_if_missing:
-                    raise ApplicationException.get_exc(NO_INTERTABLE_CREATED)
+                    raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details='Searched in {}'.format(tbl_fullpath))
                 self.intertables_config.check_write()
                 tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
-                self._logger.warn('An entry in configuration was found for {} but intertable does not exist.'.format(filename))
+                self._logger.warning('An entry in configuration was found for {} but intertable does not exist.'.format(filename))
         return intertable_id, tbl_fullpath
 
     def _read_intertable(self, tbl_fullpath):

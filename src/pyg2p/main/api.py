@@ -55,7 +55,7 @@ class Command(object):
             self._a('-l', 'ERROR')
         # generate API
         for method_suffix, opt in self.cmds_map.items():
-            setattr(self, 'with_{}'.format(method_suffix), MethodType(partial(_a, opt), self))
+            setattr(self, f'with_{method_suffix}', MethodType(partial(_a, opt), self))
 
     def __str__(self):
         cmd = 'pyg2p '

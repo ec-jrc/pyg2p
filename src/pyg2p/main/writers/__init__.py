@@ -16,7 +16,7 @@ class Writer(Loggable, metaclass=abc.ABCMeta):
     def __init__(self, *args):
         super().__init__()
         self._clone_map = args[0]
-        self._log('Set clone for writing {} maps: {}'.format(self.FORMAT, self._clone_map))
+        self._log(f'Set clone for writing {self.FORMAT} maps: {self._clone_map}')
 
     @abc.abstractmethod
     def write(self, *args, **kwargs):
@@ -99,7 +99,7 @@ class OutputWriter(Loggable):
             self.writer.write(self._name_pcr_map(i + 1), out_v)
 
     def write_maps(self, values, messages, change_res_step=None):
-        write_method = getattr(self, '_write_maps_{}'.format(self.ctx.get('outMaps.format')))
+        write_method = getattr(self, f"_write_maps_{self.ctx.get('outMaps.format')}")
         # Ordering values happens only here now - 12/04/2015
         values = collections.OrderedDict(sorted(values.items(), key=lambda k: int(k[0].end_step)))
         write_method(values, messages, change_res_step)

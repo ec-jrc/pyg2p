@@ -5,7 +5,7 @@ import os
 from .. import __version__
 from ..util import files, strings
 from .manipulation.aggregator import ACCUMULATION
-from .exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER
+from .exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER, NOT_EXISTING_MAPS
 
 
 class ExecutionContext(object):
@@ -67,6 +67,7 @@ class ExecutionContext(object):
         self._vars['parameter.dataTime'] = parsed_args['dataTime']
         self._vars['parameter.dataDate'] = parsed_args['dataDate']
         self._vars['interpolation.dir'] = parsed_args['intertableDir']
+        self._vars['geopotential.dir'] = parsed_args['geopotentialDir']
         self._vars['interpolation.create'] = parsed_args['createIntertable']
         self._vars['interpolation.parallel'] = parsed_args['interpolationParallel']
         self._vars['outMaps.fmap'] = parsed_args['fmap']
@@ -83,8 +84,11 @@ class ExecutionContext(object):
         self._vars['under_api'] = parsed_args['underApi']
         self._vars['check_conf'] = parsed_args['checkConf']
         user_intertables = self._vars['interpolation.dir'] or self.configuration.default_interpol_dir
+        user_geopotentials = self._vars['geopotential.dir'] or self.configuration.default_geopotential_dir
         self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path,
                                             'user': user_intertables}
+        self._vars['geopotential.dirs'] = {'global': self.configuration.geopotentials.global_data_path,
+                                           'user': user_geopotentials}
         self.is_config_command = (self.add_geopotential or self.download_conf or self.check_conf)
 
     @staticmethod
@@ -121,6 +125,8 @@ class ExecutionContext(object):
 
         # interpolation lookup tables reading/writing
         parser.add_argument('-N', '--intertableDir', help='Alternate interpolation tables dir', metavar='intertable_dir')
+        parser.add_argument('-G', '--geopotentialDir', help='Alternate geopotential dir',
+                            metavar='geopotential_dir')
         parser.add_argument('-B', '--createIntertable', help='Flag to create intertable file',
                             action='store_true', default=False)
         parser.add_argument('-X', '--interpolationParallel',
@@ -197,6 +203,9 @@ class ExecutionContext(object):
         if not self._vars['interpolation.dir'] and interpolation_conf.get('@intertableDir'):
             # get from JSON
             self._vars['interpolation.dirs']['user'] = interpolation_conf['@intertableDir']
+        if not self._vars['geopotential.dir'] and interpolation_conf.get('@geopotentialDir'):
+            # get from JSON
+            self._vars['geopotential.dirs']['user'] = interpolation_conf['@geopotentialDir']
         self._vars['interpolation.latMap'] = interpolation_conf['@latMap']
         self._vars['interpolation.lonMap'] = interpolation_conf['@lonMap']
 
@@ -262,7 +271,7 @@ class ExecutionContext(object):
             if not files.exists(self._vars['input.file']):
                 raise ApplicationException.get_exc(1000, self._vars['input.file'])
             if not files.exists(self._vars['interpolation.lonMap']) or not files.exists(self._vars['interpolation.latMap']):
-                raise ApplicationException.get_exc(1300)
+                raise ApplicationException.get_exc(NOT_EXISTING_MAPS, details=f"{self._vars['interpolation.lonMap']} - {self._vars['interpolation.latMap']}")
             if not files.exists(self._vars['outMaps.clone']):
                 raise ApplicationException.get_exc(1310)
 
@@ -298,8 +307,8 @@ class ExecutionContext(object):
                 raise ApplicationException.get_exc(4200, self._vars['correction.demMap'])
 
     def __str__(self):
-        mess = '\n\n============ pyg2p: Execution parameters: {} {} ============\n\n'.format(self._vars['execution.name'], strings.now_string())
-        params_str = ['{}={}'.format(par, self._vars[par]) for par in sorted(self._vars.keys()) if self._vars[par]]
+        mess = f"\n\n============ pyg2p: Execution parameters: {self._vars['execution.name']} {strings.now_string()} ============\n\n"
+        params_str = [f'{par}={self._vars[par]}' for par in sorted(self._vars.keys()) if self._vars[par]]
         return '{}{}'.format(mess, '\n'.join(params_str))
 
     @property
@@ -355,4 +364,7 @@ class ExecutionContext(object):
         return self._vars.get('check_conf')
 
     def geo_file(self, grid_id):
-        return self.input_file_with_geopotential or self.configuration.geopotentials.get_filepath(grid_id)
+        path = self.input_file_with_geopotential
+        if not path:
+            path = self.configuration.geopotentials.get_filepath(grid_id, additional=self._vars['geopotential.dirs'].get('user'))
+        return path

@@ -1,5 +1,6 @@
 SHORTNAME_NOT_FOUND = 1100  # variable not configured in parameters.json
 CONVERSION_NOT_FOUND = 1200
+NOT_EXISTING_MAPS = 1300
 INTERTABLE_DIR_NOT_FOUND = 1320
 NOT_A_NUMBER = 1400
 NO_MESSAGES = 3000  # no messages found in GRIB file with used criteria
@@ -29,7 +30,7 @@ class ApplicationException(Exception):
         1001: 'Input file not set: use [-i, --inputFile] command line options',
         SHORTNAME_NOT_FOUND: 'shortName not found in parameters.json.',
         CONVERSION_NOT_FOUND: 'shortName - conversionId combination not found in parameters.json.',
-        1300: "Latitude or longitude maps doesn't exist. Check filenames in commands json file.",
+        NOT_EXISTING_MAPS: "Latitude or longitude maps doesn't exist. Check filenames in commands json file.",
         1310: 'Clone map doesn''t exist. Check filename in json config',
         INTERTABLE_DIR_NOT_FOUND: 'Interlookuptables dir must exist. Check name in commands json file or create it.',
         NOT_A_NUMBER: 'Not a number. Check configuration.',
@@ -53,7 +54,8 @@ class ApplicationException(Exception):
         NO_VAR_DEFINED: 'To add intertables/geopotentials to configuration you need to set paths to folder in variables.\n'
                         'Following var(s) were not found in any of your *.conf files.\n'
                         'Please add them e.g. in ~/.pyg2p/paths.conf',
-        NO_INTERTABLE_CREATED: 'Interpolation table was not found and needs to be created but -B option was not set on command line.',
+        NO_INTERTABLE_CREATED: 'Interpolation table was not found and needs to be created '
+                               'but -B option was not set on command line.',
         JSON_ERROR: 'Error in json configuration file.',
         EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
         INVALID_INTERPOLATION_METHOD: 'Interpolation method not valid',
@@ -66,15 +68,8 @@ class ApplicationException(Exception):
     }
 
     @classmethod
-    def error_description(cls, code):
-        if code in cls._errorMessages:
-            return cls._errorMessages[code]
-        else:
-            return 'Unknown Error Code: {}'.format(code)
-
-    @classmethod
     def get_exc(cls, code, details=''):
-        return cls(None, code, '{} - {}'.format(ApplicationException.error_description(code), str(details)))
+        return cls(None, code, f'{cls._errorMessages[code]} - {details}')
 
     def __init__(self, inner, code, error):
         self._innerException = inner

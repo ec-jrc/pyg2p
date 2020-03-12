@@ -21,7 +21,7 @@ class Corrector(Loggable):
     def get_instance(cls, ctx, grid_id):
         geo_file_ = ctx.geo_file(grid_id)
         dem_map = ctx.get('correction.demMap')
-        key = '{}{}'.format(grid_id, dem_map)
+        key = f'{grid_id}{dem_map}'
         if key in cls.instances:
             return cls.instances[key]
         else:
@@ -36,15 +36,15 @@ class Corrector(Loggable):
         self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
         self._formula = ctx.get('correction.formula')
         self._gem_formula = ctx.get('correction.gemFormula')
-        self._numexpr_eval = 'where((dem!=mv) & (p!=mv) & (gem!=mv), {}, mv)'.format(self._formula)
-        self._numexpr_eval_gem = 'where(z != mv, {}, mv)'.format(self._gem_formula)
+        self._numexpr_eval = f'where((dem!=mv) & (p!=mv) & (gem!=mv), {self._formula}, mv)'
+        self._numexpr_eval_gem = f'where(z != mv, {self._gem_formula}, mv)'
 
-        log_message = """
+        log_message = f"""
         Correction
-        Reading dem: {}
-        geopotential: {}
-        formula: {}
-        """.format(dem_map, geo_file_, self._formula.replace('gem', self._gem_formula))
+        Reading dem: {dem_map}
+        geopotential: {geo_file_}
+        formula: {self._formula.replace('gem', self._gem_formula)}
+        """
         self._log(log_message, 'INFO')
 
         self._gem_missing_value, self._gem_values = self._read_geo(geo_file_, ctx)

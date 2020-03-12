@@ -29,7 +29,7 @@ class GRIBReader(Loggable):
         self._file_handler = None
         self._grbindx = None
         self._logger = logging.getLogger()
-        self._log('Opening GRIBReader for {}'.format(self._grib_file))
+        self._log(f'Opening GRIBReader for {self._grib_file}')
 
         try:
             index_keys = ['shortName']
@@ -37,7 +37,7 @@ class GRIBReader(Loggable):
                 index_keys.append('perturbationNumber')
             self._grbindx = codes_index_new_from_file(str(self._grib_file), index_keys)
         except GribInternalError:
-            self._log("Can't use index on {}".format(self._grib_file), 'WARN')
+            self._log(f"Can't use index on {self._grib_file}", 'WARN')
             self._file_handler = open(self._grib_file, 'rb')
         self._selected_grbs = []
         self._mv = -1
@@ -71,7 +71,7 @@ class GRIBReader(Loggable):
         return True
 
     def close(self):
-        self._log('Closing gribs messages from {}'.format(self._grib_file))
+        self._log(f'Closing gribs messages from {self._grib_file}')
         for g in self._selected_grbs:
             codes_release(g)
         self._selected_grbs = None
@@ -144,11 +144,11 @@ class GRIBReader(Loggable):
                 self.scan_grib(gribs, kwargs)
             return gribs
         except ValueError:
-            raise ApplicationException.get_exc(NO_MESSAGES, details="using {}".format((str(kwargs))))
+            raise ApplicationException.get_exc(NO_MESSAGES, details=f'using {kwargs}')
 
     def select_messages(self, **kwargs):
         self._selected_grbs = self._get_gids(**kwargs)
-        self._log("Selected {} grib messages".format(len(self._selected_grbs)))
+        self._log(f'Selected {len(self._selected_grbs)} grib messages')
 
         if len(self._selected_grbs) > 0:
             self._gid_main_res = self._selected_grbs[0]
@@ -174,7 +174,7 @@ class GRIBReader(Loggable):
                 start_step = codes_get(g, 'startStep')
                 end_step = codes_get(g, 'endStep')
                 points_meridian = codes_get(g, 'Nj')
-                if '{}-{}'.format(start_step, end_step) == self._change_step_at:
+                if f'{start_step}-{end_step}' == self._change_step_at:
                     # second time resolution
                     input_step = self._step_grib2
 
@@ -207,7 +207,7 @@ class GRIBReader(Loggable):
             return Messages(all_values, missing_value, unit, type_of_level, type_of_step, grid, all_values_second_res, data_date=data_date), short_name
         # no messages found
         else:
-            raise ApplicationException.get_exc(NO_MESSAGES, details="using {}".format(kwargs))
+            raise ApplicationException.get_exc(NO_MESSAGES, details=f'using {kwargs}')
 
     @staticmethod
     def _find_start_end_steps(gribs):
@@ -233,7 +233,7 @@ class GRIBReader(Loggable):
                 if step2 == -1 and ord_end_steps[i] - ord_end_steps[i - 1] != step:
                     # change of time resolution
                     step2 = ord_end_steps[i] - ord_end_steps[i - 1]
-                    change_step_at = '{}-{}'.format(ord_start_steps[i], ord_end_steps[i])
+                    change_step_at = f'{ord_start_steps[i]}-{ord_end_steps[i]}'
         return start_grib, end_grib, step, step2, change_step_at
 
     def get_grib_info(self, select_args):

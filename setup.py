@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import glob
 from shutil import rmtree
@@ -14,6 +15,8 @@ readme_file = os.path.join(current_dir, 'README.md')
 with open(readme_file, 'r') as f:
     long_description = f.read()
 
+IS_PYTHON2 = sys.version_info.major == 2
+
 
 class UploadCommand(Command):
     """Support setup.py upload."""
@@ -23,7 +26,7 @@ class UploadCommand(Command):
 
     @staticmethod
     def print_console(s):
-        print('\033[1m{0}\033[0m'.format(s))
+        print(f'\033[1m{s}\033[0m')
 
     def initialize_options(self):
         pass
@@ -39,21 +42,20 @@ class UploadCommand(Command):
             pass
 
         self.print_console('Building Source and Wheel (universal) distribution...')
-        os.system('{0} setup.py sdist'.format(sys.executable))
+        os.system(f'{sys.executable} setup.py sdist')
 
         self.print_console('Uploading the package to PyPI via Twine...')
         os.system('twine upload dist/*')
 
         self.print_console('Pushing git tags...')
-        os.system('git tag {0}'.format(__version__))
+        os.system(f'git tag {__version__}')
         os.system('git push --tags')
 
         sys.exit()
 
 
-
 def setup_data_files(setup_args_):
-    user_conf_dir = '{}/{}'.format(os.path.expanduser('~'), '.pyg2p/')
+    user_conf_dir = f'{os.path.expanduser("~")}/.pyg2p/'
     fm.create_dir(user_conf_dir)
     list_files = {t: [os.path.join(t, f) for f in os.listdir(t) if f.endswith('.json')]
                   for t in ('./templates',
@@ -74,10 +76,22 @@ def setup_data_files(setup_args_):
     setup_args_.update({'data_files': data_files})
 
 
-packages_deps = ['ujson',
-                 'numpy>=1.16.0', 'scipy>=0.16', 'numexpr>=2.4.6', 'netCDF4',
-                 # 'eccodes-python',
-                 'dask[bag]', 'dask[array]', 'toolz']
+def _get_gdal_version():
+    try:
+        p = subprocess.Popen(['gdal-config', '--version'], stdout=subprocess.PIPE)
+    except FileNotFoundError:
+        raise SystemError('gdal-config not found.'
+                          'GDAL seems not installed. '
+                          'Please, install GDAL binaries and libraries for your system '
+                          'and then install the relative pip package.')
+    else:
+        return p.communicate()[0].splitlines()[0].decode()
+
+
+gdal_version = _get_gdal_version()
+req_file = 'requirements.txt' if not IS_PYTHON2 else 'requirements27.txt'
+requirements = [l for l in open(req_file).readlines() if l and not l.startswith('#')]
+requirements += [f'GDAL=={gdal_version}']
 
 setup_args = dict(name='pyg2p',
                   version=__version__,
@@ -85,7 +99,7 @@ setup_args = dict(name='pyg2p',
                   long_description=long_description,
                   long_description_content_type='text/markdown',
                   license="EUPL 1.2",
-                  install_requires=packages_deps,
+                  install_requires=requirements,
                   author="Domenico Nappo",
                   author_email="domenico.nappo@gmail.com",
                   package_dir={'': 'src/'},

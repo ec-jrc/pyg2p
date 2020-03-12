@@ -29,7 +29,7 @@ class NetCDFWriter(Writer):
         self.nf = Dataset(out_filename, 'w', format='NETCDF4')
         self.filepath = out_filename
         time_created = time.ctime(time.time())
-        self.nf.history = 'Created {}'.format(time_created)
+        self.nf.history = f'Created {time_created}'
         self.nf.Conventions = 'CF-1.6'
         self.nf.Source_Software = 'pyg2p 3'
         self.nf.source = 'ECMWF'
@@ -54,7 +54,7 @@ class NetCDFWriter(Writer):
 
         time_nc = self.nf.createVariable('time', 'f', ('time',))
         time_nc.standard_name = 'time'
-        time_nc.units = 'hours since {}'.format(varargs.get('data_date'))
+        time_nc.units = f'hours since {varargs.get("data_date")}'
         time_nc.calendar = 'proleptic_gregorian'
         time_nc[:] = time_values
 
@@ -72,4 +72,4 @@ class NetCDFWriter(Writer):
 
     def close(self):
         self.nf.close()
-        self._log('{} written!'.format(self.filepath), 'INFO')
+        self._log(f'{self.filepath} written!', 'INFO')

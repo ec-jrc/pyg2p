@@ -5,6 +5,8 @@ import pytest
 
 def pytest_addoption(parser):
     """
+    pytest -D /workarea/datatest/pyg2p/pyg2p_reference tests/
+
     Accepting -D/--dataroot option as a path to pyg2p reference data and config.
     Structure must be like the following:
 
