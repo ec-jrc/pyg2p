@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from osgeo import gdal
 from osgeo.gdalconst import GA_ReadOnly
+
 from pyg2p import Loggable
 
 
@@ -10,7 +13,7 @@ class PCRasterReader(Loggable):
     def __init__(self, pcr_map):
         super().__init__()
         self._log(f'Reading {pcr_map}')
-
+        pcr_map = pcr_map.as_posix() if isinstance(pcr_map, Path) else pcr_map
         self._driver = gdal.GetDriverByName(self.FORMAT)
         i = self._driver.Register()
         self._dataset = gdal.Open(pcr_map.encode('utf-8'), GA_ReadOnly)

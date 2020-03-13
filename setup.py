@@ -15,8 +15,6 @@ readme_file = os.path.join(current_dir, 'README.md')
 with open(readme_file, 'r') as f:
     long_description = f.read()
 
-IS_PYTHON2 = sys.version_info.major == 2
-
 
 class UploadCommand(Command):
     """Support setup.py upload."""
@@ -89,7 +87,7 @@ def _get_gdal_version():
 
 
 gdal_version = _get_gdal_version()
-req_file = 'requirements.txt' if not IS_PYTHON2 else 'requirements27.txt'
+req_file = 'requirements.txt'
 requirements = [l for l in open(req_file).readlines() if l and not l.startswith('#')]
 requirements += [f'GDAL=={gdal_version}']
 

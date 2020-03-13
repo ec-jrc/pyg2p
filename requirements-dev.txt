@@ -16,4 +16,5 @@ dask[array]
 toolz
 
 pytest
+pytest-coverage
 lisflood-utilities

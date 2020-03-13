@@ -1,8 +1,8 @@
+import logging
+
 version = (3, 0, 0)
 __authors__ = "Domenico Nappo"
 __version__ = 'v' + '.'.join(list(map(str, version)))
-
-import logging
 
 
 class Loggable:
