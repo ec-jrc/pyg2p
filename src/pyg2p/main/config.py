@@ -47,6 +47,13 @@ class UserConfiguration(object):
 
         self.geopotentials_path = self.get(self.geopotentials_path_var)
         self.intertables_path = self.get(self.intertables_path_var)
+        logger = logging.getLogger()
+        if self.vars:
+            logger.info(f'[!] User Variables:\n {self.vars}')
+        if self.intertables_path:
+            logger.info(f'[!] Intertables user path as defined in {self.intertables_path_var}: {self.geopotentials_path}')
+        if self.geopotentials_path:
+            logger.info(f'[!] Geopotentials user path as defined in {self.geopotentials_path_var}: {self.intertables_path}')
 
     def get(self, var):
         return self.vars.get(var)

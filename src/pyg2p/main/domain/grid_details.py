@@ -1,4 +1,3 @@
-import logging
 import eccodes
 
 from pyg2p import Loggable
@@ -22,7 +21,7 @@ class GribGridDetails(Loggable):
 
     def __init__(self, gid):
 
-        self._logger = logging.getLogger()
+        super().__init__()
         self._gid = gid
         self._geo_keys = {
             key_: getattr(eccodes, f'codes_get_{type_}')(gid, key_)

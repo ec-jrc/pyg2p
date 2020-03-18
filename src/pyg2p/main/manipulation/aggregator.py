@@ -127,7 +127,7 @@ class Aggregator(Loggable):
                     v_ots_ma = v_ord[originalts]
 
                     if self._logger.isEnabledFor(logging.DEBUG):
-                        self._log('Creating message grib[{}] as grib[{}]+(grib[{}]-grib[{}])*(({}-{})/({}-{}))'.format(iter_ - self._aggregation_step, originalts, next_ts, originalts, iter_, originalts, next_ts, originalts))
+                        self._log(f'Creating message grib[{iter_ - self._aggregation_step}]=grib[{originalts}]+(grib[{next_ts}]-grib[{originalts}])*(({iter_}-{originalts})/({next_ts}-{originalts}))')
                     v_out = ne.evaluate('v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))')
                     v_ord[iter_ - self._aggregation_step] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ots_ma, v_nts_ma), v_out, copy=False)
 
@@ -158,7 +158,7 @@ class Aggregator(Loggable):
     def _average(self, values):
 
         if self._step_type in [PARAM_CUM]:
-            raise ApplicationException.get_exc(NOT_IMPLEMENTED, details='Manipulation {} for parameter type: {}'.format(self._aggregation, self._step_type))
+            raise ApplicationException.get_exc(NOT_IMPLEMENTED, details=f'Manipulation {self._aggregation} for parameter type: {self._step_type}')
         else:
 
             out_values = {}
