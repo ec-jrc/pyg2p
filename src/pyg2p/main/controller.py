@@ -122,6 +122,7 @@ class Controller(object):
                 change_res_step, values = self.second_res_manipulation(start_step2, end_step, input_step, messages,
                                                                        mv_grib, type_of_param, values)
 
+        # cutoff after interpolation
         if converter and converter.must_cut_off:
             values = converter.cut_off_negative(values)
         self._logger.debug('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')

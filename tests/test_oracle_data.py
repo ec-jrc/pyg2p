@@ -1,7 +1,8 @@
+import os
+
 import pytest
 
 from pyg2p.main import api
-from pyg2p.main.readers.pcr import PCRasterReader
 
 from . import logger, check_dataset_pcroutput, check_dataset_netcdfoutput
 
@@ -10,6 +11,12 @@ from . import logger, check_dataset_pcroutput, check_dataset_netcdfoutput
 class TestOracleData:
     @classmethod
     def setup_class(cls):
+        user_conf_dir = os.path.join(os.path.expanduser('~'), '.pyg2p/')
+        # set dataroot in user configuration
+        if not os.path.exists(user_conf_dir):
+            os.mkdir(user_conf_dir)
+        with open(os.path.join(user_conf_dir, 'pyg2p_tests.conf'), 'w') as f:
+            f.write(f"dataroot={cls.options['dataroot']}")
         # Execute all exemplary pyg2p validated results
         for ds in cls.options['dataset']:
             result_dir = cls.options['results'].joinpath(f'{ds}')

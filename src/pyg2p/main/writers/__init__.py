@@ -1,5 +1,4 @@
 import os
-import datetime
 import abc
 import collections
 
@@ -105,13 +104,7 @@ class OutputWriter(Loggable):
         write_method(values, messages, change_res_step)
 
     def _name_netcdf_file(self):
-        fn_format = '{varname}_{date}_{aggregation}.nc'.format
-        fmt = '%Y-%m-%d'
-        # noinspection PyTypeChecker
-        date_str = datetime.datetime.strftime(datetime.datetime.now(), fmt)
-        filename = fn_format(varname=self.ctx.get('outMaps.namePrefix'),
-                             date=date_str,
-                             aggregation=self.ctx.get('aggregation.type'))
+        filename = f"{self.ctx.get('outMaps.namePrefix')}_{self.ctx.get('aggregation.type')}.nc"
         out_filename = os.path.join(self.ctx.get('outMaps.outDir'), filename)
         return out_filename
 
