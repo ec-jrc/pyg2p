@@ -43,8 +43,12 @@ class Converter(Loggable):
 
     def cut_off_negative(self, xs):
         self._log('Cutting off negative values...')
-        for timestep, values in xs.items():
-            xs[timestep] = ne.evaluate('where(values<0, 0, values)')
+        if isinstance(xs, dict):
+            for timestep, values in xs.items():
+                xs[timestep] = ne.evaluate('where(values<0, 0, values)')
+        else:
+            values = xs
+            xs = ne.evaluate('where(values<0, 0, values)')
         return xs
 
     def __str__(self):
