@@ -62,7 +62,7 @@ class Interpolator(Loggable):
         if intertable_id not in self.intertables_config.vars:
             # return a new intertable filename to create
             if not self.create_if_missing:
-                raise ApplicationException.get_exc(NO_INTERTABLE_CREATED)
+                raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=f'Using {intertable_id}')
             self.intertables_config.check_write()
             filename = self.format_intertablename(prognum='')
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
@@ -77,16 +77,18 @@ class Interpolator(Loggable):
 
         # tbl_fullpath is taken from user path if defined, otherwise comes from global configuration
         tbl_fullpath = None if not self._intertable_dirs.get('user') else os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
+        if self._logger.isEnabledFor(logging.DEBUG):
+            self._logger.debug(f'Using {tbl_fullpath} for id {intertable_id}')
         if not tbl_fullpath or not pyg2p.util.files.exists(tbl_fullpath):
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['global'], filename))
             if not pyg2p.util.files.exists(tbl_fullpath):
                 # will create a new intertable but with same filename/id
                 # as an existing configuration was already found but file is missing for some reasons
                 if not self.create_if_missing:
-                    raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details='Searched in {}'.format(tbl_fullpath))
+                    raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=f'Tried to create {tbl_fullpath}')
                 self.intertables_config.check_write()
                 tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
-                self._logger.warning('An entry in configuration was found for {} but intertable does not exist.'.format(filename))
+                self._logger.warning(f'An entry in configuration was found for {filename} but intertable does not exist.')
         return intertable_id, tbl_fullpath
 
     def _read_intertable(self, tbl_fullpath):

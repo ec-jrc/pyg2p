@@ -17,7 +17,7 @@ class GribGridDetails(Loggable):
             ('longitudeOfFirstGridPointInDegrees', 'double'), ('longitudeOfLastGridPointInDegrees', 'double'),
             ('latitudeOfSouthernPoleInDegrees', 'double'), ('longitudeOfSouthernPoleInDegrees', 'double'),
             ('angleOfRotationInDegrees', 'double'))
-    check_for_missing_keys = ('Ni', 'Nj',)
+    check_for_missing_keys = ('Ni', 'Nj', 'longitudeOfLastGridPointInDegrees')
 
     def __init__(self, gid):
 
@@ -28,11 +28,18 @@ class GribGridDetails(Loggable):
             for key_, type_ in self.keys
             if eccodes.codes_is_defined(gid, key_)
         }
-        self._missing_keys = {
-            key_: 'MISSING'
-            for key_ in self.check_for_missing_keys
-            if eccodes.codes_is_missing(gid, key_)
-        }
+        self._missing_keys = {}
+        for key_ in self.check_for_missing_keys:
+            try:
+                if eccodes.codes_is_missing(gid, key_):
+                    self._missing_keys[key_] = 'MISSING'
+            except eccodes.KeyValueNotFoundError:
+                self._missing_keys[key_] = 'MISSING'
+        # self._missing_keys = {
+        #     key_: 'MISSING'
+        #     for key_ in self.check_for_missing_keys
+        #     if eccodes.codes_is_missing(gid, key_)
+        # }
         self._grid_type = self._geo_keys.get('gridType')
         self._points_meridian = self._geo_keys.get('Nj')
         self._missing_value = self._geo_keys.get('missingValue')
@@ -49,7 +56,7 @@ class GribGridDetails(Loggable):
         nj = 'M' if 'Nj' in self._missing_keys else self._geo_keys.get('Nj')
         num_of_values = self._geo_keys.get('numberOfValues')
         long_first = ('%.4f' % (self._geo_keys.get('longitudeOfFirstGridPointInDegrees'),)).rstrip('0').rstrip('.')
-        long_last = ('%.4f' % (self._geo_keys.get('longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
+        long_last = 'M' if 'longitudeOfLastGridPointInDegrees' in self._missing_keys else ('%.4f' % (self._geo_keys.get('longitudeOfLastGridPointInDegrees'),)).rstrip('0').rstrip('.')
         grid_id = f'{long_first}${long_last}${ni}${nj}${num_of_values}${self._grid_type}'
         return grid_id
 

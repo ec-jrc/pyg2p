@@ -9,7 +9,7 @@ from numpy import ma
 
 import pyg2p.util.numeric
 from pyg2p import Loggable
-from pyg2p.main.domain.step import Step
+from pyg2p.main.domain.messages import Step
 from pyg2p.main.exceptions import ApplicationException, NOT_IMPLEMENTED
 
 # types of manipulation
@@ -78,6 +78,7 @@ class Aggregator(Loggable):
         out_values = {}
         item_keys = list(values.keys())[0]
         resolution = item_keys.resolution
+        level = item_keys.level
         shape_iter = values[item_keys].shape
         v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
         self._log('Accumulation at resolution: {}'.format(resolution))
@@ -146,7 +147,7 @@ class Aggregator(Loggable):
             v_iter_ma += v_ord[iter_]
             _unit_time = self._unit_time
             _aggr_step = self._aggregation_step
-            key = Step(iter_ - self._aggregation_step, iter_, resolution, self._aggregation_step)
+            key = Step(iter_ - self._aggregation_step, iter_, resolution, self._aggregation_step, level)
             out_value = ne.evaluate('(v_iter_ma-v_iter_1_ma)*_unit_time/_aggr_step')
             out_values[key] = ma.masked_where(pyg2p.util.numeric.get_masks(v_iter_ma, v_iter_1_ma), out_value, copy=False)
 
@@ -164,6 +165,7 @@ class Aggregator(Loggable):
             out_values = {}
             first_key = list(values.keys())[0]
             resolution_1 = first_key.resolution
+            level = first_key.level
             shape_iter = values[first_key].shape
 
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
@@ -201,7 +203,7 @@ class Aggregator(Loggable):
 
                 # mask result with all maskes from GRIB original values used in average (if existing any)
                 # temp_sum = ma.masked_where(pyg2p.util.numeric.get_masks(v_ord.values()), temp_sum, copy=False)
-                key = Step(iter_, iter_ + self._aggregation_step, resolution_1, self._aggregation_step)
+                key = Step(iter_, iter_ + self._aggregation_step, resolution_1, self._aggregation_step, level)
                 # used with numexpress that doesn't access self. DO NOT DELETE!
                 aggregation_step = self._aggregation_step
                 res = ne.evaluate('temp_sum/aggregation_step')
@@ -230,10 +232,11 @@ class Aggregator(Loggable):
             v_ord_keys = list(v_ord.keys())
             values_keys = list(values.keys())
             resolution_1 = values_keys[0].resolution
+            level = values_keys[0].level
             shape_iter = values[values_keys[0]].shape
             for iter_ in range(start, self._end + 1, self._aggregation_step):
                 res_inst = np.zeros(shape_iter)
-                key = Step(iter_, iter_, resolution_1, self._aggregation_step)
+                key = Step(iter_, iter_, resolution_1, self._aggregation_step, level)
                 if iter_ in v_ord_keys:
                     if self._logger.isEnabledFor(logging.DEBUG):
                         self._log(f'out[{key}] = grib[{iter_}]')

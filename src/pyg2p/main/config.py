@@ -42,6 +42,7 @@ class UserConfiguration(object):
             file_util.create_dir(self.config_dir)
         for f in os.listdir(self.config_dir):
             filepath = os.path.join(self.config_dir, f)
+            # read all custom paths from ~/.pyg2p/*.conf files
             if file_util.is_conf(filepath):
                 self.vars.update(self.load_properties(filepath))
 
@@ -85,7 +86,7 @@ class UserConfiguration(object):
                 raise ApplicationException.get_exc(NO_VAR_DEFINED, str(vars_not_defined))
 
 
-class BaseConfiguration(object):
+class BaseConfiguration(pyg2p.Loggable):
     config_file_ = ''
     data_path_var = ''
     global_data_path_var = ''
@@ -96,21 +97,22 @@ class BaseConfiguration(object):
     GLOBAL_CONFIG_DIR = 'configuration/'  # data dir in package to read as resource stream
 
     def __init__(self, user_configuration):
-
+        super().__init__()
         self.configuration_mode = False
         self.user_configuration = user_configuration
         self.config_file = os.path.join(user_configuration.config_dir, self.config_file_)
         self.global_config_file = os.path.join(self.GLOBAL_CONFIG_DIR, self.config_file_)
         self.global_config_file_debug = os.path.join(self.GLOBAL_CONFIG_DIR, 'global/', self.config_file_)
         self.data_path = user_configuration.get(self.data_path_var)
+
         self.vars = self.load_global()
         self.user_vars = {}
-        logger = logging.getLogger()
-        logger.debug(f'Check configuration: [{self.__class__.__name__}]')
+        self._log(f'Check configuration: [{self.__class__.__name__}]')
         if self.global_data_path_var:
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)
         if not self.only_global_conf:
             self.merge_with_user_conf()
+        self._log(f' [!] Using {self.config_file} and {self.global_config_file} as config files', 'INFO')
 
     def load_global(self):
         try:

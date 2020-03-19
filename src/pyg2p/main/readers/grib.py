@@ -11,7 +11,7 @@ from numpy import ma
 
 from ..domain.grid_details import GribGridDetails
 from ..domain.messages import Messages
-from ..domain.step import Step
+from pyg2p.main.domain.messages import Step
 
 from pyg2p.util import generics as utils
 from pyg2p.main.exceptions import ApplicationException, NO_MESSAGES
@@ -105,7 +105,8 @@ class GRIBReader(Loggable):
                 codes_release(gid)
         return has_geo
 
-    def scan_grib(self, gribs, kwargs):
+    def scan_grib(self, **kwargs):
+        gribs = []
         v_selected = kwargs['shortName']
         v_pert = kwargs.get('perturbationNumber', -1)
         if not utils.is_container(v_selected):
@@ -134,14 +135,14 @@ class GRIBReader(Loggable):
                 else:
                     # release unused grib
                     codes_release(gid)
+        return gribs
 
     def _get_gids(self, **kwargs):
-        gribs = []
         try:
-            self.scan_grib(gribs, kwargs)
+            gribs = self.scan_grib(**kwargs)
             if (len(gribs) == 0) and ('startStep' in kwargs and utils.is_callable(kwargs['startStep']) and not kwargs['startStep'](0)):
                 kwargs['startStep'] = lambda s: s >= 0
-                self.scan_grib(gribs, kwargs)
+                gribs = self.scan_grib(**kwargs)
             return gribs
         except ValueError:
             raise ApplicationException.get_exc(NO_MESSAGES, details=f'using {kwargs}')
@@ -174,11 +175,12 @@ class GRIBReader(Loggable):
                 start_step = codes_get(g, 'startStep')
                 end_step = codes_get(g, 'endStep')
                 points_meridian = codes_get(g, 'Nj')
+                level = codes_get(g, 'level')
                 if f'{start_step}-{end_step}' == self._change_step_at:
                     # second time resolution
                     input_step = self._step_grib2
 
-                step_key = Step(start_step, end_step, points_meridian, input_step)
+                step_key = Step(start_step, end_step, points_meridian, input_step, level)
 
                 if points_meridian != grid.num_points_along_meridian and grid.get_2nd_resolution() is None:
                     # found second resolution messages
