@@ -8,7 +8,7 @@ class PCRasterWriter(Writer):
     FORMAT = 'PCRaster'
 
     def __init__(self, *args):
-        super(PCRasterWriter, self).__init__(*args)
+        super().__init__(*args)
         # =============================================================================
         # Create a MEM clone of the source file.
         # =============================================================================

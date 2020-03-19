@@ -1,5 +1,4 @@
 import gc
-import logging
 from datetime import datetime
 
 from pyg2p import Loggable

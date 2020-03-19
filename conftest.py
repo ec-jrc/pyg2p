@@ -78,19 +78,37 @@ def pytest_addoption(parser):
      and then compared with data from reference folder
     """
 
-    parser.addoption('-D', '--dataroot', type=lambda p: Path(p).absolute(), help='Path to oracle data', required=True)
+    parser.addoption('-D', '--dataroot', type=lambda p: Path(p).absolute(), help='Path to oracle data', required=False)
+    parser.addoption('-X', "--runslow", action="store_true", default=False, help="run slow tests")
 
 
 @pytest.fixture(scope='class', autouse=True)
 def options(request):
+    if not request.config.getoption('--dataroot') and request.config.getoption('--runslow'):
+        raise ValueError('You need to pass -D/--dataroot option to run slow tests with --runslow')
     options = dict()
     options['dataroot'] = request.config.getoption('--dataroot')
-    options['commands'] = options['dataroot'].joinpath('commands/')
-    options['input'] = options['dataroot'].joinpath('input/')
-    options['reference'] = options['dataroot'].joinpath('reference/')
-    options['intertables'] = options['dataroot'].joinpath('intertables/')
-    options['geopotentials'] = options['dataroot'].joinpath('geopotentials/')
-    options['maps'] = options['dataroot'].joinpath('maps/')
-    options['results'] = options['dataroot'].joinpath('results/')
-    options['dataset'] = ['cosmo', 'dwd', 'eue', 'eud']
+    if options['dataroot']:
+        options['commands'] = options['dataroot'].joinpath('commands/')
+        options['input'] = options['dataroot'].joinpath('input/')
+        options['reference'] = options['dataroot'].joinpath('reference/')
+        options['intertables'] = options['dataroot'].joinpath('intertables/')
+        options['geopotentials'] = options['dataroot'].joinpath('geopotentials/')
+        options['maps'] = options['dataroot'].joinpath('maps/')
+        options['results'] = options['dataroot'].joinpath('results/')
+        options['dataset'] = ['cosmo', 'dwd', 'eue', 'eud']
     request.cls.options = options
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        # --runslow given in cli: do not skip slow tests
+        return
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)

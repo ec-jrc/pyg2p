@@ -21,6 +21,10 @@ class Writer(Loggable, metaclass=abc.ABCMeta):
     def write(self, *args, **kwargs):
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def close(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 class OutputWriter(Loggable):
     """

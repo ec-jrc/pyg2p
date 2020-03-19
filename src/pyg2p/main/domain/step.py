@@ -2,7 +2,7 @@ class Step(object):
     def __init__(self, start_step, end_step, points_meridian, input_step):
         self.start_step = start_step
         self.end_step = end_step
-        # spatial resolution
+        # spatial resolution - pointsAlongMeridian in GRIB
         self.resolution = points_meridian
         # temporal resolution
         self.input_step = input_step
@@ -21,4 +21,4 @@ class Step(object):
         return self.start_step < other.start_step
 
     def __le__(self, other):
-        return self.start_step < other.start_step
+        return self.start_step <= other.start_step
