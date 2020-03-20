@@ -33,7 +33,7 @@ def to_argdict(string_):
     return dict(zip(c[0::2], c[1::2]))
 
 
-FALSE_STRINGS = ['FALSE', 'F', 'f', 'False', 'false', 'NO', 'no', 'No', '0']
+FALSE_STRINGS = ['FALSE', 'F', 'f', 'False', 'false', 'NO', 'no', 'No', '0', 'off', 'OFF', 'Off', 'nO']
 
 
 def now_string(fmt='%Y-%m-%d %H:%M'):

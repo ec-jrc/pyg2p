@@ -1,11 +1,9 @@
-import logging
+from .. import Loggable
+from ..main.manipulation.aggregator import Aggregator
+from ..main.readers.grib import GRIBReader
+from ..main.writers import OutputWriter
 
-from pyg2p import Loggable
-from pyg2p.main.manipulation.aggregator import Aggregator
-from pyg2p.main.readers.grib import GRIBReader
-from pyg2p.main.writers import OutputWriter
-
-from pyg2p.main.manipulation.conversion import Converter
+from ..main.manipulation.conversion import Converter
 
 
 class Controller(Loggable):

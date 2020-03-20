@@ -73,12 +73,8 @@ class ApplicationException(Exception):
 
     def __init__(self, inner, code, error):
         self._innerException = inner
-        self._code = code
-        if isinstance(error, str):
-            self.message = error
+        self.code = code
+        self.message = str(error)
 
     def __str__(self):
         return self.message
-
-    def get_code(self):
-        return self._code

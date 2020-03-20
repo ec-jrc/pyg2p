@@ -6,7 +6,7 @@ import numexpr as ne
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 
-from ..exceptions import ApplicationException, WEIRD_STUFF
+from ...exceptions import ApplicationException, WEIRD_STUFF
 from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
 from pyg2p.util.strings import now_string

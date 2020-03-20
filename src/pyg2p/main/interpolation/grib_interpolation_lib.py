@@ -14,9 +14,9 @@ import numpy as np
 from dask import bag
 from dask.diagnostics import ProgressBar
 
-from pyg2p.util.generics import progress_step_and_backchar
-from pyg2p.util.numeric import empty, int_fill_value
-from pyg2p.util.strings import now_string
+from ...util.generics import progress_step_and_backchar
+from ...util.numeric import empty, int_fill_value
+from ...util.strings import now_string
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 

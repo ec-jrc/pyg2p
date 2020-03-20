@@ -8,8 +8,8 @@ import itertools
 from pkg_resources import resource_stream
 
 import pyg2p
-from pyg2p.main.readers.grib import GRIBReader
-from pyg2p.main.exceptions import (
+from ..main.readers import GRIBReader
+from ..exceptions import (
     ApplicationException,
     SHORTNAME_NOT_FOUND,
     CONVERSION_NOT_FOUND,

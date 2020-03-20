@@ -1,11 +1,10 @@
 import logging
 
-from .exceptions import MISSING_CONFIG_FILES, ApplicationException, NO_MESSAGES
-from pyg2p.main.config import Configuration
-from pyg2p.main.controller import Controller
+from ..exceptions import MISSING_CONFIG_FILES, ApplicationException, NO_MESSAGES
+from .config import Configuration
+from .controller import Controller
 
-from pyg2p.main.context import ExecutionContext
-from pyg2p.main.exceptions import MISSING_CONFIG_FILES
+from .context import ExecutionContext
 
 logging.basicConfig(format='[%(asctime)s][%(name)s] : %(levelname)s %(message)s')
 logger = logging.getLogger()
@@ -48,13 +47,13 @@ def execute(conf, exc_ctx):
     ret_value = 0
     try:
         if conf.missing_config:
-            raise ApplicationException.get_exc(MISSING_CONFIG_FILES, details='{}'.format(','.join(conf.missing_config)))
+            raise ApplicationException.get_exc(MISSING_CONFIG_FILES, details=f"{','.join(conf.missing_config)}")
         ctrl = Controller(exc_ctx)
         ctrl.log_execution_context()
         ctrl.execute()
     except ApplicationException as err:
         logger.error(f'\n\nError: {err}')
-        if not err.get_code() == NO_MESSAGES:
+        if not err.code == NO_MESSAGES:
             ret_value = 1
     finally:
         ctrl.close()

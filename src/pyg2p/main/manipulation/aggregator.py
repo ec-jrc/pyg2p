@@ -7,10 +7,9 @@ import numexpr as ne
 import numpy as np
 from numpy import ma
 
-import pyg2p.util.numeric
-from pyg2p import Loggable
-from pyg2p.main.domain.messages import Step
-from pyg2p.main.exceptions import ApplicationException, NOT_IMPLEMENTED
+from ...util import numeric
+from pyg2p import Loggable, Step
+from ...exceptions import ApplicationException, NOT_IMPLEMENTED
 
 # types of manipulation
 AVERAGE = 'average'
@@ -107,7 +106,7 @@ class Aggregator(Loggable):
                     self._log(f'Creating grib[{iter_}] as grib[{originalts}]+(grib[{next_ts}]-grib[{originalts}])*(({iter_}-{originalts})/({next_ts}-{originalts}))')
 
                 v_out = ne.evaluate('v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))')
-                v_ord[iter_] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ots_ma, v_nts_ma), v_out, copy=False)
+                v_ord[iter_] = ma.masked_where(numeric.get_masks(v_ots_ma, v_nts_ma), v_out, copy=False)
 
             if iter_ - self._aggregation_step >= 0 and iter_ - self._aggregation_step not in v_ord_keys and not created_zero_array:
                 ind_next_ts = bisect.bisect_left(v_ord_keys, iter_ - self._aggregation_step)
@@ -130,7 +129,7 @@ class Aggregator(Loggable):
                     if self._logger.isEnabledFor(logging.DEBUG):
                         self._log(f'Creating message grib[{iter_ - self._aggregation_step}]=grib[{originalts}]+(grib[{next_ts}]-grib[{originalts}])*(({iter_}-{originalts})/({next_ts}-{originalts}))')
                     v_out = ne.evaluate('v_ots_ma + (v_nts_ma-v_ots_ma)*((iter_ - originalts)/(next_ts-originalts))')
-                    v_ord[iter_ - self._aggregation_step] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ots_ma, v_nts_ma), v_out, copy=False)
+                    v_ord[iter_ - self._aggregation_step] = ma.masked_where(numeric.get_masks(v_ots_ma, v_nts_ma), v_out, copy=False)
 
             if iter_ - self._aggregation_step == 0 and self._force_zero:
                 # forced ZERO array...instead of taking the grib
@@ -149,7 +148,7 @@ class Aggregator(Loggable):
             _aggr_step = self._aggregation_step
             key = Step(iter_ - self._aggregation_step, iter_, resolution, self._aggregation_step, level)
             out_value = ne.evaluate('(v_iter_ma-v_iter_1_ma)*_unit_time/_aggr_step')
-            out_values[key] = ma.masked_where(pyg2p.util.numeric.get_masks(v_iter_ma, v_iter_1_ma), out_value, copy=False)
+            out_values[key] = ma.masked_where(numeric.get_masks(v_iter_ma, v_iter_1_ma), out_value, copy=False)
 
             if self._logger.isEnabledFor(logging.DEBUG):
                 self._log(f'out[{key}] = (grib[{iter_}] - grib[{(iter_ - self._aggregation_step)}])  * ({self._unit_time}/{self._aggregation_step}))')
@@ -208,7 +207,7 @@ class Aggregator(Loggable):
                 aggregation_step = self._aggregation_step
                 res = ne.evaluate('temp_sum/aggregation_step')
                 # mask result with all maskes from GRIB original values used in average (if existing any)
-                out_values[key] = ma.masked_where(pyg2p.util.numeric.get_masks(v_ord.values()), res, copy=False)
+                out_values[key] = ma.masked_where(numeric.get_masks(v_ord.values()), res, copy=False)
                 if self._logger.isEnabledFor(logging.DEBUG):
                     self._log('out[{key}] = temp_sum/{self._aggregation_step}')
 

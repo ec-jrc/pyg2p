@@ -3,7 +3,8 @@ import numpy as np
 import pytest
 
 from pyg2p.main import ApplicationException
-from pyg2p.main.readers import GRIBReader, GRIBInfo, PCRasterReader
+from pyg2p.main.readers import GRIBReader, PCRasterReader
+from pyg2p import GRIBInfo
 
 
 class TestGribReader:
@@ -14,6 +15,7 @@ class TestGribReader:
         assert len(messages) == 4
         messages = reader.select_messages(**{'shortName': 'ediff', 'level': 100})
         assert len(messages) == 1
+        print(messages.grid_details)
 
     def test_nomessages(self):
         file = 'tests/data/test.grib'
@@ -48,6 +50,6 @@ class TestPCRasterReader:
     def test_read(self):
         file = 'tests/data/dem.map'
         pcr = PCRasterReader(file)
-        assert pcr.min == 0.0
-        assert pcr.max == 4536.0
+        assert pcr.min == -9.25
+        assert pcr.max == 3539.3720703125
         assert pcr.mv == -3.4028234663852886e+38

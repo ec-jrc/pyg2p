@@ -3,8 +3,8 @@ from functools import partial
 from pathlib import Path
 from types import MethodType
 
-from pyg2p.main import pyg2p_exe
-from pyg2p.util.strings import to_argv, to_argdict
+from ..main import pyg2p_exe
+from ..util.strings import to_argv, to_argdict
 
 
 def command(*args, **kwargs):

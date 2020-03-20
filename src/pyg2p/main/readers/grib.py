@@ -1,23 +1,16 @@
 import os
 import logging
-from collections import namedtuple
 
-from eccodes import (codes_no_fail_on_wrong_length, codes_is_defined,
+from eccodes import (codes_is_defined,
                      codes_index_new_from_file, codes_new_from_index, codes_new_from_file, codes_index_select,
                      codes_index_release, codes_release,
                      codes_get, codes_get_double_array, codes_get_double,
                      GribInternalError, codes_get_array, CODES_PRODUCT_GRIB)
 from numpy import ma
 
-from ..domain.grid_details import GribGridDetails
-from ..domain.messages import Messages
-from pyg2p.main.domain.messages import Step
-
-from pyg2p.util import generics as utils
-from pyg2p.main.exceptions import ApplicationException, NO_MESSAGES
-from pyg2p import Loggable
-
-GRIBInfo = namedtuple('GRIBInfo', 'input_step, input_step2, change_step_at, type_of_param, start, end, mv')
+from ...util import generics as utils
+from ...exceptions import ApplicationException, NO_MESSAGES
+from ... import Loggable, Step, GRIBInfo, GribGridDetails, Messages
 
 
 class GRIBReader(Loggable):
@@ -162,7 +155,6 @@ class GRIBReader(Loggable):
             else:
                 type_of_step = codes_get(self._selected_grbs[0], 'stepType')
                 unit = codes_get(self._selected_grbs[0], 'units')
-            short_name = codes_get(self._selected_grbs[0], 'shortName')
             type_of_level = codes_get(self._selected_grbs[0], 'levelType')
 
             missing_value = codes_get(self._selected_grbs[0], 'missingValue')

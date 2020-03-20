@@ -5,7 +5,8 @@ import os
 from .. import __version__
 from ..util import files, strings
 from .manipulation.aggregator import ACCUMULATION
-from .exceptions import ApplicationException, INVALID_INTERPOLATION_METHOD, WRONG_ARGS, NOT_A_NUMBER, NOT_EXISTING_MAPS
+from ..exceptions import (ApplicationException, INVALID_INTERPOLATION_METHOD,
+                          WRONG_ARGS, NOT_A_NUMBER, NOT_EXISTING_MAPS)
 
 
 class ExecutionContext(object):
@@ -48,8 +49,10 @@ class ExecutionContext(object):
                     self.print_help()
                 raise ApplicationException.get_exc(WRONG_ARGS, message)
 
-        parser = ParserHelpOnError(description=f'''Pyg2p {__version__}: \nExecute the grib to netCDF/PCRaster conversion, 
-        using parameters from  CLI/json configuration.''')
+        parser = ParserHelpOnError(
+            description=f'''Pyg2p {__version__}: \nExecute the grib to netCDF/PCRaster conversion, 
+        using parameters from  CLI/json configuration.'''
+        )
 
         self.add_args(parser)
         if len(argv) == 0:
@@ -95,7 +98,8 @@ class ExecutionContext(object):
     def add_args(parser):
 
         parser.add_argument('-c', '--commandsFile', help='Path to json command file', metavar='json_file')
-        parser.add_argument('-o', '--outDir', help='Path where output maps will be created.', default='./', metavar='out_dir')
+        parser.add_argument('-o', '--outDir', help='Path where output maps will be created.', default='./',
+                            metavar='out_dir')
         parser.add_argument('-i', '--inputFile', help='Path to input grib.', metavar='input_file')
         parser.add_argument('-I', '--inputFile2', help='Path to 2nd resolution input grib.', metavar='input_file_2nd')
 
@@ -124,7 +128,8 @@ class ExecutionContext(object):
                             choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'], metavar='log_level')
 
         # interpolation lookup tables reading/writing
-        parser.add_argument('-N', '--intertableDir', help='Alternate interpolation tables dir', metavar='intertable_dir')
+        parser.add_argument('-N', '--intertableDir', help='Alternate interpolation tables dir',
+                            metavar='intertable_dir')
         parser.add_argument('-G', '--geopotentialDir', help='Alternate geopotential dir',
                             metavar='geopotential_dir')
         parser.add_argument('-B', '--createIntertable', help='Flag to create intertable file',
@@ -190,7 +195,8 @@ class ExecutionContext(object):
             self._vars['parameter.conversionFunction'] = conversion['@function']
             self._vars['parameter.cutoffnegative'] = strings.to_boolean(conversion.get('@cutOffNegative'))
 
-        if exec_conf['Parameter'].get('@correctionFormula') and exec_conf['Parameter'].get('@gem') and exec_conf['Parameter'].get('@demMap'):
+        if exec_conf['Parameter'].get('@correctionFormula') and exec_conf['Parameter'].get('@gem') and exec_conf[
+            'Parameter'].get('@demMap'):
             self._vars['execution.doCorrection'] = True
             self._vars['correction.formula'] = exec_conf['Parameter']['@correctionFormula']
             self._vars['correction.gemFormula'] = exec_conf['Parameter']['@gem']
@@ -213,7 +219,8 @@ class ExecutionContext(object):
 
         # optional parameters (can also be defined by command line)
         if not self._vars['outMaps.namePrefix']:
-            self._vars['outMaps.namePrefix'] = exec_conf['OutMaps'].get('@namePrefix') or exec_conf['Parameter']['@shortName']
+            self._vars['outMaps.namePrefix'] = exec_conf['OutMaps'].get('@namePrefix') or exec_conf['Parameter'][
+                '@shortName']
         if self._vars['outMaps.fmap'] == 1:
             self._vars['outMaps.fmap'] = exec_conf['OutMaps'].get('@fmap') or 1
         if self._vars['outMaps.ext'] == 1:
@@ -238,8 +245,11 @@ class ExecutionContext(object):
         if exec_conf.get('Aggregation'):
             self._vars['aggregation.step'] = exec_conf['Aggregation'].get('@step')
             self._vars['aggregation.type'] = exec_conf['Aggregation'].get('@type')
-            self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) and bool(self._vars.get('aggregation.type'))
-            self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == ACCUMULATION and exec_conf['Aggregation'].get('@forceZeroArray', 'False') not in strings.FALSE_STRINGS
+
+            self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) \
+                and bool(self._vars.get('aggregation.type'))
+            self._vars['aggregation.forceZeroArray'] = self._vars.get('aggregation.type') == ACCUMULATION \
+                and exec_conf['Aggregation'].get('@forceZeroArray', 'False').lower() not in strings.FALSE_STRINGS
 
         # string interpolation for custom user configurations (i.e. dataset folders)
         self.configuration.user.interpolate_strings(self)
@@ -262,21 +272,30 @@ class ExecutionContext(object):
     def _check_exec_params(self):
 
         if self.add_geopotential:
+
             if not files.exists(self._vars['geopotential']):
                 raise ApplicationException.get_exc(7001, self._vars['geopotential'])
+
         else:
 
             if not self._vars.get('input.file'):
                 raise ApplicationException.get_exc(1001)
+
             if not files.exists(self._vars['input.file']):
                 raise ApplicationException.get_exc(1000, self._vars['input.file'])
+
             if not files.exists(self._vars['interpolation.lonMap']) or not files.exists(self._vars['interpolation.latMap']):
-                raise ApplicationException.get_exc(NOT_EXISTING_MAPS, details=f"{self._vars['interpolation.lonMap']} - {self._vars['interpolation.latMap']}")
+                raise ApplicationException.get_exc(
+                    NOT_EXISTING_MAPS,
+                    details=f"{self._vars['interpolation.lonMap']} - {self._vars['interpolation.latMap']}"
+                )
+
             if not files.exists(self._vars['outMaps.clone']):
                 raise ApplicationException.get_exc(1310)
 
             if not self._vars['interpolation.mode'] in self.allowed_interp_methods:
-                raise ApplicationException.get_exc(INVALID_INTERPOLATION_METHOD, details=self._vars['interpolation.mode'])
+                raise ApplicationException.get_exc(INVALID_INTERPOLATION_METHOD,
+                                                   details=self._vars['interpolation.mode'])
 
             # create out dir if not existing
             try:
@@ -301,7 +320,9 @@ class ExecutionContext(object):
                 raise ApplicationException.get_exc(1500)
 
             # check both correction params are present
-            if self._vars['execution.doCorrection'] and not (self._vars.get('correction.gemFormula') and self._vars.get('correction.demMap') and self._vars.get('correction.formula')):
+            if self._vars['execution.doCorrection'] and not (
+                    self._vars.get('correction.gemFormula') and self._vars.get('correction.demMap') and self._vars.get(
+                    'correction.formula')):
                 raise ApplicationException.get_exc(4100)
             if self._vars['execution.doCorrection'] and not files.exists(self._vars['correction.demMap']):
                 raise ApplicationException.get_exc(4200, self._vars['correction.demMap'])

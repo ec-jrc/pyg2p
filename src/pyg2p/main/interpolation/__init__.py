@@ -1,3 +1,4 @@
+import gzip
 import os
 import logging
 from functools import partial
@@ -9,7 +10,7 @@ from pyg2p import Loggable
 from . import grib_interpolation_lib
 from .latlong import LatLong
 from .scipy_interpolation_lib import InverseDistance
-from ..exceptions import ApplicationException, NO_INTERTABLE_CREATED
+from ...exceptions import ApplicationException, NO_INTERTABLE_CREATED
 import pyg2p.util.files
 import pyg2p.util.numeric
 
@@ -20,7 +21,7 @@ class Interpolator(Loggable):
     scipy_modes_nnear = {'nearest': 1, 'invdist': 4}
     suffixes = {'grib_nearest': 'grib_nearest', 'grib_invdist': 'grib_invdist',
                 'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist'}
-    _format_intertable = 'tbl{prognum}_{source_file}_{target_size}_{suffix}.npy'.format
+    _format_intertable = 'tbl{prognum}_{source_file}_{target_size}_{suffix}.npy.gz'.format
 
     def __init__(self, exec_ctx, mv_input):
         super().__init__()
@@ -94,9 +95,15 @@ class Interpolator(Loggable):
     def _read_intertable(self, tbl_fullpath):
 
         if tbl_fullpath not in self._LOADED_INTERTABLES:
-            intertable = np.load(tbl_fullpath)
+            f = tbl_fullpath
+            if tbl_fullpath.endswith('.gz'):
+                f = gzip.GzipFile(tbl_fullpath, 'r')
+                intertable = np.load(f)
+                f.close()
+            else:
+                intertable = np.load(tbl_fullpath)
             self._LOADED_INTERTABLES[tbl_fullpath] = intertable
-            self._log('Using interpolation table: {}'.format(tbl_fullpath), 'INFO')
+            self._log(f'Using interpolation table: {tbl_fullpath}', 'INFO')
         else:
             intertable = self._LOADED_INTERTABLES[tbl_fullpath]
 
@@ -104,7 +111,7 @@ class Interpolator(Loggable):
             # grib nearest neighbour table
             return intertable[0], intertable[1], intertable[2]
         elif self._mode == 'grib_invdist':
-            # grib inverse distance table is a recorded numpy array with keys 'indexes' and 'coeffs'
+            # grib inverse distance table is a "recorded numpy array" with keys 'indexes' and 'coeffs'
             indexes = intertable['indexes']  # first two arrays of this group are target xs and ys indexes
             coeffs = intertable['coeffs']
             return indexes[0], indexes[1], indexes[2], indexes[3], indexes[4], indexes[5], coeffs[0], coeffs[1], coeffs[2], coeffs[3]
@@ -165,7 +172,12 @@ class Interpolator(Loggable):
 
             # saving interpolation lookup table
             intertable = np.rec.fromarrays((indexes, weights), names=('indexes', 'coeffs'))
-            np.save(intertable_name, intertable)
+            if intertable_name.endswith('.gz'):
+                f = gzip.GzipFile(intertable_name, 'w')
+                np.save(f, intertable)
+                f.close()
+            else:
+                np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
         else:
             raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=intertable_name)
@@ -207,7 +219,12 @@ class Interpolator(Loggable):
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.lons, self._target_coords.mv)
             intertable = np.asarray([xs, ys, idxs])
-            np.save(intertable_name, intertable)
+            if intertable_name.endswith('.gz'):
+                f = gzip.GzipFile(intertable_name, 'w')
+                np.save(f, intertable)
+                f.close()
+            else:
+                np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
         else:
             if intertable_id not in self.intertables_config.vars:
@@ -257,7 +274,12 @@ class Interpolator(Loggable):
             coeffs = np.asarray([coeffs1, coeffs2, coeffs3, coeffs4, np.zeros(coeffs1.shape), np.zeros(coeffs1.shape)])
             intertable = np.rec.fromarrays((indexes, coeffs), names=('indexes', 'coeffs'))
             # saving interpolation lookup table
-            np.save(intertable_name, intertable)
+            if intertable_name.endswith('.gz'):
+                f = gzip.GzipFile(intertable_name, 'w')
+                np.save(f, intertable)
+                f.close()
+            else:
+                np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
 
         else:
