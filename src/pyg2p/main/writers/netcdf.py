@@ -19,7 +19,7 @@ class NetCDFWriter(Writer):
         area = PCRasterReader(self._clone_map)
         self.area = area.values
         self.lats_map = PCRasterReader(lats_map)
-        self.coordinates_mv = self.lats_map.missing_value
+        self.coordinates_mv = self.lats_map.mv
         self.lats = self.lats_map.values
         self.lons = PCRasterReader(lons_map).values
         self.lats[self.lats == self.coordinates_mv] = np.nan

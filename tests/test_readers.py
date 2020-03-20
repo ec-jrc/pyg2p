@@ -35,7 +35,8 @@ class TestGribReader:
     def test_aux(self):
         file = 'tests/data/test.grib'
         reader = GRIBReader(file)
-        messages = reader.select_messages(**{'shortName': 'ediff'})
+        # get_gids_for_grib_intertable works after call to select_messages
+        _ = reader.select_messages(**{'shortName': 'ediff'})
         gid_main_res, val, gid_ext_res, val2 = reader.get_gids_for_grib_intertable()
         assert int(str(gid_main_res)) == gid_main_res
         assert gid_ext_res is None
@@ -44,4 +45,9 @@ class TestGribReader:
 
 
 class TestPCRasterReader:
-    pass
+    def test_read(self):
+        file = 'tests/data/dem.map'
+        pcr = PCRasterReader(file)
+        assert pcr.min == 0.0
+        assert pcr.max == 4536.0
+        assert pcr.mv == -3.4028234663852886e+38

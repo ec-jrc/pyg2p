@@ -6,7 +6,7 @@ from numpy import ma
 from pyg2p import Loggable
 
 from pyg2p.main.interpolation import Interpolator
-from pyg2p.main.interpolation.latlong import DemBuffer
+from pyg2p.main.interpolation.latlong import Dem
 from pyg2p.main.readers.grib import GRIBReader
 
 from pyg2p.main.config import GeopotentialsConfiguration
@@ -89,5 +89,5 @@ class Corrector(Loggable):
 
     @staticmethod
     def _read_dem(dem_map):
-        dem = DemBuffer(dem_map)
-        return dem.missing_value, dem.values
+        dem = Dem(dem_map)
+        return dem.mv, dem.values

@@ -1,4 +1,3 @@
-# TODO
 import numpy as np
 
 from pyg2p.main.manipulation.conversion import Converter

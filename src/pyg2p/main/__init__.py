@@ -17,7 +17,7 @@ def pyg2p_exe(*args):
     # read execution configuration (command.json, commandline arguments)
     try:
         # contains main configuration
-        # (parameters, geopotentials, intertables, custom user paths, ftp, static data paths)
+        # (parameters, geopotentials, intertables, custom user paths, ftp to download test dataset, static data paths)
         conf = Configuration()
         exc_ctx = ExecutionContext(conf, args)
     except ApplicationException as err:

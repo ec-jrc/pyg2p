@@ -33,7 +33,7 @@ class Interpolator(Loggable):
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
         self._rotated_target_grid = exec_ctx.get('interpolation.rotated_target')
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
-        self.mv_out = self._target_coords.missing_value
+        self.mv_out = self._target_coords.mv
         self.parallel = exec_ctx.get('interpolation.parallel')
         self.format_intertablename = partial(self._format_intertable,
                                              source_file=pyg2p.util.files.normalize_filename(self._source_filename),
@@ -141,7 +141,7 @@ class Interpolator(Loggable):
     def interpolate_scipy(self, latgrib, longrib, v, grid_id, grid_details=None):
 
         intertable_id, intertable_name = self._intertable_filename(grid_id)
-        lonefas = self._target_coords.longs
+        lonefas = self._target_coords.lons
         latefas = self._target_coords.lats
 
         nnear = self.scipy_modes_nnear[self._mode]
@@ -181,7 +181,7 @@ class Interpolator(Loggable):
     def grib_nearest(self, v, gid, grid_id, is_second_res=False, intertable_id=None, intertable_name=None):
         if not intertable_name:
             intertable_id, intertable_name = self._intertable_filename(grid_id)
-        result = np.empty(self._target_coords.longs.shape)
+        result = np.empty(self._target_coords.lons.shape)
         result.fill(self.mv_out)
         if gid == -1 and not pyg2p.util.files.exists(intertable_name):
             # calling recursive grib_nearest
@@ -205,7 +205,7 @@ class Interpolator(Loggable):
                 raise ApplicationException.get_exc(6000, details=str(e))
             self.intertables_config.check_write()
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
-            xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.longs, self._target_coords.missing_value)
+            xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.lons, self._target_coords.mv)
             intertable = np.asarray([xs, ys, idxs])
             np.save(intertable_name, intertable)
             self.update_intertable_conf(intertable, intertable_id, intertable_name, v.shape)
@@ -214,7 +214,7 @@ class Interpolator(Loggable):
                 d = {'filename': pyg2p.util.files.filename(intertable_name),
                      'method': self._mode,
                      'source_shape': v.shape,
-                     'target_shape': self._target_coords.longs.shape}
+                     'target_shape': self._target_coords.lons.shape}
                 self._log('If you already have an intertable file, add this configuration to intertables.json and change filename. {} {}'.format(intertable_id, d), 'INFO')
             raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=intertable_name)
         result[xs, ys] = pyg2p.util.numeric.result_masked(v[idxs], self.mv_output)
@@ -224,7 +224,7 @@ class Interpolator(Loggable):
         if not intertable_name:
             intertable_id, intertable_name = self._intertable_filename(grid_id)
 
-        result = np.empty(self._target_coords.longs.shape)
+        result = np.empty(self._target_coords.lons.shape)
         result.fill(self.mv_out)
 
         # check if gid is due to the recursive call
@@ -248,9 +248,9 @@ class Interpolator(Loggable):
                 raise ApplicationException.get_exc(6000)
 
             self._log('\nInterpolating table not found. Will create file: {}'.format(intertable_name), 'WARN')
-            lonefas = self._target_coords.longs
+            lonefas = self._target_coords.lons
             latefas = self._target_coords.lats
-            mv = self._target_coords.missing_value
+            mv = self._target_coords.mv
             intrp_result = getattr(grib_interpolation_lib, 'grib_invdist{}'.format('' if not self.parallel else '_parallel'))(gid, latefas, lonefas, mv)
             xs, ys, idxs1, idxs2, idxs3, idxs4, coeffs1, coeffs2, coeffs3, coeffs4 = intrp_result
             indexes = np.asarray([xs, ys, idxs1, idxs2, idxs3, idxs4])
@@ -265,7 +265,7 @@ class Interpolator(Loggable):
                 d = {'filename': pyg2p.util.files.filename(intertable_name),
                      'method': self._mode,
                      'source_shape': v.shape,
-                     'target_shape': self._target_coords.longs.shape}
+                     'target_shape': self._target_coords.lons.shape}
                 self._log('If you already have an intertable file, add this configuration to intertables.json and change filename. {} {}'.format(intertable_id, d), 'INFO')
             raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=intertable_name)
 
@@ -278,7 +278,7 @@ class Interpolator(Loggable):
         new_intertable_conf_item = {'filename': pyg2p.util.files.filename(intertable_name),
                                     'method': self._mode,
                                     'source_shape': source_shape,
-                                    'target_shape': self._target_coords.longs.shape}
+                                    'target_shape': self._target_coords.lons.shape}
         # update global configuration
         self.intertables_config.vars[intertable_id] = new_intertable_conf_item
 
