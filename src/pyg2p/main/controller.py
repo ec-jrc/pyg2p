@@ -1,5 +1,6 @@
 import logging
 
+from pyg2p import Loggable
 from pyg2p.main.manipulation.aggregator import Aggregator
 from pyg2p.main.readers.grib import GRIBReader
 from pyg2p.main.writers import OutputWriter
@@ -7,10 +8,10 @@ from pyg2p.main.writers import OutputWriter
 from pyg2p.main.manipulation.conversion import Converter
 
 
-class Controller(object):
+class Controller(Loggable):
     def __init__(self, exec_ctx):
+        super().__init__()
         self.ctx = exec_ctx  # Context object, holding all execution parameters
-        self._logger = logging.getLogger()
         self._logger.setLevel(exec_ctx['logger.level'])
         self.grib_reader = None
         # GRIB reader for second spatial resolution file
@@ -19,15 +20,12 @@ class Controller(object):
         self._writer = None
 
     def log_execution_context(self):
-        self._logger.info(str(self.ctx))
+        self._log(str(self.ctx), 'INFO')
 
     def init_execution(self):
         aggregator = None
         self.grib_reader = GRIBReader(self.ctx.get('input.file'), w_perturb=self.ctx.has_perturbation_number)
         grib_info = self.grib_reader.get_grib_info(self.ctx.create_select_cmd_for_aggregation_attrs())
-        # self._writer = PCRasterWriter(self._ctx.get('outMaps.clone'))
-        #
-        # self._writer = self._ctx.get_writer()
         self._writer = OutputWriter(self.ctx, grib_info)
 
         # read grib messages
@@ -51,13 +49,13 @@ class Controller(object):
         selector_params = self.ctx.create_select_cmd_for_reader(start_step, end_step)
         return grib_info, selector_params, end_step, aggregator
 
-    def second_res_manipulation(self, start_step, end_step, input_step, messages, mv_grib, type_of_param, values):
+    def second_res_manipulation(self, start_step, end_step, input_step, messages, mv_grib, values):
 
         # manipulation of second resolution messages
-
+        step_type = messages.step_type
         m2 = Aggregator(aggr_step=self.ctx.get('aggregation.step'),
                         aggr_type=self.ctx.get('aggregation.type'),
-                        input_step=input_step, step_type=type_of_param, start_step=start_step,
+                        input_step=input_step, step_type=step_type, start_step=start_step,
                         end_step=end_step, unit_time=self.ctx.get('outMaps.unitTime'), mv_grib=mv_grib,
                         force_zero_array=self.ctx.get('aggregation.forceZeroArray'))
         values2 = m2.do_manipulation(messages.second_resolution_values())
@@ -70,7 +68,7 @@ class Controller(object):
         # append messages
         self.grib_reader2 = GRIBReader(self.ctx.get('input.file2'), w_perturb=self.ctx.has_perturbation_number)
         # messages.change_resolution() will return true after this append
-        mess_2nd_res, short_name = self.grib_reader2.select_messages(**cmd_args)
+        mess_2nd_res = self.grib_reader2.select_messages(**cmd_args)
         messages.append_2nd_res_messages(mess_2nd_res)
 
     def execute(self):
@@ -79,8 +77,7 @@ class Controller(object):
         mv_grib = grib_info.mv
         input_step = grib_info.input_step
 
-        messages, short_name = self.grib_reader.select_messages(**grib_select_cmd)
-        type_of_param = messages.type_of_step
+        messages = self.grib_reader.select_messages(**grib_select_cmd)
 
         if self.ctx.is_2_input_files():
             # two files as input (-i and -I input arguments were given)
@@ -119,13 +116,12 @@ class Controller(object):
             # we need GRIB lats and lons only for scipy interpolation
             if self.ctx.must_do_aggregation and end_step > start_step2:
                 # second resolution manipulation
-                change_res_step, values = self.second_res_manipulation(start_step2, end_step, input_step, messages,
-                                                                       mv_grib, type_of_param, values)
+                change_res_step, values = self.second_res_manipulation(start_step2, end_step, input_step, messages, mv_grib, values)
 
         # cutoff after interpolation
         if converter and converter.must_cut_off:
             values = converter.cut_off_negative(values)
-        self._logger.debug('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
+        self._log('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
         self._writer.write_maps(values, messages, change_res_step=change_res_step)
 
     def close(self):
@@ -137,6 +133,3 @@ class Controller(object):
             self.grib_reader2 = None
         if self._writer:
             self._writer.close()
-
-    def _log(self, message, level='DEBUG'):
-        self._logger.log(logging._checkLevel(level), message)

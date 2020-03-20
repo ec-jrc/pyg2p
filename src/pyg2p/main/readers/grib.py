@@ -206,7 +206,7 @@ class GRIBReader(Loggable):
             if grid2:
                 key_2nd_spatial_res = min(all_values_second_res.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
-            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, grid, all_values_second_res, data_date=data_date), short_name
+            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, grid, all_values_second_res, data_date=data_date)
         # no messages found
         else:
             raise ApplicationException.get_exc(NO_MESSAGES, details=f'using {kwargs}')

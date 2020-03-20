@@ -39,30 +39,30 @@ def pyg2p_exe(*args):
     else:
         # normal execution flow
         logger.setLevel(exc_ctx.get('logger.level'))
-        ret_value = execution_command(conf, exc_ctx)
+        ret_value = execute(conf, exc_ctx)
         return ret_value
 
 
-def execution_command(conf, exc_ctx):
-    controller = None
+def execute(conf, exc_ctx):
+    ctrl = None
     ret_value = 0
     try:
         if conf.missing_config:
             raise ApplicationException.get_exc(MISSING_CONFIG_FILES, details='{}'.format(','.join(conf.missing_config)))
-        controller = Controller(exc_ctx)
-        controller.log_execution_context()
-        controller.execute()
+        ctrl = Controller(exc_ctx)
+        ctrl.log_execution_context()
+        ctrl.execute()
     except ApplicationException as err:
         logger.error(f'\n\nError: {err}')
         if not err.get_code() == NO_MESSAGES:
             ret_value = 1
     finally:
-        controller.close()
+        ctrl.close()
     return ret_value
 
 
 def config_command(conf, exc_ctx):
-    """Executes one of the commands -C, -z, -K, -W, -g, -t"""
+    """Executes one of the commands -W, -K, -g"""
     if exc_ctx.download_conf:  # -W
         # download configuration
         dataset = exc_ctx.get('download_configuration')

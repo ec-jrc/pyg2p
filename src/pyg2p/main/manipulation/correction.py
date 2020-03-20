@@ -65,7 +65,7 @@ class Corrector(Loggable):
         is_grib_interpolation = ctx.interpolate_with_grib
         reader = GRIBReader(grib_file)
         kwargs = {'shortName': GeopotentialsConfiguration.short_names}
-        geopotential_gribs, short_name = reader.select_messages(**kwargs)
+        geopotential_gribs = reader.select_messages(**kwargs)
         missing = geopotential_gribs.missing_value
         values = geopotential_gribs.first_resolution_values()[geopotential_gribs.first_step_range]
         aux_g, aux_v, aux_g2, aux_v2 = reader.get_gids_for_grib_intertable()

@@ -10,7 +10,7 @@ class Messages(Loggable):
         super().__init__()
         self.values_first_or_single_res = values
         self.values_second_res = val_2nd or {}
-        self.type_of_step = type_of_step
+        self.step_type = type_of_step
         self.type_of_level = type_of_level
         self.unit = unit
         self.missing_value = mv

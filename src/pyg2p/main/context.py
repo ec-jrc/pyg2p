@@ -347,7 +347,7 @@ class ExecutionContext(object):
     def create_select_cmd_for_aggregation_attrs(self):
 
         reader_arguments = {'shortName': str(self._vars['parameter.shortName'])}
-        if 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None:
+        if self.has_perturbation_number:
             reader_arguments['perturbationNumber'] = self._vars['parameter.perturbationNumber']
         return reader_arguments
 
