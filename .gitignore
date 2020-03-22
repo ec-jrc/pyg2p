@@ -7,3 +7,4 @@ pyg2p.egg-info
 
 /.python-version
 .coverage
+.coverage.*

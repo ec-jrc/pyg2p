@@ -498,11 +498,12 @@ maps or the NASA Panoply3 viewer for NetCDF files.
 
 `aguila /dataset/testdiffmaps/eueT24/pT240000.001`
 
-![Aguila](media/aguila.png)
+![Aguila](https://raw.githubusercontent.com/ec-jrc/pyg2p/master/media/aguila.png)
+
 
 `./panoply.sh /dataset/octahedral/out/grib_vs_scipy/global/ta/p_2016-09-25_average.nc`
 
-![Panoply](media/panoply.png)
+![Panoply](https://raw.githubusercontent.com/ec-jrc/pyg2p/master/media/panoply.png)
 
 Maps will be written in the folder specified by -o input argument. If this is missing, you will find
 maps in the folder where you launched the application (./).

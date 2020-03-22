@@ -3,6 +3,7 @@ import sys
 import logging
 
 from lisfloodutilities.compare import PCRComparator, NetCDFComparator
+from pyg2p.main import Configuration
 
 from pyg2p.main.readers.pcr import PCRasterReader
 
@@ -34,3 +35,28 @@ def check_dataset_netcdfoutput(self, ds):
     if diffs:
         logger.info(diffs)
     assert not diffs
+
+
+config_dict = {
+            'interpolation.dirs': {'user': os.path.abspath('tests/data/'), 'global': os.path.abspath('tests/data/')},
+            'interpolation.lonMap': 'tests/data/lon.map',
+            'interpolation.latMap': 'tests/data/lat.map',
+            'interpolation.mode': 'nearest',
+            'input.file': 'tests/data/input.grib',
+        }
+
+
+class MockedExecutionContext:
+    conf = Configuration()
+
+    def __init__(self, d, gribinterp=False):
+        self._vars = d
+        self.interpolate_with_grib = gribinterp
+        self.configuration = self.conf
+        self.configuration.intertables.data_path = os.path.abspath('tests/data/')
+
+    def get(self, param, default=None):
+        return self._vars.get(param, default)
+
+    def geo_file(self, _):
+        return 'tests/data/geopotential.grib'

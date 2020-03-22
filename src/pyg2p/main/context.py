@@ -9,7 +9,7 @@ from ..exceptions import (ApplicationException, INVALID_INTERPOLATION_METHOD,
                           WRONG_ARGS, NOT_A_NUMBER, NOT_EXISTING_MAPS)
 
 
-class ExecutionContext(object):
+class ExecutionContext:
     allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist')
     default_values = {'interpolation.mode': 'grib_nearest', 'outMaps.unitTime': '24'}
 

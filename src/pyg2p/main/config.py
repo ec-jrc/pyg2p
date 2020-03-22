@@ -112,7 +112,7 @@ class BaseConfiguration(pyg2p.Loggable):
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)
         if not self.only_global_conf:
             self.merge_with_user_conf()
-        self._log(f' [!] Using {self.config_file} and {self.global_config_file} as config files', 'INFO')
+        self._log(f' [!] Using {self.config_file} and {self.global_config_file} as config file', 'INFO')
 
     def load_global(self):
         try:

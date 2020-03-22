@@ -30,7 +30,6 @@ class Interpolator(Loggable):
         self._mode = exec_ctx.get('interpolation.mode')
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]
-        self._logger = logging.getLogger()
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
         self._rotated_target_grid = exec_ctx.get('interpolation.rotated_target')
         self._target_coords = LatLong(exec_ctx.get('interpolation.latMap'), exec_ctx.get('interpolation.lonMap'))
@@ -80,15 +79,16 @@ class Interpolator(Loggable):
         tbl_fullpath = None if not self._intertable_dirs.get('user') else os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
         if self._logger.isEnabledFor(logging.DEBUG):
             self._logger.debug(f'Using {tbl_fullpath} for id {intertable_id}')
-        if not tbl_fullpath or not pyg2p.util.files.exists(tbl_fullpath):
+        if not tbl_fullpath or not (pyg2p.util.files.exists(tbl_fullpath) or pyg2p.util.files.exists(tbl_fullpath + '.gz')):
             tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['global'], filename))
-            if not pyg2p.util.files.exists(tbl_fullpath):
+            if not (pyg2p.util.files.exists(tbl_fullpath) or pyg2p.util.files.exists(tbl_fullpath + '.gz')):
                 # will create a new intertable but with same filename/id
                 # as an existing configuration was already found but file is missing for some reasons
                 if not self.create_if_missing:
                     raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=f'Tried to create {tbl_fullpath}')
                 self.intertables_config.check_write()
                 tbl_fullpath = os.path.normpath(os.path.join(self._intertable_dirs['user'], filename))
+                tbl_fullpath = tbl_fullpath if tbl_fullpath.endswith('.gz') else tbl_fullpath + '.gz'
                 self._logger.warning(f'An entry in configuration was found for {filename} but intertable does not exist.')
         return intertable_id, tbl_fullpath
 
@@ -101,7 +101,15 @@ class Interpolator(Loggable):
                 intertable = np.load(f)
                 f.close()
             else:
-                intertable = np.load(tbl_fullpath)
+                try:
+                    intertable = np.load(tbl_fullpath)
+                except FileNotFoundError:
+                    f = tbl_fullpath + '.gz'
+                    if not pyg2p.util.files.exists(f):
+                        raise ApplicationException.get_exc(NO_INTERTABLE_CREATED, details=f'Tried to read both {tbl_fullpath} and {f} but none was found')
+                    f = gzip.GzipFile(f, 'r')
+                    intertable = np.load(f)
+                    f.close()
             self._LOADED_INTERTABLES[tbl_fullpath] = intertable
             self._log(f'Using interpolation table: {tbl_fullpath}', 'INFO')
         else:
@@ -153,7 +161,7 @@ class Interpolator(Loggable):
 
         nnear = self.scipy_modes_nnear[self._mode]
 
-        if pyg2p.util.files.exists(intertable_name):
+        if pyg2p.util.files.exists(intertable_name) or pyg2p.util.files.exists(intertable_name + '.gz'):
             indexes, weights = self._read_intertable(intertable_name)
             result = self._interpolate_scipy_invdist(v, weights, indexes, nnear)
 
@@ -211,10 +219,8 @@ class Interpolator(Loggable):
             xs, ys, idxs = self._read_intertable(intertable_name)
 
         elif self.create_if_missing:
-            try:
-                assert gid != -1, 'GRIB message reference was not found.'
-            except AssertionError as e:
-                raise ApplicationException.get_exc(6000, details=str(e))
+            if gid == -1:
+                raise ApplicationException.get_exc(6000, details='GRIB message reference was not found.')
             self.intertables_config.check_write()
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             xs, ys, idxs = getattr(grib_interpolation_lib, 'grib_nearest{}'.format('' if not self.parallel else '_parallel'))(gid, self._target_coords.lats, self._target_coords.lons, self._target_coords.mv)

@@ -15,7 +15,6 @@ class TestGribReader:
         assert len(messages) == 4
         messages = reader.select_messages(**{'shortName': 'ediff', 'level': 100})
         assert len(messages) == 1
-        print(messages.grid_details)
 
     def test_nomessages(self):
         file = 'tests/data/test.grib'
