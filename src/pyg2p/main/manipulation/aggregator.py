@@ -33,13 +33,11 @@ class Aggregator(Loggable):
         self._unit_time = int(kwargs.get('unit_time'))
         self._aggregation_step = int(kwargs.get('aggr_step'))
         self._aggregation = kwargs.get('aggr_type')  # type of manipulation
-        self._force_zero = kwargs.get('force_zero_array')  # if true, accumulation will consider zero array as GRIB at step 0.
+        self._force_zero = kwargs.get('force_zero_array')  # if true, accumulation will use a zero array at step 0.
 
         self._start = int(kwargs.get('start_step'))
         self._end = int(kwargs.get('end_step'))
         self._second_t_res = kwargs.get('sec_temp_res')
-
-        # self._logger = logging.getLogger()
 
         if self._input_step != 0:
             self._usable_start = (self._start - self._aggregation_step)
@@ -49,7 +47,7 @@ class Aggregator(Loggable):
             self._usable_start = self._start
 
         # dict of functions. Substitutes "if then else" pattern in do_manipulation
-        self._functs = {ACCUMULATION: self._cumulation,
+        self._functs = {ACCUMULATION: self._accumulation,
                         AVERAGE: self._average,
                         INSTANTANEOUS: self._instantaneous}
 
@@ -72,7 +70,7 @@ class Aggregator(Loggable):
         gc.collect()
         return res
 
-    def _cumulation(self, values):
+    def _accumulation(self, values):
 
         out_values = {}
         item_keys = list(values.keys())[0]

@@ -21,10 +21,10 @@ class TestCorrection:
         dem = demmap.values
         dem_mv = demmap.mv
         reader_geopotential = GRIBReader('tests/data/geopotential.grib')
-        messages_geopotential = reader_geopotential.select_messages(shortName=GeopotentialsConfiguration.short_names)
-        z = messages_geopotential.values_first_or_single_res[messages_geopotential.first_step_range]
-        grid_id_geopotential = messages_geopotential.grid_id
-        mv_geopotential = messages_geopotential.missing_value
+        geopotential = reader_geopotential.select_messages(shortName=GeopotentialsConfiguration.short_names)
+        z = geopotential.values_first_or_single_res[geopotential.first_step_range]
+        grid_id_geopotential = geopotential.grid_id
+        mv_geopotential = geopotential.missing_value
         gem = np.where(z != mv_geopotential, (z / 9.81) * 0.0065, mv_geopotential)
         d = {
             'interpolation.dirs': {'user': os.path.abspath('tests/data/'), 'global': os.path.abspath('tests/data/')},
@@ -42,11 +42,10 @@ class TestCorrection:
         lats, lons = messages.latlons
 
         interpolator = Interpolator(ctx, missing)
-        values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id,
-                                                          messages.grid_details)
-        gem_resampled = interpolator.interpolate_scipy(lats, lons, gem, grid_id_geopotential,
-                                                       messages_geopotential.grid_details)
+        values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id, messages.grid_details)
+        gem_resampled = interpolator.interpolate_scipy(lats, lons, gem, grid_id_geopotential, geopotential.grid_details)
         values_out = corrector.correct(values_resampled)
-        # values_resampled + gem_resampled - dem * 0.0065
-        reference = np.where((dem != dem_mv) & (values_resampled != dem_mv) & (gem_resampled != dem_mv), values_resampled + gem_resampled - dem * 0.0065, dem_mv)
+        reference = np.where((dem != dem_mv) & (values_resampled != dem_mv) & (gem_resampled != dem_mv),
+                             values_resampled + gem_resampled - dem * 0.0065,
+                             dem_mv)
         assert np.allclose(values_out, reference)

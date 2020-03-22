@@ -1,6 +1,7 @@
-# TODO
 import os
 from copy import deepcopy
+
+import pytest
 
 from pyg2p.main.interpolation import Interpolator
 from pyg2p.main.readers import GRIBReader, PCRasterReader
@@ -9,7 +10,7 @@ from tests import MockedExecutionContext, config_dict
 
 
 class TestInterpolation:
-    def test_interpolation_scipy_nearest(self):
+    def test_interpolation_use_scipy_nearest(self):
 
         file = config_dict['input.file']
         reader = GRIBReader(file)
@@ -43,6 +44,7 @@ class TestInterpolation:
         assert shape_target == values_resampled.shape
         os.unlink('tests/data/tbl_pf10tp_550800_scipy_invdist.npy.gz')
 
+    @pytest.mark.slow
     def test_interpolation_create_eccodes_nearest(self):
         d = deepcopy(config_dict)
         d['interpolation.create'] = True

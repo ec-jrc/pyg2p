@@ -1,6 +1,12 @@
 CHANGE LOG
 ==========
 
+v 3.1
+-----
+* **74** API is much more flexible. Check documentation on how to use pyg2p programmatically.
+* **73** Intertables are saved as .gz now, to save disk space. It's possible to compress all existing intertables and use them without changes in configuration. If pyg2p doesn't find the intertable, it will try to read it with suffix .gz.
+
+
 v 3.0
 -----
 * **72** Pruned old test suite and test runner script. Using pytest with oracle data from latest version (v 2.1).

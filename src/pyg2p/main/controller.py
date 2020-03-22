@@ -71,7 +71,7 @@ class Controller(Loggable):
 
     def execute(self):
         converter = None
-        grib_info, grib_select_cmd, end_step, manipulator = self.init_execution()
+        grib_info, grib_select_cmd, end_step, aggregator = self.init_execution()
         mv_grib = grib_info.mv
         input_step = grib_info.input_step
 
@@ -104,8 +104,8 @@ class Controller(Loggable):
             if messages.have_resolution_change():
                 change_res_step = messages.change_resolution_step()
                 # First resolution manipulation by setting end step as start step of the first message at 2nd resolution
-                manipulator.change_end_step(int(change_res_step.start_step))
-            values = manipulator.do_manipulation(values)
+                aggregator.change_end_step(int(change_res_step.start_step))
+            values = aggregator.do_manipulation(values)
 
         change_res_step = None
         if messages.have_resolution_change():

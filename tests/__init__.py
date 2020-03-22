@@ -60,3 +60,6 @@ class MockedExecutionContext:
 
     def geo_file(self, _):
         return 'tests/data/geopotential.grib'
+
+    def create_select_cmd_for_aggregation_attrs(self):
+        return {'shortName': '2t'}

@@ -36,7 +36,7 @@ class Step:
         return (self.start_step, self.end_step, self.resolution, self.input_step, self.level) == (
                (other.start_step, other.end_step, other.resolution, other.input_step, other.level))
 
-    def __str__(self):
+    def __repr__(self):
         return f's:{self.start_step} e:{self.end_step} res:{self.resolution} step-lenght:{self.input_step} level:{self.level}'
 
     def __lt__(self, other):

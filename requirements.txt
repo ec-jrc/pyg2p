@@ -1,9 +1,9 @@
 netCDF4>=1.5.3
-ujson==2.0.1
-numpy>=1.17.2
-scipy>=0.16.0
+ujson==2.0.2
+numpy>=1.18.2
+scipy>=1.4.1
 # GDAL
-numexpr>=2.4.6
+numexpr>=2.7.1
 # eccodes-python  # replacing old GRIB API
 
 # dask packages for parallel interpolation
