@@ -20,6 +20,13 @@ class Controller(Loggable):
         self._writer = None
 
     def log_execution_context(self):
+        self._log(f'[!] Intertables user path as defined in {self.ctx.configuration.user.intertables_path_var}: {self.ctx.configuration.user.geopotentials_path}', 'INFO')
+        self._log(f'[!] Geopotentials user path as defined in {self.ctx.configuration.user.geopotentials_path_var}: {self.ctx.configuration.user.intertables_path}', 'INFO')
+        self._log(f'[!] User Variables:\n {self.ctx.configuration.user.vars}', 'INFO')
+        self._log(f'[!] Using {self.ctx.configuration.parameters.config_file} and {self.ctx.configuration.parameters.global_config_file} as config file', 'INFO')
+        self._log(f'[!] Using {self.ctx.configuration.geopotentials.config_file} and {self.ctx.configuration.geopotentials.global_config_file} as config file', 'INFO')
+        self._log(f'[!] Using {self.ctx.configuration.intertables.config_file} and {self.ctx.configuration.intertables.global_config_file} as config file', 'INFO')
+
         self._log(str(self.ctx), 'INFO')
 
     def init_execution(self):
@@ -88,7 +95,7 @@ class Controller(Loggable):
         # Grib lats/lons are used for interpolation methods nearest, invdist.
         # Not for grib_nearest and grib_invdist
         aux_g, aux_v, aux_g2, aux_v2 = self.grib_reader.get_gids_for_grib_intertable()
-        if self.ctx.interpolate_with_grib:
+        if self.ctx.is_with_grib_interpolation:
             # these "aux" values are used by grib interpolation methods to create tables on disk
             # aux (gid and its values array) are read by GRIBReader which uses the first message selected
             self._writer.aux_for_intertable_generation(aux_g, aux_v, aux_g2, aux_v2)

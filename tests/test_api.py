@@ -20,6 +20,9 @@ class TestApi:
         with open(os.path.join(user_conf_dir, 'pyg2p_tests.conf'), 'w') as f:
             f.write(f"dataroot={cls.options['dataroot']}")
 
+    def test_parameter_details(self):
+        pass
+
     def test_cosmo_e06(self):
         config = {
             'loggerLevel': 'ERROR',

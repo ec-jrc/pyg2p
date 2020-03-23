@@ -20,7 +20,7 @@ from ..exceptions import (
 import pyg2p.util.files as file_util
 
 
-class UserConfiguration:
+class UserConfiguration(pyg2p.Loggable):
     """
     Class that holds all values defined in properties .conf files under ~/.pyg2p/ folder
     These variables are used to interpolate .json command files.
@@ -36,6 +36,7 @@ class UserConfiguration:
     intertables_path_var = 'INTERTABLES'
 
     def __init__(self):
+        super().__init__()
         self.vars = {}
         # create user folder .pyg2p always
         if not file_util.exists(self.config_dir, is_folder=True):
@@ -48,13 +49,6 @@ class UserConfiguration:
 
         self.geopotentials_path = self.get(self.geopotentials_path_var)
         self.intertables_path = self.get(self.intertables_path_var)
-        logger = logging.getLogger()
-        if self.vars:
-            logger.info(f'[!] User Variables:\n {self.vars}')
-        if self.intertables_path:
-            logger.info(f'[!] Intertables user path as defined in {self.intertables_path_var}: {self.geopotentials_path}')
-        if self.geopotentials_path:
-            logger.info(f'[!] Geopotentials user path as defined in {self.geopotentials_path_var}: {self.intertables_path}')
 
     def get(self, var):
         return self.vars.get(var)
@@ -113,7 +107,6 @@ class BaseConfiguration(pyg2p.Loggable):
             self.global_data_path = GlobalConf.get_instance(user_configuration).vars.get(self.global_data_path_var)
         if not self.only_global_conf:
             self.merge_with_user_conf()
-        self._log(f' [!] Using {self.config_file} and {self.global_config_file} as config file', 'INFO')
 
     def load_global(self):
         try:

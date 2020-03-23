@@ -26,7 +26,7 @@ class Interpolator(Loggable):
     def __init__(self, exec_ctx, mv_input):
         super().__init__()
         self._mv_grib = mv_input
-        self.interpolate_with_grib = exec_ctx.interpolate_with_grib
+        self.interpolate_with_grib = exec_ctx.is_with_grib_interpolation
         self._mode = exec_ctx.get('interpolation.mode')
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]

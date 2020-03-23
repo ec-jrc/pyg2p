@@ -62,7 +62,7 @@ class Corrector(Loggable):
         return values
 
     def _read_geo(self, grib_file, ctx):
-        is_grib_interpolation = ctx.interpolate_with_grib
+        is_grib_interpolation = ctx.is_with_grib_interpolation
         reader = GRIBReader(grib_file)
         kwargs = {'shortName': GeopotentialsConfiguration.short_names}
         geopotential_gribs = reader.select_messages(**kwargs)

@@ -8,7 +8,7 @@ import numpy as np
 from numpy import ma
 
 from ...util import numeric
-from pyg2p import Loggable, Step
+from ... import Loggable, Step
 from ...exceptions import ApplicationException, NOT_IMPLEMENTED
 
 # types of manipulation

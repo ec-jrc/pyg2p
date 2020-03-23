@@ -43,7 +43,7 @@ class Context:
         self.input_file_with_geopotential = self.get('input.file')
 
     @property
-    def interpolate_with_grib(self):
+    def is_with_grib_interpolation(self):
         return self._vars['interpolation.mode'] in ('grib_invdist', 'grib_nearest')
 
     @property
