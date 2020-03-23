@@ -15,12 +15,12 @@ from ..exceptions import (
     CONVERSION_NOT_FOUND,
     NO_GEOPOTENTIAL,
     NO_VAR_DEFINED, JSON_ERROR, EXISTING_GEOPOTENTIAL,
-    NO_WRITE_PERMISSIONS, NOT_EXISTING_PATH, NO_FILE_GEOPOTENTIAL, NO_READ_PERMISSIONS)
+    NO_WRITE_PERMISSIONS, NOT_EXISTING_PATH, NO_FILE_GEOPOTENTIAL)
 
 import pyg2p.util.files as file_util
 
 
-class UserConfiguration(object):
+class UserConfiguration:
     """
     Class that holds all values defined in properties .conf files under ~/.pyg2p/ folder
     These variables are used to interpolate .json command files.
@@ -69,20 +69,22 @@ class UserConfiguration(object):
                     props[key_value[0].strip()] = key_value[1].strip('" \t')
         return props
 
-    def interpolate_strings(self, exe_ctx):
+    def interpolate_strings(self, ctx):
         """
         Change configuration strings in json commands files
         with user variables defined in ~/.pyg2p/*.conf files
         Strings like {CONF_DIR}/{MAPS_DIR}lat.map will be replaced with corresponding variables values
-        exe_ctx: instance of ExecutionContext
+
+        :param ctx instance of Context
         """
-        vars_with_variables = [var for var in self.conf_to_interpolate if self.re_var.search(exe_ctx.get(var, ''))]
+        ctx.get(self.conf_to_interpolate[0], '')
+        vars_with_variables = [var for var in self.conf_to_interpolate if self.re_var.search(ctx.get(var, ''))]
         for var in vars_with_variables:
             # we can have multiple variables {CONF_DIR}/{MAPS_DIR}lat.map
-            exe_ctx[var] = exe_ctx[var].format(**self.vars)
-            if self.re_var.search(exe_ctx[var]):
+            ctx[var] = ctx[var].format(**self.vars)
+            if self.re_var.search(ctx[var]):
                 # some variables where not string-interpolated so they are missing in user configuration
-                vars_not_defined = self.re_var.findall(exe_ctx[var])
+                vars_not_defined = self.re_var.findall(ctx[var])
                 raise ApplicationException.get_exc(NO_VAR_DEFINED, str(vars_not_defined))
 
 
@@ -98,7 +100,6 @@ class BaseConfiguration(pyg2p.Loggable):
 
     def __init__(self, user_configuration):
         super().__init__()
-        self.configuration_mode = False
         self.user_configuration = user_configuration
         self.config_file = os.path.join(user_configuration.config_dir, self.config_file_)
         self.global_config_file = os.path.join(self.GLOBAL_CONFIG_DIR, self.config_file_)
@@ -286,7 +287,6 @@ class Configuration(pyg2p.Loggable):
 
     def __init__(self):
         super().__init__()
-        self.missing_config = []
         self.user = UserConfiguration()
         self.parameters = ParametersConfiguration(self.user)
         self.geopotentials = GeopotentialsConfiguration(self.user)
@@ -294,10 +294,6 @@ class Configuration(pyg2p.Loggable):
         self.ftp = FtpConfig(self.user)
         self.default_interpol_dir = self.intertables.data_path
         self.default_geopotential_dir = self.geopotentials.data_path
-        for conf in (self.parameters, self.geopotentials, self.intertables):
-            if not conf.configuration_mode:
-                continue
-            self.missing_config.append(conf.config_file)
 
     def add_geopotential(self, filepath):
         self.geopotentials.add(filepath)
@@ -345,7 +341,7 @@ class Configuration(pyg2p.Loggable):
     def check_conf(self):
         # it logs all files in intertables and geopotentials paths that are not used in configuration
 
-        used_intertables = [i['filename'] for i in self.intertables.vars.itervalues()]
+        used_intertables = [i['filename'] for i in self.intertables.vars.values()]
         used_geopotentials = self.geopotentials.vars.values()
 
         intertables_folder_content = file_util.ls(self.intertables.data_path, 'npy')

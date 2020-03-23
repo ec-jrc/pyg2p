@@ -5,10 +5,14 @@ import pytest
 
 def pytest_addoption(parser):
     """
+    1. Slow tests (interpolation tables creaation) need -X/--runslow to run
+
+    2. Accepting -D/--dataroot option as a path to pyg2p reference data and config.
+    E.g.
     pytest -D /workarea/datatest/pyg2p/pyg2p_reference tests/
 
-    Accepting -D/--dataroot option as a path to pyg2p reference data and config.
-    Structure must be like the following:
+
+    Structure of <dataroot> folder must be like:
 
 /datarootpath/
 ├── commands
@@ -84,10 +88,7 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope='class', autouse=True)
 def options(request):
-    if not request.config.getoption('--dataroot') and request.config.getoption('--runslow'):
-        raise ValueError('You need to pass -D/--dataroot option to run slow tests with --runslow')
-    options = dict()
-    options['dataroot'] = request.config.getoption('--dataroot')
+    options = {'dataroot': request.config.getoption('--dataroot')}
     if options['dataroot']:
         options['commands'] = options['dataroot'].joinpath('commands/')
         options['input'] = options['dataroot'].joinpath('input/')
@@ -101,14 +102,19 @@ def options(request):
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
+    config.addinivalue_line('markers', 'slow: mark test as slow to run')
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--runslow"):
+    if config.getoption('--runslow') and config.getoption('--dataroot'):
         # --runslow given in cli: do not skip slow tests
         return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    runslow = config.getoption('--runslow')
+    test_oracle = config.getoption('--dataroot')
+    skip_slow = pytest.mark.skip(reason='need -X/--runslow option to run')
+    skip_oracle = pytest.mark.skip(reason='need -D/--dataroot path to run; you should have test oracle accessible as path')
     for item in items:
-        if "slow" in item.keywords:
+        if 'slow' in item.keywords and not runslow:
             item.add_marker(skip_slow)
+        if 'oracledata' in item.keywords and not test_oracle:
+            item.add_marker(skip_oracle)

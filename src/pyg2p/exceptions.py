@@ -1,3 +1,5 @@
+NOT_EXISTING_INPUT_GRIB = 1000
+MISSING_INPUT_GRIB = 1001
 SHORTNAME_NOT_FOUND = 1100  # variable not configured in parameters.json
 CONVERSION_NOT_FOUND = 1200
 NOT_EXISTING_MAPS = 1300
@@ -13,7 +15,7 @@ NO_VAR_DEFINED = 8000
 NO_INTERTABLE_CREATED = 8100
 JSON_ERROR = 8200
 EXISTING_GEOPOTENTIAL = 8300
-INVALID_INTERPOLATION_METHOD = 8400
+INVALID_INTERPOL_METHOD = 8400
 NO_WRITE_PERMISSIONS = 8500
 NO_READ_PERMISSIONS = 8600
 NOT_EXISTING_PATH = 8600
@@ -26,8 +28,8 @@ class ApplicationException(Exception):
 
     _errorMessages = {
         0: 'Execution command file not found',
-        1000: 'Did not found input file. Check filename.',
-        1001: 'Input file not set: use [-i, --inputFile] command line options',
+        NOT_EXISTING_INPUT_GRIB: 'Did not found input file. Check filename.',
+        MISSING_INPUT_GRIB: 'Input file not set: use [-i, --inputFile] command line options',
         SHORTNAME_NOT_FOUND: 'shortName not found in parameters.json.',
         CONVERSION_NOT_FOUND: 'shortName - conversionId combination not found in parameters.json.',
         NOT_EXISTING_MAPS: "Latitude or longitude maps doesn't exist. Check filenames in commands json file.",
@@ -58,7 +60,7 @@ class ApplicationException(Exception):
                                'but -B option was not set on command line.',
         JSON_ERROR: 'Error in json configuration file.',
         EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
-        INVALID_INTERPOLATION_METHOD: 'Interpolation method not valid',
+        INVALID_INTERPOL_METHOD: 'Interpolation method not valid',
         WEIRD_STUFF: 'Cannot continue: weird stuff happening',
         NO_WRITE_PERMISSIONS: 'You cannot write to folder',
         NO_READ_PERMISSIONS: 'You cannot read from folder',

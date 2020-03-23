@@ -1,3 +1,5 @@
+import collections
+
 from .. import Loggable
 from ..main.manipulation.aggregator import Aggregator
 from ..main.readers.grib import GRIBReader
@@ -31,7 +33,7 @@ class Controller(Loggable):
         end_step = self.ctx.get('parameter.tend') or grib_info.end
 
         if self.ctx.must_do_correction and self.grib_reader.has_geopotential():
-            self.ctx.input_file_has_geopotential()
+            self.ctx.set_input_file_with_geopotential()
 
         if self.ctx.must_do_aggregation:
             aggregator = Aggregator(aggr_step=self.ctx.get('aggregation.step'),
@@ -65,11 +67,11 @@ class Controller(Loggable):
     def read_2nd_res_messages(self, cmd_args, messages):
         # append messages
         self.grib_reader2 = GRIBReader(self.ctx.get('input.file2'), w_perturb=self.ctx.has_perturbation_number)
-        # messages.change_resolution() will return true after this append
+        # messages.change_resolution() returns True after Messages.append_2nd_res_messages()
         mess_2nd_res = self.grib_reader2.select_messages(**cmd_args)
         messages.append_2nd_res_messages(mess_2nd_res)
 
-    def execute(self):
+    def execute(self, write_results=True):
         converter = None
         grib_info, grib_select_cmd, end_step, aggregator = self.init_execution()
         mv_grib = grib_info.mv
@@ -77,7 +79,7 @@ class Controller(Loggable):
 
         messages = self.grib_reader.select_messages(**grib_select_cmd)
 
-        if self.ctx.is_2_input_files():
+        if self.ctx.is_2_input_files:
             # two files as input (-i and -I input arguments were given)
             self.read_2nd_res_messages(grib_select_cmd, messages)
             # inject aux attributes for interpolation into main reader, to use later
@@ -119,8 +121,12 @@ class Controller(Loggable):
         # cutoff after interpolation
         if converter and converter.must_cut_off:
             values = converter.cut_off_negative(values)
-        self._log('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
-        self._writer.write_maps(values, messages, change_res_step=change_res_step)
+        values = collections.OrderedDict(sorted(values.items(), key=lambda k: int(k[0].end_step)))
+        if write_results:
+            self._log('******** **** WRITING OUT MAPS (Interpolation, correction) **** *************')
+            self._writer.write_maps(values, messages, change_res_step=change_res_step)
+        # ! return non interpolated values
+        return values, messages, change_res_step
 
     def close(self):
         if self.grib_reader:

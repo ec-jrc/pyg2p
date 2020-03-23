@@ -59,11 +59,9 @@ class Aggregator(Loggable):
         return self._usable_start, self._end
 
     def do_manipulation(self, values):
-        log_message = '\nAggregation {} with step {} '\
-                      'for {} values from {} to {} '\
-                      '[real start: {}]'.format(self._aggregation, self._aggregation_step,
-                                                self._step_type, self._start,
-                                                self._end, self._usable_start)
+        log_message = f'\nAggregation {self._aggregation} with step {self._aggregation_step} '\
+                      f'for {self._step_type} values from {self._start} to {self._end} '\
+                      f'[real start: {self._usable_start}]'
         self._log(log_message, 'INFO')
         self._log('******** **** MANIPULATION **** *************')
         res = self._functs[self._aggregation](values)
@@ -207,7 +205,7 @@ class Aggregator(Loggable):
                 # mask result with all maskes from GRIB original values used in average (if existing any)
                 out_values[key] = ma.masked_where(numeric.get_masks(v_ord.values()), res, copy=False)
                 if self._logger.isEnabledFor(logging.DEBUG):
-                    self._log('out[{key}] = temp_sum/{self._aggregation_step}')
+                    self._log(f'out[{key}] = temp_sum/{self._aggregation_step}')
 
             return out_values
 

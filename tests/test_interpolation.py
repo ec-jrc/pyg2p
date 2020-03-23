@@ -25,6 +25,7 @@ class TestInterpolation:
         shape_target = PCRasterReader(config_dict['interpolation.latMap']).values.shape
         assert shape_target == values_resampled.shape
 
+    @pytest.mark.slow
     def test_interpolation_create_scipy_invdist(self):
         d = deepcopy(config_dict)
         d['interpolation.create'] = True

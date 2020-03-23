@@ -20,7 +20,7 @@ def check_dataset_pcroutput(self, ds):
     result_dir = self.options['results'].joinpath(f'{ds}')
     reference_dir = self.options['reference'].joinpath(f'{ds}')
     comparator = PCRComparator()
-    diffs = comparator.compare_dirs(result_dir.as_posix(), reference_dir.as_posix(), skip_missing=False)
+    diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
     if diffs:
         logger.info(diffs)
     assert not diffs
@@ -31,7 +31,7 @@ def check_dataset_netcdfoutput(self, ds):
     reference_dir = self.options['reference'].joinpath(f'{ds}')
     mask = PCRasterReader(self.options['maps'].joinpath('dem.map')).values
     comparator = NetCDFComparator(mask)
-    diffs = comparator.compare_dirs(result_dir.as_posix(), reference_dir.as_posix(), skip_missing=False)
+    diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
     if diffs:
         logger.info(diffs)
     assert not diffs

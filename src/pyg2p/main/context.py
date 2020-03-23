@@ -2,26 +2,185 @@ import argparse
 import ujson as json
 import os
 
+from . import Configuration
 from .. import __version__
 from ..util import files, strings
 from .manipulation.aggregator import ACCUMULATION
-from ..exceptions import (ApplicationException, INVALID_INTERPOLATION_METHOD,
-                          WRONG_ARGS, NOT_A_NUMBER, NOT_EXISTING_MAPS)
+from ..exceptions import (ApplicationException, INVALID_INTERPOL_METHOD,
+                          WRONG_ARGS, NOT_A_NUMBER, NOT_EXISTING_MAPS, MISSING_INPUT_GRIB, NOT_EXISTING_INPUT_GRIB)
 
 
-class ExecutionContext:
+class Context:
     allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist')
     default_values = {'interpolation.mode': 'grib_nearest', 'outMaps.unitTime': '24'}
 
-    def __init__(self, configuration, argv):
+    def __getitem__(self, param):
+        return self._vars[param]
 
-        self.configuration = configuration
+    def __setitem__(self, param, value):
+        self._vars[param] = value
 
+    def __init__(self):
+        # contains main configuration
+        # (parameters, geopotentials, intertables, custom user paths, ftp to download test dataset, static data paths)
+        self.configuration = Configuration()
         # init vars
-        self._input_args = {}
-        self._to_add_geopotential = False
+        self.to_add_geopotential = False
         self.input_file_with_geopotential = None
         self._vars = {}
+
+    def _define_exec_params(self):
+        raise NotImplementedError()
+
+    @property
+    def has_perturbation_number(self):
+        return 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None
+
+    def get(self, param, default=None):
+        return self._vars.get(param, default)
+
+    def set_input_file_with_geopotential(self):
+        self.input_file_with_geopotential = self.get('input.file')
+
+    @property
+    def interpolate_with_grib(self):
+        return self._vars['interpolation.mode'] in ('grib_invdist', 'grib_nearest')
+
+    @property
+    def must_do_aggregation(self):
+        return self._vars['execution.doAggregation']
+
+    @property
+    def must_do_correction(self):
+        return self._vars['execution.doCorrection']
+
+    @property
+    def must_do_conversion(self):
+        return self._vars['execution.doConversion']
+
+    @property
+    def is_2_input_files(self):
+        return self._vars['input.two_resolution']
+
+    @property
+    def from_api(self):
+        return bool(self._vars.get('under_api'))
+
+    @property
+    def to_download_conf(self):
+        return bool(self._vars.get('download_configuration'))
+
+    @property
+    def to_check_conf(self):
+        return self._vars.get('check_conf')
+
+    def __str__(self):
+        mess = f"\n\n============ pyg2p: Execution parameters: {self._vars.get('execution.name') or ''} {strings.now_string()} ============\n\n"
+        params_str = [f'{par}={self._vars[par]}' for par in sorted(self._vars.keys()) if self._vars[par]]
+        return '{}{}'.format(mess, '\n'.join(params_str))
+
+    def _check_exec_params(self):
+
+        if self.to_add_geopotential:
+
+            if not files.exists(self._vars['geopotential']):
+                raise ApplicationException.get_exc(7001, self._vars['geopotential'])
+
+        else:
+
+            if not self._vars.get('input.file'):
+                raise ApplicationException.get_exc(MISSING_INPUT_GRIB)
+
+            if not files.exists(self._vars['input.file']):
+                raise ApplicationException.get_exc(NOT_EXISTING_INPUT_GRIB, self._vars['input.file'])
+
+            if not files.exists(self._vars['interpolation.lonMap']) or not files.exists(self._vars['interpolation.latMap']):
+                raise ApplicationException.get_exc(
+                    NOT_EXISTING_MAPS,
+                    details=f"{self._vars['interpolation.lonMap']} - {self._vars['interpolation.latMap']}"
+                )
+
+            if not files.exists(self._vars['outMaps.clone']):
+                raise ApplicationException.get_exc(1310)
+
+            if not self._vars['interpolation.mode'] in self.allowed_interp_methods:
+                raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, details=self._vars['interpolation.mode'])
+
+            # create out dir if not existing
+            try:
+                if self._vars['outMaps.outDir'] != './':
+                    if not self._vars['outMaps.outDir'].endswith('/'):
+                        self._vars['outMaps.outDir'] += '/'
+                    if not files.exists(self._vars['outMaps.outDir'], is_folder=True):
+                        files.create_dir(self._vars['outMaps.outDir'])
+            except Exception as exc:
+                raise ApplicationException(exc, None, str(exc))
+
+            # check all numbers
+
+            if self._vars['parameter.level'] and not self._vars['parameter.level'].isdigit():
+                raise ApplicationException.get_exc(NOT_A_NUMBER, 'Parameter level')
+            self._vars['parameter.level'] = int(self._vars['parameter.level']) if self._vars.get('parameter.level') else None
+
+            self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else self.default_values['outMaps.unitTime']
+
+            # check tstart<=tend
+            if self._vars['parameter.tstart'] and self._vars['parameter.tend'] and not self._vars['parameter.tstart'] <= self._vars['parameter.tend']:
+                raise ApplicationException.get_exc(1500)
+
+            # check both correction params are present
+            if self._vars['execution.doCorrection'] and not (
+                    self._vars.get('correction.gemFormula') and self._vars.get('correction.demMap') and self._vars.get(
+                    'correction.formula')):
+                raise ApplicationException.get_exc(4100)
+            if self._vars['execution.doCorrection'] and not files.exists(self._vars['correction.demMap']):
+                raise ApplicationException.get_exc(4200, self._vars['correction.demMap'])
+
+    def geo_file(self, grid_id):
+        path = self.input_file_with_geopotential
+        if not path:
+            path = self.configuration.geopotentials.get_filepath(grid_id, additional=self._vars['geopotential.dirs'].get('user'))
+        return path
+
+    def create_select_cmd_for_reader(self, start_, end_):
+        # 'var' suffix is for multiresolution 240 step message (global EUE files)
+        reader_args = {
+            'shortName': [self._vars['parameter.shortName'], self._vars['parameter.shortName'].upper(),
+                          self._vars['parameter.shortName'] + 'var']}
+
+        if self._vars['parameter.level'] is not None:
+            reader_args['level'] = self._vars['parameter.level']
+        if self._vars['parameter.dataTime'] is not None:
+            reader_args['dataTime'] = self._vars['parameter.dataTime']
+        if self._vars['parameter.dataDate'] is not None:
+            reader_args['dataDate'] = self._vars['parameter.dataDate']
+
+        if self.has_perturbation_number:
+            reader_args['perturbationNumber'] = self._vars['parameter.perturbationNumber']
+
+        # start_step, end_step
+        if start_ == end_:
+            reader_args['endStep'] = end_
+            reader_args['startStep'] = start_
+        else:
+            reader_args['endStep'] = lambda s: s <= end_
+            reader_args['startStep'] = lambda s: s >= start_
+        return reader_args
+
+    def create_select_cmd_for_aggregation_attrs(self):
+
+        reader_arguments = {'shortName': str(self._vars['parameter.shortName'])}
+        if self.has_perturbation_number:
+            reader_arguments['perturbationNumber'] = self._vars['parameter.perturbationNumber']
+        return reader_arguments
+
+
+class ExecutionContext(Context):
+
+    def __init__(self, argv):
+
+        super().__init__()
+        self._input_args = {}
         self.is_config_command = False
 
         # read cli input args (commands file path, input files, output dir, or shows help and exit)
@@ -32,13 +191,6 @@ class ExecutionContext:
 
         # check numbers, existing dirs and files, supported options, semantics etc.
         self._check_exec_params()
-
-    def input_file_has_geopotential(self):
-        self.input_file_with_geopotential = self.get('input.file')
-
-    @property
-    def interpolate_with_grib(self):
-        return self._vars['interpolation.mode'] in ('grib_invdist', 'grib_nearest')
 
     def _define_input_args(self, argv):
 
@@ -92,7 +244,7 @@ class ExecutionContext:
                                             'user': user_intertables}
         self._vars['geopotential.dirs'] = {'global': self.configuration.geopotentials.global_data_path,
                                            'user': user_geopotentials}
-        self.is_config_command = (self.add_geopotential or self.download_conf or self.check_conf)
+        self.is_config_command = self.to_add_geopotential or self.to_download_conf or self.to_check_conf
 
     @staticmethod
     def add_args(parser):
@@ -150,15 +302,6 @@ class ExecutionContext:
                             action='store_true', default=False)
         parser.add_argument('-K', '--checkConf', help=argparse.SUPPRESS,  # mostly used in development
                             action='store_true', default=False)
-
-    def get(self, param, default=None):
-        return self._vars.get(param, default)
-
-    def __getitem__(self, param):
-        return self._vars[param]
-
-    def __setitem__(self, param, value):
-        self._vars[param] = value
 
     # will read the json commands file and store parameters into a common dictionary
     def _define_exec_params(self):
@@ -253,139 +396,3 @@ class ExecutionContext:
 
         # string interpolation for custom user configurations (i.e. dataset folders)
         self.configuration.user.interpolate_strings(self)
-
-    @property
-    def must_do_aggregation(self):
-        return self._vars['execution.doAggregation']
-
-    @property
-    def must_do_correction(self):
-        return self._vars['execution.doCorrection']
-
-    @property
-    def must_do_conversion(self):
-        return self._vars['execution.doConversion']
-
-    def is_2_input_files(self):
-        return self._vars['input.two_resolution']
-
-    def _check_exec_params(self):
-
-        if self.add_geopotential:
-
-            if not files.exists(self._vars['geopotential']):
-                raise ApplicationException.get_exc(7001, self._vars['geopotential'])
-
-        else:
-
-            if not self._vars.get('input.file'):
-                raise ApplicationException.get_exc(1001)
-
-            if not files.exists(self._vars['input.file']):
-                raise ApplicationException.get_exc(1000, self._vars['input.file'])
-
-            if not files.exists(self._vars['interpolation.lonMap']) or not files.exists(self._vars['interpolation.latMap']):
-                raise ApplicationException.get_exc(
-                    NOT_EXISTING_MAPS,
-                    details=f"{self._vars['interpolation.lonMap']} - {self._vars['interpolation.latMap']}"
-                )
-
-            if not files.exists(self._vars['outMaps.clone']):
-                raise ApplicationException.get_exc(1310)
-
-            if not self._vars['interpolation.mode'] in self.allowed_interp_methods:
-                raise ApplicationException.get_exc(INVALID_INTERPOLATION_METHOD,
-                                                   details=self._vars['interpolation.mode'])
-
-            # create out dir if not existing
-            try:
-                if self._vars['outMaps.outDir'] != './':
-                    if not self._vars['outMaps.outDir'].endswith('/'):
-                        self._vars['outMaps.outDir'] += '/'
-                    if not files.exists(self._vars['outMaps.outDir'], is_folder=True):
-                        files.create_dir(self._vars['outMaps.outDir'])
-            except Exception as exc:
-                raise ApplicationException(exc, None, str(exc))
-
-            # check all numbers
-
-            if self._vars['parameter.level'] and not self._vars['parameter.level'].isdigit():
-                raise ApplicationException.get_exc(NOT_A_NUMBER, 'Parameter level')
-            self._vars['parameter.level'] = int(self._vars['parameter.level']) if self._vars.get('parameter.level') else None
-
-            self._vars['outMaps.unitTime'] = int(self._vars['outMaps.unitTime']) if self._vars['outMaps.unitTime'] is not None else self.default_values['outMaps.unitTime']
-
-            # check tstart<=tend
-            if self._vars['parameter.tstart'] and self._vars['parameter.tend'] and not self._vars['parameter.tstart'] <= self._vars['parameter.tend']:
-                raise ApplicationException.get_exc(1500)
-
-            # check both correction params are present
-            if self._vars['execution.doCorrection'] and not (
-                    self._vars.get('correction.gemFormula') and self._vars.get('correction.demMap') and self._vars.get(
-                    'correction.formula')):
-                raise ApplicationException.get_exc(4100)
-            if self._vars['execution.doCorrection'] and not files.exists(self._vars['correction.demMap']):
-                raise ApplicationException.get_exc(4200, self._vars['correction.demMap'])
-
-    def __str__(self):
-        mess = f"\n\n============ pyg2p: Execution parameters: {self._vars['execution.name']} {strings.now_string()} ============\n\n"
-        params_str = [f'{par}={self._vars[par]}' for par in sorted(self._vars.keys()) if self._vars[par]]
-        return '{}{}'.format(mess, '\n'.join(params_str))
-
-    @property
-    def add_geopotential(self):
-        return self._to_add_geopotential
-
-    @property
-    def has_perturbation_number(self):
-        return 'parameter.perturbationNumber' in self._vars and self._vars['parameter.perturbationNumber'] is not None
-
-    def create_select_cmd_for_reader(self, start_, end_):
-        # 'var' suffix is for multiresolution 240 step message (global EUE files)
-        reader_args = {
-            'shortName': [self._vars['parameter.shortName'], self._vars['parameter.shortName'].upper(),
-                          self._vars['parameter.shortName'] + 'var']}
-
-        if self._vars['parameter.level'] is not None:
-            reader_args['level'] = self._vars['parameter.level']
-        if self._vars['parameter.dataTime'] is not None:
-            reader_args['dataTime'] = self._vars['parameter.dataTime']
-        if self._vars['parameter.dataDate'] is not None:
-            reader_args['dataDate'] = self._vars['parameter.dataDate']
-
-        if self.has_perturbation_number:
-            reader_args['perturbationNumber'] = self._vars['parameter.perturbationNumber']
-
-        # start_step, end_step
-        if start_ == end_:
-            reader_args['endStep'] = end_
-            reader_args['startStep'] = start_
-        else:
-            reader_args['endStep'] = lambda s: s <= end_
-            reader_args['startStep'] = lambda s: s >= start_
-        return reader_args
-
-    def create_select_cmd_for_aggregation_attrs(self):
-
-        reader_arguments = {'shortName': str(self._vars['parameter.shortName'])}
-        if self.has_perturbation_number:
-            reader_arguments['perturbationNumber'] = self._vars['parameter.perturbationNumber']
-        return reader_arguments
-
-    @property
-    def from_api(self):
-        return bool(self._vars.get('under_api'))
-
-    @property
-    def download_conf(self):
-        return bool(self._vars.get('download_configuration'))
-
-    @property
-    def check_conf(self):
-        return self._vars.get('check_conf')
-
-    def geo_file(self, grid_id):
-        path = self.input_file_with_geopotential
-        if not path:
-            path = self.configuration.geopotentials.get_filepath(grid_id, additional=self._vars['geopotential.dirs'].get('user'))
-        return path

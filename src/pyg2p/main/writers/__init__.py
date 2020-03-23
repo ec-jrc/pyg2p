@@ -86,8 +86,8 @@ class OutputWriter(Loggable):
         geodetic_info = messages.grid_details
         grid_id = messages.grid_id
 
-        for i, (timestep, v) in enumerate(values.items()):
-            # note: timestep and change_res_step are instances of domain.step.Step class
+        for i, (timestep, v) in enumerate(values.items(), start=1):
+            # note: timestep and change_res_step are instances of pyg2p.Step class
             # writing map i
             if messages.have_resolution_change() and timestep == change_res_step:
                 # Switching to second resolution
@@ -99,12 +99,12 @@ class OutputWriter(Loggable):
             if self.ctx.must_do_correction:
                 corrector = Corrector.get_instance(self.ctx, grid_id)
                 out_v = corrector.correct(out_v)
-            self.writer.write(self._name_pcr_map(i + 1), out_v)
+            self.writer.write(self._name_pcr_map(i), out_v)
 
     def write_maps(self, values, messages, change_res_step=None):
         write_method = getattr(self, f"_write_maps_{self.ctx.get('outMaps.format')}")
         # Ordering values happens only here now - 12/04/2015
-        values = collections.OrderedDict(sorted(values.items(), key=lambda k: int(k[0].end_step)))
+        # values = collections.OrderedDict(sorted(values.items(), key=lambda k: int(k[0].end_step)))
         write_method(values, messages, change_res_step)
 
     def _name_netcdf_file(self):

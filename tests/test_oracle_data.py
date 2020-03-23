@@ -8,7 +8,7 @@ from . import logger, check_dataset_pcroutput, check_dataset_netcdfoutput
 
 
 @pytest.mark.usefixtures("options")
-@pytest.mark.slow
+@pytest.mark.oracledata
 class TestOracleData:
     @classmethod
     def setup_class(cls):
