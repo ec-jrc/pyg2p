@@ -550,10 +550,10 @@ This method uses GRIB API to perform nearest neighbour query.
 To configure this method, define:
 
 ```json
-"Interpolation": {
+{"Interpolation": {
   "@latMap": "/dataset/maps/europe5km/lat.map",
   "@lonMap": "/dataset/maps/europe5km/long.map",
-  "@mode": "grib_nearest"
+  "@mode": "grib_nearest"}
 }
 ```
 
@@ -563,10 +563,11 @@ calculation to compute the final value.
 To configure this method:
 
 ```json
+{
 "Interpolation": {
   "@latMap": "/dataset/maps/europe5km/lat.map",
   "@lonMap": "/dataset/maps/europe5km/long.map",
-  "@mode": "grib_invdist"
+  "@mode": "grib_invdist"}
 }
 ```
 
@@ -577,10 +578,11 @@ It's the same nearest neighbour algorithm of grib_nearest but it uses the scipy 
 obtain neighbours and distances.
 
 ```json
+{
 "Interpolation": {
   "@latMap": "/dataset/maps/europe5km/lat.map",
   "@lonMap": "/dataset/maps/europe5km/long.map",
-  "@mode": "nearest"
+  "@mode": "nearest"}
 }
 ```
 
@@ -588,10 +590,11 @@ obtain neighbours and distances.
 It's the inverse distance algorithm with scipy.kd_tree , using 8 neighbours.
 
 ```json
+{
 "Interpolation": {
   "@latMap": "/dataset/maps/europe5km/lat.map",
   "@lonMap": "/dataset/maps/europe5km/long.map",
-  "@mode": "invdist"
+  "@mode": "invdist"}
 }
 ```
 
@@ -624,8 +627,9 @@ Values from grib files can be aggregated before to write the final PCRaster maps
 The JSON configuration in the execution file will look like:
 
 ```json
+{
 "Aggregation": {
-  "@type": "average"
+  "@type": "average"}
 }
 ```
 
@@ -637,6 +641,7 @@ Temperatures are often extracted as averages on 24 hours or 6 hours. Here's a ty
 **cosmo_t24.json**
 
 ```json
+{
 "Execution": {
 "@name": "cosmo_T24",
 "Aggregation": {
@@ -664,7 +669,7 @@ Temperatures are often extracted as averages on 24 hours or 6 hours. Here's a ty
 }
 }
 }
-}
+
 ```
 
 **Command**
@@ -778,24 +783,26 @@ Tested configurations are only for temperature and are specified as follows:
 **Temperature correction**
 
 ```json
+{
 "Parameter": {
   "@applyConversion": "k2c",
   "@correctionFormula": "p+gem-dem*0.0065",
   "@demMap": "/dataset/maps/europe/dem.map",
   "@gem": "(z/9.81)*0.0065",
-  "@shortName": "2t"
+  "@shortName": "2t"}
 }
 ```
 
 **A more complicated correction formula:**
 
 ```json
+{
 "Parameter": {
   "@applyConversion": "k2c",
   "@correctionFormula": "p/gem*(10**((-0.159)*dem/1000))",
   "@demMap": "/dataset/maps/europe/dem.map",
   "@gem": "(10**((-0.159)*(z/9.81)/1000))",
-  "@shortName": "2t"
+  "@shortName": "2t"}
 }
 ```
 
@@ -898,8 +905,67 @@ user=UserConfiguration()
 geopotentials=GeopotentialsConfiguration(user)
 geopotentials.add('path/to/geopotential.grib')
 ```
-
 The result will be the same as executing `pyg2p -g path/to/geopotential.grib`.
+
+### Using API to bypass I/O
+
+Since version 3.1, pyg2p has a more usable api, useful for programmatically convert values
+
+Here an example of usage:
+
+```python
+from pyg2p.main.api import Pyg2pApi, ApiContext
+
+config = {
+        'loggerLevel': 'ERROR',
+        'inputFile': '/data/gribs/cosmo.grib',
+        'fmap': 1,
+        'start': 6,
+        'end': 132,
+        'perturbationNumber': 2,
+        'intertableDir': '/data/myintertables/',
+        'geopotentialDir': '/data/mygeopotentials',
+        'OutMaps': {
+            'unitTime': 24,
+            'cloneMap': '/data/mymaps/dem.map',
+            'Interpolation': {
+                "latMap": '/data/mymaps/lat.map',
+                "lonMap": '/data/mymaps/lon.map',
+                "mode": "nearest"
+            }
+        },
+
+        'Aggregation': {
+            'step': 6,
+            'type': 'average'
+        },
+        'Parameter': {
+            'shortName': 'alhfl_s',
+            'applyConversion': 'tommd',
+        },
+    }
+
+ctx = ApiContext(config)
+api = Pyg2pApi(ctx)
+values = api.execute()
+```
+
+The `values` variable is an oredered dictionary with keys of class `pyg2p.Step`, which is simply a tuple of (start, end, resolution_along_meridican, step, level))
+Each value of the dictionary is a numpy array representing a map of the converted variable for that step.
+For example, the first value would correspond to a PCRaster map file <var>0000.001 generated and written by pyg2p when executed normally via CLI.
+
+Check also this code we used in tests to validate API execution against CLI execution with same parameters:
+
+```python
+import numpy as np
+from pyg2p.main.readers import PCRasterReader
+for i, (step, val) in enumerate(values.items(), start=1):
+    i = str(i).zfill(3)
+    reference = PCRasterReader(f'/data/reference/cosmo/E06a0000.{i}')).values
+    diff = np.abs(reference - val)
+    assert np.allclose(diff, np.zeros(diff.shape), rtol=1.e-2, atol=1.e-3, equal_nan=True)
+```
+
 
 ## Appendix A - Execution JSON files examples
 
