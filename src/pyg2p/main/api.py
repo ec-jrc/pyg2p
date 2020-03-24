@@ -78,6 +78,9 @@ class Command:
 
 
 class ApiContext(Context):
+    """
+
+    """
     def __init__(self, params_dict):
         """
         :param params_dict: dict
@@ -197,9 +200,20 @@ class ApiContext(Context):
 
 
 class Pyg2pApi:
+    """
+
+    """
 
     @classmethod
     def parameter_details(cls, short_name=None):
+        """
+
+        :param short_name: shortName of the parameter for which you need to check configuration.
+        :type short_name: str
+        :return: details about parameter, conversion, unit etc. If short_name is not passed,
+                 returns all shortNames of configured parameters
+        :rtype: str
+        """
         conf = Configuration().parameters
         if not short_name:
             res = conf._load()
@@ -218,7 +232,6 @@ class Pyg2pApi:
 
     def __init__(self, api_ctx):
         """
-
         :param api_ctx: ApiContext instance
         """
         self.context = api_ctx
@@ -240,6 +253,10 @@ class Pyg2pApi:
         return masked
 
     def execute(self):
+        """
+        Main method
+        :return: dict of numpy values, keys are instances of  pyg2p.Step
+        """
         grib_reader = GRIBReader(self.context.get('input.file'), w_perturb=self.context.has_perturbation_number)
         grib_info = grib_reader.get_grib_info(self.context.create_select_cmd_for_aggregation_attrs())
         ctrl = Controller(self.context)
