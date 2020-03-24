@@ -15,6 +15,12 @@ from ... import Loggable, Step, GRIBInfo, GribGridDetails, Messages
 
 class GRIBReader(Loggable):
 
+    def __repr__(self):
+        return f'GRIBReader<{self._grib_file}>'
+
+    def __str__(self):
+        return self.__repr__()
+
     def __init__(self, grib_file, w_perturb=False):
         # codes_no_fail_on_wrong_length(True)
         super().__init__()

@@ -266,6 +266,7 @@ class GeopotentialsConfiguration(BaseConfiguration):
                 NO_FILE_GEOPOTENTIAL,
                 details=f'id:{grid_id}, filename:{filename}, Searched in: {self.data_path}, {self.global_data_path}, {additional}'
             )
+        self._log(f'USING GEOFILE {path}', 'INFO')
         return path
 
 

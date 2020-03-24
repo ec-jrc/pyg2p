@@ -114,12 +114,17 @@ class ApiContext(Context):
         self._vars['download_configuration'] = self.api_conf.get('downloadConf')
         self._vars['under_api'] = True
         self._vars['check_conf'] = self.api_conf.get('checkConf')
+
+        # INTERTABLES and GEOPOTENTIALS paths handling
         user_intertables = self._vars['interpolation.dir'] or self.configuration.default_interpol_dir
         user_geopotentials = self._vars['geopotential.dir'] or self.configuration.default_geopotential_dir
+        if not self.configuration.intertables.data_path:
+            self.configuration.intertables.data_path = user_intertables
         self._vars['interpolation.dirs'] = {'global': self.configuration.intertables.global_data_path,
                                             'user': user_intertables}
         self._vars['geopotential.dirs'] = {'global': self.configuration.geopotentials.global_data_path,
                                            'user': user_geopotentials}
+
         self.is_config_command = self.to_add_geopotential or self.to_download_conf or self.to_check_conf
         self._vars['execution.doAggregation'] = False
         self._vars['execution.doConversion'] = False

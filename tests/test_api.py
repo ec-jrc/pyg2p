@@ -141,3 +141,85 @@ class TestApi:
             assert np.allclose(diff, np.zeros(diff.shape), rtol=1.e-2, atol=1.e-3, equal_nan=True)
             i = int(i)
             i += 4
+
+    def test_iconeut24(self):
+        config = deepcopy(self.config)
+        config['inputFile'] = self.input_path.joinpath('dwd/L.grb')
+        config['start'] = 1440
+        config['end'] = 7200
+        config['ext'] = 4
+        config['perturbationNumber'] = None
+        config['Aggregation']['type'] = 'average'
+        config['Aggregation']['step'] = 1440
+        config['Parameter']['shortName'] = '2t'
+        config['Parameter']['applyConversion'] = 'k2c'
+        config['Parameter']['demMap'] = self.dem_map
+        config['Parameter']['gem'] = '(z/9.81)*0.0065'
+        config['Parameter']['correctionFormula'] = 'p+gem-dem*0.0065'
+        ctx = ApiContext(config)
+        api = Pyg2pApi(ctx)
+        out_values = api.execute()
+        assert len(out_values) == 5
+
+        i = 1
+        for step, val in out_values.items():
+            i = str(i).zfill(3)
+            reference = PCRasterReader(self.options['reference'].joinpath(f'dwd/T24a0000.{i}')).values
+            diff = np.abs(reference - val)
+            assert np.allclose(diff, np.zeros(diff.shape), rtol=1.e-2, atol=1.e-3, equal_nan=True)
+            i = int(i)
+            i += 4
+
+    def test_dwdt24(self):
+        config = deepcopy(self.config)
+        config['inputFile'] = self.input_path.joinpath('dwd/G.grb')
+        config['start'] = 8640
+        config['end'] = 10080
+        config['ext'] = 4
+        config['fmap'] = 21
+        config['perturbationNumber'] = None
+        config['Aggregation']['type'] = 'average'
+        config['Aggregation']['step'] = 1440
+        config['Parameter']['shortName'] = '2t'
+        config['Parameter']['applyConversion'] = 'k2c'
+        config['Parameter']['demMap'] = self.dem_map
+        config['Parameter']['gem'] = '(z/9.81)*0.0065'
+        config['Parameter']['correctionFormula'] = 'p+gem-dem*0.0065'
+        ctx = ApiContext(config)
+        api = Pyg2pApi(ctx)
+        out_values = api.execute()
+        assert len(out_values) == 2
+
+        i = 21
+        for step, val in out_values.items():
+            i = str(i).zfill(3)
+            reference = PCRasterReader(self.options['reference'].joinpath(f'dwd/T24a0000.{i}')).values
+            diff = np.abs(reference - val)
+            assert np.allclose(diff, np.zeros(diff.shape), rtol=1.e-2, atol=1.e-3, equal_nan=True)
+            i = int(i)
+            i += 4
+
+    @pytest.mark.slow
+    def test_createintertable(self):
+        config = deepcopy(self.config)
+        config['inputFile'] = 'tests/data/input.grib'
+        config['intertableDir'] = 'tests/data'
+        config['createIntertable'] = True
+        config['interpolationParallel'] = True
+        config['OutMaps']['Interpolation']['mode'] = 'invdist'
+        config['OutMaps']['Interpolation']['latMap'] = 'tests/data/lat.map'
+        config['OutMaps']['Interpolation']['lonMap'] = 'tests/data/lon.map'
+        config['OutMaps']['cloneMap'] = 'tests/data/dem.map'
+        config['perturbationNumber'] = None
+        config['Aggregation'] = None
+        config['Parameter']['shortName'] = '2t'
+        config['Parameter']['applyConversion'] = 'k2c'
+        config['Parameter']['demMap'] = 'tests/data/dem.map'
+        config['Parameter']['gem'] = '(z/9.81)*0.0065'
+        config['Parameter']['correctionFormula'] = 'p+gem-dem*0.0065'
+        ctx = ApiContext(config)
+        api = Pyg2pApi(ctx)
+        out_values = api.execute()
+        shape_target = PCRasterReader(config['OutMaps']['Interpolation']['latMap']).values.shape
+        assert shape_target == list(out_values.values())[0].shape
+        os.unlink('tests/data/tbl_pf10tp_550800_scipy_invdist.npy.gz')

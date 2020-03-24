@@ -58,6 +58,7 @@ class MockedExecutionContext:
         self.is_with_grib_interpolation = gribinterp
         self.configuration = self.conf
         self.configuration.intertables.data_path = os.path.abspath('tests/data/')
+        self.configuration.geopotentials.data_path = os.path.abspath('tests/data/')
 
     def get(self, param, default=None):
         return self._vars.get(param, default)
@@ -67,3 +68,4 @@ class MockedExecutionContext:
 
     def create_select_cmd_for_aggregation_attrs(self):
         return {'shortName': '2t'}
+

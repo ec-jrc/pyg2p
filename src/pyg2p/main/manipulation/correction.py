@@ -17,6 +17,9 @@ class Corrector(Loggable):
 
     instances = {}
 
+    def __repr__(self):
+        return f'Corrector<{self.grid_id} {self.geo_file}>'
+
     @classmethod
     def get_instance(cls, ctx, grid_id):
         geo_file_ = ctx.geo_file(grid_id)
@@ -29,8 +32,9 @@ class Corrector(Loggable):
             cls.instances[key] = instance
             return instance
 
-    def __init__(self, ctx, grid_id, geo_file_):
+    def __init__(self, ctx, grid_id, geo_file):
         super().__init__()
+        self.geo_file = geo_file
         self.grid_id = grid_id
         dem_map = ctx.get('correction.demMap')
         self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
@@ -42,12 +46,12 @@ class Corrector(Loggable):
         log_message = f"""
         Correction
         Reading dem: {dem_map}
-        geopotential: {geo_file_}
+        geopotential: {geo_file}
         formula: {self._formula.replace('gem', self._gem_formula)}
         """
         self._log(log_message, 'INFO')
 
-        self._gem_missing_value, self._gem_values = self._read_geo(geo_file_, ctx)
+        self._gem_missing_value, self._gem_values = self._read_geo(geo_file, ctx)
 
     def correct(self, values):
         with np.errstate(over='ignore'):
