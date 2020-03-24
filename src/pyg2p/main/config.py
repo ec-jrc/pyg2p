@@ -1,6 +1,5 @@
 import json
 import os
-import logging
 import re
 from copy import deepcopy
 from ftplib import FTP

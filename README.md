@@ -950,7 +950,7 @@ api = Pyg2pApi(ctx)
 values = api.execute()
 ```
 
-The `values` variable is an oredered dictionary with keys of class `pyg2p.Step`, which is simply a tuple of (start, end, resolution_along_meridican, step, level))
+The `values` variable is an oredered dictionary with keys of class `pyg2p.Step`, which is simply a tuple of (start, end, resolution_along_meridian, step, level))
 Each value of the dictionary is a numpy array representing a map of the converted variable for that step.
 For example, the first value would correspond to a PCRaster map file <var>0000.001 generated and written by pyg2p when executed normally via CLI.
 
