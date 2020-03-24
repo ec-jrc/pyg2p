@@ -5,7 +5,7 @@ from types import MethodType
 
 import numpy.ma as ma
 
-from . import Controller
+from . import Controller, Configuration
 from .context import Context
 from .interpolation import Interpolator
 from .manipulation.aggregator import ACCUMULATION
@@ -78,13 +78,13 @@ class Command:
 
 
 class ApiContext(Context):
-    def __init__(self, configuration):
+    def __init__(self, params_dict):
         """
-        :param configuration: dict
+        :param params_dict: dict
 
         """
         super().__init__()
-        self.api_conf = configuration
+        self.api_conf = params_dict
         self._define_exec_params()
 
         # check numbers, existing dirs and files, supported options, semantics etc.
@@ -192,6 +192,24 @@ class ApiContext(Context):
 
 
 class Pyg2pApi:
+
+    @classmethod
+    def parameter_details(cls, short_name=None):
+        conf = Configuration().parameters
+        if not short_name:
+            res = conf._load()
+            out = 'Available parameters short names: \n'
+            out += '\n'.join(list(res.keys()))
+            return out
+        param = conf.get(short_name)
+        out = f"Parameter {param['@shortName']}: {param['@description']} Unit: {param['@unit']}"
+        conversions = param['Conversion']
+        if not isinstance(conversions, list):
+            conversions = [conversions]
+        for c in conversions:
+            out += '\n'
+            out += f"Conversion id: {c['@id']} unit {c['@unit']} {c['@function']} [cut negative: {c['@cutOffNegative']}]"
+        return out
 
     def __init__(self, api_ctx):
         """

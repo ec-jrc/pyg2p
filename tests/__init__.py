@@ -43,7 +43,11 @@ config_dict = {
             'interpolation.latMap': 'tests/data/lat.map',
             'interpolation.mode': 'nearest',
             'input.file': 'tests/data/input.grib',
-        }
+}
+
+api_config_dict = {
+
+}
 
 
 class MockedExecutionContext:
@@ -51,7 +55,7 @@ class MockedExecutionContext:
 
     def __init__(self, d, gribinterp=False):
         self._vars = d
-        self.interpolate_with_grib = gribinterp
+        self.is_with_grib_interpolation = gribinterp
         self.configuration = self.conf
         self.configuration.intertables.data_path = os.path.abspath('tests/data/')
 
