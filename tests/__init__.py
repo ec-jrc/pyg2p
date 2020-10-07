@@ -3,13 +3,14 @@ import sys
 import logging
 
 from lisfloodutilities.compare import PCRComparator, NetCDFComparator
-from pyg2p.main import Configuration
-
-from pyg2p.main.readers.pcr import PCRasterReader
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 src_path = os.path.join(current_dir, '../src/')
 sys.path.append(src_path)
+
+from pyg2p.main import Configuration
+from pyg2p.main.readers.pcr import PCRasterReader
+
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger()
@@ -68,4 +69,3 @@ class MockedExecutionContext:
 
     def create_select_cmd_for_aggregation_attrs(self):
         return {'shortName': '2t'}
-
