@@ -69,8 +69,6 @@ def setup_data_files(setup_args_):
         data_files.append((user_conf_dir, for_user_to_copy))
     if templates_to_copy:
         data_files.append((os.path.join(user_conf_dir, 'templates_samples'), templates_to_copy))
-    if not fm.exists(os.path.join(user_conf_dir, 'tests/commands.txt')):
-        data_files.append((os.path.join(user_conf_dir, 'tests'), ['configuration/tests/commands.txt']))
     setup_args_.update({'data_files': data_files})
 
 

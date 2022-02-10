@@ -10,11 +10,21 @@ It can also manipulates GRIB messages (performing aggregation or simple unit con
 To install package, you can use a python virtual environment or directly install dependencies and
 package at system level (executable script will be saved into /usr/local/bin in this case).
 
->IMPORTANT: Before to launch setup, you need to configure geopotentials and intertables paths in
+>IMPORTANT: Before to launch setup, you need the following steps:
+
+>Install eccodes: this can be done compiling from source code or using the available conda virtual environment package by running 
+
+```bash
+$ conda install -c conda-forge eccodes
+```
+
+>Configure geopotentials and intertables paths in
 configuration/global/global_conf.json. These paths are used by pyg2p to read
 geopotentials and intertables already configured. You may need to download files from FTP (launch `pyg2p -W` for this). 
 Users running pyg2p installed by a different user (ie. root) will configure similar paths for their own intertables 
 and geopotentials under his home folder. These paths will need write permissions.
+
+
 
 Grab last archive and extract it in a folder (or clone this repository) and follow these steps:
 
@@ -26,7 +36,13 @@ $ python setup.py install
 
 After installation, you will have all dependencies installed and an executable script 'pyg2p' (in a
 virtual environment, script is located under <VIRTUALENV_PATH>/bin folder otherwise under
-/usr/local/bin). Some python packages can be problematic to install at first shot. Read
+/usr/local/bin). To check correct installation of eccodes run the following command: 
+
+```bash
+$ python -m eccodes selfcheck
+```
+
+Some python packages can be problematic to install at first shot. Read
 following paragraph for details.
 
 ## Configuration
