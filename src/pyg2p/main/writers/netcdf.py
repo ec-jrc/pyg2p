@@ -8,6 +8,8 @@ from pyg2p.main.writers import Writer
 from pyg2p.exceptions import ApplicationException, INVALID_INTERPOL_METHOD
 from pyg2p.main.readers.netcdf import NetCDFReader
 
+from pyg2p.main.interpolation.scipy_interpolation_lib import DEBUG_BILINEAR_INTERPOLATION, \
+                                        DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
 
 class NetCDFWriter(Writer):
     FORMAT = 'netcdf'
@@ -87,7 +89,10 @@ class NetCDFWriter(Writer):
         values_nc.long_name = varargs.get('var_long_name', '')
         values_nc.units = varargs.get('unit', '')
         for t in range(len(time_values)):
-            values_nc[t, :, :] = values[t,:,:]
+            if DEBUG_BILINEAR_INTERPOLATION:
+                values_nc[t, 1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)] = values[t, :, :]
+            else:
+                values_nc[t, :, :] = values[t,:,:]
         longitude[:] = self.lons[1,:]
         latitude[:] = self.lats[:,1]
 

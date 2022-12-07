@@ -13,6 +13,13 @@ from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
 from pyg2p.util.strings import now_string
 
+DEBUG_BILINEAR_INTERPOLATION = False
+DEBUG_MIN_LAT = 40
+DEBUG_MIN_LON = 5
+DEBUG_MAX_LAT = 50
+DEBUG_MAX_LON = 10
+#DEBUG_NN = 15410182
+
 class ScipyInterpolation(object):
     """
     http://docs.scipy.org/doc/scipy/reference/spatial.html
@@ -488,16 +495,11 @@ class ScipyInterpolation(object):
                 except AssertionError as e:
                     ApplicationException.get_exc(WEIRD_STUFF, details=str(e))
 
-                [alpha, beta] = opt.fsolve(self._functionAlphaBeta, (0.5, 0.5))
+                [alpha, beta] = np.clip(opt.fsolve(self._functionAlphaBeta, (0.5, 0.5)), 0, 1)
                 weight1[nn] = (1-alpha)*(1-beta)
                 weight2[nn] = alpha*(1-beta)
                 weight3[nn] = alpha*beta
                 weight4[nn] = (1-alpha)*beta
-
-                try:
-                    assert (alpha>=0) and (alpha<=1) and (beta>=0) and (beta<=1), "Error: alpha and beta not in range [0,1], alpha={}, beta={}, nn={}, lat={} lon={}".format(alpha, beta, nn, self.lat_in, self.lon_in)
-                except AssertionError as e:
-                    ApplicationException.get_exc(WEIRD_STUFF, details=str(e))
 
                 weights[nn, 0:4] = np.array(
                     [weight1[nn], weight2[nn], weight3[nn], weight4[nn]])

@@ -9,7 +9,9 @@ from pyg2p import Loggable
 
 from . import grib_interpolation_lib
 from .latlong import LatLong
-from .scipy_interpolation_lib import ScipyInterpolation
+from .scipy_interpolation_lib import ScipyInterpolation, DEBUG_BILINEAR_INTERPOLATION, \
+                                        DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
+                                        
 from ...exceptions import ApplicationException, NO_INTERTABLE_CREATED
 import pyg2p.util.files
 import pyg2p.util.numeric
@@ -155,8 +157,14 @@ class Interpolator(Loggable):
         return result
 
     def interpolate_scipy(self, latgrib, longrib, v, grid_id, grid_details=None):
-
-        intertable_id, intertable_name = self._intertable_filename(grid_id)
+        if DEBUG_BILINEAR_INTERPOLATION:
+            # target_lats=target_lats[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+            # target_lons=target_lons[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+            self._target_coords.lats=self._target_coords.lats[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
+            self._target_coords.lons=self._target_coords.lons[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
+            intertable_id, intertable_name = 'DEBUG','DEBUG'
+        else:
+            intertable_id, intertable_name = self._intertable_filename(grid_id)
         lonefas = self._target_coords.lons
         latefas = self._target_coords.lats
 
