@@ -4,28 +4,36 @@ from sys import stdout
 import eccodes
 import numexpr as ne
 import numpy as np
+import math 
+import scipy.optimize as opt  
 from scipy.spatial import cKDTree as KDTree
 
-from ...exceptions import ApplicationException, WEIRD_STUFF
+from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD
 from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
 from pyg2p.util.strings import now_string
 
-
-class InverseDistance(object):
+class ScipyInterpolation(object):
     """
     http://docs.scipy.org/doc/scipy/reference/spatial.html
     """
     gribapi_version = list(map(int, eccodes.codes_get_api_version().split('.')))
     rotated_bugfix_gribapi = gribapi_version[0] > 1 or (gribapi_version[0] == 1 and gribapi_version[1] > 14) or (gribapi_version[0] == 1 and gribapi_version[1] == 14 and gribapi_version[2] >= 3)
 
-    def __init__(self, longrib, latgrib, grid_details, source_values, nnear, mv_target, mv_source, target_is_rotated=False, parallel=False):
+    def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
+                    mv_target, mv_source, target_is_rotated=False, parallel=False,
+                    bilinear=False):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
         self.source_grid_is_rotated = 'rotated' in grid_details.get('gridType')
         self.target_grid_is_rotated = target_is_rotated
         self.njobs = 1 if not parallel else -1
+        
+        self.longrib = longrib
+        self.latgrib = latgrib
         self.nnear = nnear
+        self.bilinear = bilinear
+        
         # we receive rotated coords from GRIB_API iterator before 1.14.3
         x, y, zz = self.to_3d(longrib, latgrib, to_regular=not self.rotated_bugfix_gribapi)
         source_locations = np.vstack((x.ravel(), y.ravel(), zz.ravel())).T
@@ -51,21 +59,32 @@ class InverseDistance(object):
     def interpolate(self, target_lons, target_lats):
         # Target coordinates  HAVE to be rotated coords in case GRIB grid is rotated
         # Example of target rotated coords are COSMO lat/lon/dem PCRASTER maps
+        self.target_latsOR=target_lats
+        self.target_lonsOR=target_lons
         x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
         efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        stdout.write('Finding indexes for ' + ('nearest neighbour' if self.bilinear == False else 'bilinear interpolation') + ' k={}\n'.format(self.nnear))
 
-        stdout.write('Finding indexes for nearest neighbour k={}\n'.format(self.nnear))
-
-        distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs)
-
+        distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs) 
+        
         if self.nnear == 1:
             # return distances, distances, indexes
             result, indexes = self._build_nn(distances, indexes)
             weights = distances
         else:
-            # return distances, distances, indexes
-            result, weights, indexes = self._build_weights(distances, indexes, self.nnear)
-
+            if self.bilinear == False: 
+                # return distances, distances, indexes
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear) 
+            else:  
+                if self.nnear == 4: # bilinear interpolation only supported with nnear = 4
+                    # BILINEAR INTERPOLATION
+                    result, weights, indexes = self._build_weights_bilinear(distances, indexes, efas_locations, self.nnear) 
+                    ##print (result,weights)         
+                else:
+                    raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
+                                f"bilinear interpolation only supported with nnear = 4, used {self.nnear}")
+                    
+               
         stdout.write('End scipy interpolation: {}\n'.format(now_string()))
         return result, weights, indexes
 
@@ -127,7 +146,7 @@ class InverseDistance(object):
         stdout.flush()
         return result, idxs
 
-    def _build_weights(self, distances, indexes, nnear):
+    def _build_weights_invdist(self, distances, indexes, nnear):
         z = self.z
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
         jinterpol = 0
@@ -168,3 +187,339 @@ class InverseDistance(object):
         stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, jinterpol, num_cells, outs))
         stdout.flush()
         return result, weights, idxs
+
+    ###########################################################################################
+    ###### functions used to get correct quadrilater points for the bilinear interpolation ####
+    ###########################################################################################
+    
+    # return lon1, lon2, lon3 and lon4 in classical longitude format range (-180,180)
+    # furthermore, when differences between lon_in and p points are >90 degree, 
+    # get the p point on the opposite longitude of the globe
+    def get_correct_lats_lons(self, i1, i2, i3, i4 = None):
+        lat = np.zeros((4))
+        lon = np.zeros((4))
+        for n,i in enumerate([i1,i2,i3,i4]):
+            lat[n] = self.latgrib[i]
+            lon[n] = self.longrib[i]
+            # set lon as the same lon_in reference system        
+            if lon[n] > 180:
+                lon[n] = lon[n]-360
+        
+        # then change all to -360,0 or 0,360 if needed (otherwise use the current -180,180 reference system)
+        if self.lon_in<-90:
+            # use the reference system with lon in range [-360, 0]
+            for n in range(4):
+                if lon[n] > 0:
+                    lon[n] -= 360
+        elif self.lon_in>90:
+            # use the reference system with lon in range [0, 360]
+            for n in range(4):
+                if lon[n] < 0:
+                    lon[n] += 360
+        
+        for n,i in enumerate([i1,i2,i3,i4]):
+            # when differences between lon_in and p points are >90 degree, consider p point on the opposite longitude of the globe
+            if abs(self.lon_in-lon[n])>90:
+                lat[n] = 180*np.sign(self.latgrib[i]) - self.latgrib[i]
+                lon[n] = (lon[n] + 180) % 360
+                if lon[n] > 180:
+                    lon[n] = lon[n]-360
+
+        # then change again to -360 or +360 if needed (otherwise use the current -180,180 reference system)
+        if self.lon_in<-90:
+            # use the reference system with lon in range [-360, 0]
+            for n in range(4):
+                if lon[n] > 0:
+                    lon[n] -= 360
+        elif self.lon_in>90:
+            # use the reference system with lon in range [0, 360]
+            for n in range(4):
+                if lon[n] < 0:
+                    lon[n] += 360
+
+        return lat, lon
+
+    # given the 4 corner points, store points in p1, p2, p3, p4 vars in clockwise order
+    def get_clockwise_points(self, corners_points):        
+        # I need to differentiate when 3 points are on the same longitude
+        ordered_corners_points = corners_points[0:4, 1]*1000+corners_points[0:4, 0]  
+        idx_ordered_points = np.argsort(ordered_corners_points, None)
+
+        left = corners_points[idx_ordered_points[0:2], :]
+        right = corners_points[idx_ordered_points[2:4], :]
+        if (left[0, 0] <= left[1, 0]):
+            bottom_left = left[0, :]
+            top_left = left[1, :]
+        else:
+            bottom_left = left[1, :]
+            top_left = left[0, :]
+
+        if right[0, 0] <= right[1, 0]:
+            bottom_right = right[0, :]
+            top_right = right[1, :]
+        else:
+            bottom_right = right[1, :]
+            top_right = right[0, :]
+
+        self.p1 = np.array(bottom_left)
+        self.p2 = np.array(bottom_right)
+        self.p3 = np.array(top_right)
+        self.p4 = np.array(top_left)
+
+    # check to get exacly only one point for each direction
+    # returns the wrong point index, if any
+    def getWrongPoint(self, corners_points):
+        # check to get exacly only one point for each direction
+        distances_points_up_left = corners_points[np.logical_and(corners_points[:,0]<=self.lat_in, corners_points[:,1]<=self.lon_in)]-[self.lat_in,self.lon_in,0,0]
+        if distances_points_up_left.shape[0]>1:
+            return distances_points_up_left[np.argmax(np.sum(abs(distances_points_up_left[:,0:2]),axis=1)),3]
+        distances_points_up_right = corners_points[np.logical_and(corners_points[:,0]<=self.lat_in, corners_points[:,1]>self.lon_in)]-[self.lat_in,self.lon_in,0,0]
+        if distances_points_up_right.shape[0]>1:
+            return distances_points_up_right[np.argmax(np.sum(abs(distances_points_up_right[:,0:2]),axis=1)),3]
+        distances_points_down_left = corners_points[np.logical_and(corners_points[:,0]>self.lat_in, corners_points[:,1]<=self.lon_in)]-[self.lat_in,self.lon_in,0,0]
+        if distances_points_down_left.shape[0]>1:
+            return distances_points_down_left[np.argmax(np.sum(abs(distances_points_down_left[:,0:2]),axis=1)),3]
+        distances_points_down_right = corners_points[np.logical_and(corners_points[:,0]>self.lat_in, corners_points[:,1]>self.lon_in)]-[self.lat_in,self.lon_in,0,0]
+        if distances_points_down_right.shape[0]>1:
+            return distances_points_down_right[np.argmax(np.sum(abs(distances_points_down_right[:,0:2]),axis=1)),3]
+        return None
+
+    # take additional points from the KDTree close to the current point and replace the wrong one with a new one
+    def replaceIndex(self, index_to_replace, indexes, nn, additional_points):
+        # replace the unwanted index with next one:
+        _, replacement_indexes = self.tree.query(self.target_location, k=self.nnear+additional_points, n_jobs=self.njobs) 
+        # print("replacement_indexes: {}".format(replacement_indexes))
+
+        # delete all the current indexes from the replaceent_indexes 
+        # this is to fix an issue with the query, that do not give always the same
+        # order when the distance is the same for some of the points
+        for i in indexes[nn, 0:4]:
+            replacement_indexes = np.delete(replacement_indexes, np.where(replacement_indexes == i))
+        
+        # get rid of the wrong point and add the farthest among the new selected points
+        indexes[nn, indexes[nn, 0:4] == index_to_replace] = replacement_indexes[-1]
+        if len(np.unique(indexes[nn, 0:4]))!=4:
+            print("Less then 4 distinct point!")
+
+    
+    # Return the intersection point of line segments `s1` and `s2`, or
+    # None if they do not intersect.
+    def intersection(self, s1, s2):
+        p, r = s1[0], s1[1] - s1[0]
+        q, s = s2[0], s2[1] - s2[0]
+        rxs = float(np.cross(r, s))
+        if rxs == 0: return None
+        t = np.cross(q - p, s) / rxs
+        u = np.cross(q - p, r) / rxs
+        if 0 < t < 1 and 0 < u < 1:
+            return p + t * r
+        return None
+
+    # check if vertex make a convex quadrilater
+    def isConvexQuadrilateral(self, p1, p2, p3, p4):
+        diagonal_intersectin = self.intersection([p1, p3],[p2, p4])
+        return diagonal_intersectin is not None
+
+    # get angle between segments ab and bc (used to get the non convex vertex)
+    def get_angle(self, a, b, c):
+        angle = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
+        return angle + 360 if angle < 0 else angle
+
+    # get index of the non convex vertex
+    def getNonConvexVertex(self, p1, p2, p3, p4):
+        if self.get_angle(p1[0:2],p2[0:2],p3[0:2]) >= 180:
+            return p2[3]
+        if self.get_angle(p2[0:2],p3[0:2],p4[0:2]) >= 180:
+            return p3[3]
+        if self.get_angle(p3[0:2],p4[0:2],p1[0:2]) >= 180:
+            return p4[3]
+        if self.get_angle(p4[0:2],p1[0:2],p2[0:2]) >= 180:
+            return p1[3]
+        return None #we should never get here
+
+    # used in the point in triangle check
+    def sign(self, p1, p2, p3):
+        return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1])
+
+    # check if point pt is in triangle with vertex v1,v2,v3
+    def isPointInTriangle(self, pt, v1, v2, v3):
+        d1 = self.sign(pt, v1, v2)
+        d2 = self.sign(pt, v2, v3)
+        d3 = self.sign(pt, v3, v1)
+
+        has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
+        has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
+
+        return not(has_neg and has_pos)
+
+    # if a quadrilater is convex, check if point pt is inside the quatrilater
+    # n.b: is the quadrilater is not convex, just switch the vertex in this way:
+    # if (is_convex) or (index_nonconvex!=self.p2[3] and index_nonconvex!=self.p4[3]):
+    #       is_in_quadrilater = isPointInQuadrilateral([self.lat_in,self.lon_in], self.p1[0:2], self.p2[0:2], self.p3[0:2], self.p4[0:2])
+    #   else:
+    #       is_in_quadrilater = self.isPointInQuadrilateral([self.lat_in,self.lon_in], self.p2[0:2], self.p3[0:2], self.p4[0:2], self.p1[0:2])   
+    def isPointInQuadrilateral(self, pt, v1, v2, v3, v4, is_convex):
+        assert(is_convex) # I should never call this on non convex quatrilaters
+        is_in_t1 = self.isPointInTriangle(pt, v1,v2,v3)
+        is_in_t2 = self.isPointInTriangle(pt, v1,v4,v3)
+        return is_in_t1 or is_in_t2
+
+    def _build_weights_bilinear(self, distances, indexes, efas_locations, nnear):
+        z = self.z
+        result = mask_it(np.empty((len(distances),) +
+                         np.shape(z[0])), self._mv_target, 1)
+        weights = np.empty((len(distances),) + (nnear,))
+        idxs = empty((len(indexes),) + (nnear,), fill_value=z.size, dtype=int)
+        weight1 = empty((len(distances),))
+        weight2 = empty((len(distances),))
+        weight3 = empty((len(distances),))
+        weight4 = empty((len(distances),))
+        empty_array = empty(z[0].shape, self._mv_target)
+
+        self.lat_inALL = self.target_latsOR.ravel()
+        self.lon_inALL = self.target_lonsOR.ravel()
+
+        num_cells = result.size
+        back_char, progress_step = progress_step_and_backchar(num_cells)
+
+        stdout.write('Skipping bilinear interpolation at distance > {}\n'.format(self.min_upper_bound))
+        stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
+        stdout.flush()
+
+        outs = 0    #number of points falling outside the min_upper_bound distance
+
+        # max number of retry equals to a full lenght of lon coordinates
+        max_retries = self.target_lonsOR.shape[0]        
+        max_used_additional_points = 0
+        nn_max_used_additional_points = -1
+        #for nn in range(1810762,len(indexes)):
+        for nn in range(len(indexes)):
+            if nn % progress_step == 0:
+                stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)'.format(back_char, nn, num_cells, outs, nn * 100. / num_cells))
+                stdout.flush()
+
+            dist = distances[nn]
+            ix = indexes[nn]
+            self.lat_in = self.lat_inALL[nn]
+            self.lon_in = self.lon_inALL[nn]
+
+            # check distances 
+            if dist[0] <= 1e-10:  
+                result[nn] = z[ix[0]]  # take exactly the point, weight = 1
+                idxs[nn] = ix
+                weights[nn] = np.array([1., 0., 0., 0.])
+            elif dist[0] > self.min_upper_bound:
+                outs += 1
+                weights[nn] = np.array([1., 0., 0., 0.])
+                result[nn] = empty_array
+            else:
+                self.target_location = efas_locations[nn]
+                additional_points = 0
+                quadrilater_is_ok = False
+                while quadrilater_is_ok == False and additional_points<max_retries:  
+                    additional_points += 1
+                    if max_used_additional_points<additional_points:
+                        max_used_additional_points = additional_points
+                        nn_max_used_additional_points = nn
+                    try:
+                        assert len(np.unique(indexes[nn, 0:4]))==4, "Less then 4 distinct point! nn={} lat={} lon={}".format(nn, self.lat_in, self.lon_in)
+                    except AssertionError as e:
+                        ApplicationException.get_exc(WEIRD_STUFF, details=str(e))
+                    
+                    # find the 4 corners
+                    i1, i2, i3, i4 = indexes[nn, 0:4]
+                    idxs[nn, :] = indexes[nn, 0:4]
+
+                    # check the point on lat lon coords system:
+                    # I need that my location falls in the quadrilateral
+                    # (actually the quadrilateral should be convex as per bilinear interpolation (bilinear warp) definition,
+                    # but the interpolation works also on non-convex poligon
+                    # N.B: when the quadrilater is not a rectangle, we have a so called "bilinear transformation, 
+                    # bilinear warp or bilinear distortion", instead of a bilinear interpolation. 
+                    # See : https://en.wikipedia.org/wiki/Bilinear_interpolation
+
+                    lats, lons = self.get_correct_lats_lons(i1, i2, i3, i4)
+
+                    corners_points = np.array([[lats[0], lons[0], self.z[i1], i1],
+                        [lats[1], lons[1], self.z[i2], i2],
+                        [lats[2], lons[2], self.z[i3], i3],
+                        [lats[3], lons[3], self.z[i4], i4]])
+
+                    # the grib file has different number of longitude points for each latitude,
+                    # thus I will just select, on each latitude, one point on the upper-left, 
+                    # one point on upper-right, one on donw-left and one on down-right of the current point
+                    # otherwise, the wrong point will be replaced
+                    index_wrong_point = self.getWrongPoint(corners_points)
+                    if index_wrong_point is not None:
+                        self.replaceIndex(index_wrong_point, indexes, nn, additional_points)
+                    else:
+                        #get p1,p2,p3,p4 in clockwise order
+                        self.get_clockwise_points(corners_points)
+                        # check for convexity
+                        is_convex = self.isConvexQuadrilateral(self.p1[0:2], self.p2[0:2], self.p3[0:2], self.p4[0:2])
+                        index_nonconvex = -1
+                        if is_convex == False:
+                            index_nonconvex = self.getNonConvexVertex(self.p1, 
+                                                    self.p2, 
+                                                    self.p3, 
+                                                    self.p4,)
+                            if (index_nonconvex is None):
+                                print("Error, index_nonconvex is None for nn={}".format(nn))
+                            
+                            assert(index_nonconvex is not None)    
+                            self.replaceIndex(index_nonconvex, indexes, nn, additional_points)
+                        else:
+                            # check for point in quadrilateral
+                            is_in_quadrilater = self.isPointInQuadrilateral([self.lat_in,self.lon_in], 
+                                                                            self.p1[0:2], 
+                                                                            self.p2[0:2], 
+                                                                            self.p3[0:2], 
+                                                                            self.p4[0:2], 
+                                                                            is_convex)
+                            if is_in_quadrilater == False:
+                                # get rid of the wrong point (the actual farthest one) and add the new one 
+                                # (that is the farthest in the new list of replacement_indexes)
+                                self.replaceIndex(indexes[nn, 3], indexes, nn, additional_points)                                
+                            else:
+                                quadrilater_is_ok = True
+
+                try:
+                    assert quadrilater_is_ok == True, "Error: quadrilater_is_ok is False, failed to find a correct quadrilater: nn is {}, lat={} lon={}".format(nn, self.lat_in, self.lon_in)
+                except AssertionError as e:
+                    ApplicationException.get_exc(WEIRD_STUFF, details=str(e))
+
+                [alpha, beta] = opt.fsolve(self._functionAlphaBeta, (0.5, 0.5))
+                weight1[nn] = (1-alpha)*(1-beta)
+                weight2[nn] = alpha*(1-beta)
+                weight3[nn] = alpha*beta
+                weight4[nn] = (1-alpha)*beta
+
+                try:
+                    assert (alpha>=0) and (alpha<=1) and (beta>=0) and (beta<=1), "Error: alpha and beta not in range [0,1], alpha={}, beta={}, nn={}, lat={} lon={}".format(alpha, beta, nn, self.lat_in, self.lon_in)
+                except AssertionError as e:
+                    ApplicationException.get_exc(WEIRD_STUFF, details=str(e))
+
+                weights[nn, 0:4] = np.array(
+                    [weight1[nn], weight2[nn], weight3[nn], weight4[nn]])
+                idxs[nn, 0:4] = np.array(
+                    [self.p1[3], self.p2[3], self.p3[3], self.p4[3]])
+
+                result[nn] = weight1[nn]*self.p1[2] + weight2[nn]*self.p2[2] + weight3[nn] * \
+                    self.p3[2] + weight4[nn] * \
+                    self.p4[2]  # xyzIN=efas_locations[nn,:]
+
+        stdout.write('{}{:>100}'.format(back_char, ' '))
+        stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs))
+        stdout.write('debug info: max_used_additional_points is {}, nn is {}\n'.format(max_used_additional_points, nn_max_used_additional_points))
+        stdout.flush()
+
+        return result, weights, idxs
+
+    def _functionAlphaBeta(self, variables):
+        (alpha, beta) = variables
+        # This is the function that we want to make 0
+        first_eq = (1-alpha)*(1-beta)*self.p1[0]+alpha*(
+            1-beta)*self.p2[0]+alpha*beta*self.p3[0]+(1-alpha)*beta*self.p4[0]-self.lat_in
+        second_eq = (1-alpha)*(1-beta)*self.p1[1]+alpha*(
+            1-beta)*self.p2[1]+alpha*beta*self.p3[1]+(1-alpha)*beta*self.p4[1]-self.lon_in
+        return [first_eq, second_eq]
