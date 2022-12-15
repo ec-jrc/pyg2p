@@ -157,16 +157,16 @@ class Interpolator(Loggable):
         return result
 
     def interpolate_scipy(self, latgrib, longrib, v, grid_id, grid_details=None):
+        lonefas = self._target_coords.lons
+        latefas = self._target_coords.lats
         if DEBUG_BILINEAR_INTERPOLATION:
             # target_lats=target_lats[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
             # target_lons=target_lons[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
-            self._target_coords.lats=self._target_coords.lats[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
-            self._target_coords.lons=self._target_coords.lons[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
-            intertable_id, intertable_name = 'DEBUG','DEBUG'
+            latefas=self._target_coords.lats[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
+            lonefas=self._target_coords.lons[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
+            intertable_id, intertable_name = 'DEBUG','DEBUG.npy'
         else:
             intertable_id, intertable_name = self._intertable_filename(grid_id)
-        lonefas = self._target_coords.lons
-        latefas = self._target_coords.lats
 
         nnear = self.scipy_modes_nnear[self._mode]
 

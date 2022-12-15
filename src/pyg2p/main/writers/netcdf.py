@@ -79,15 +79,22 @@ class NetCDFWriter(Writer):
         time_nc.calendar = 'proleptic_gregorian'
         time_nc[:] = time_values
 
+        __VALUE_NAN = -9999
         values_nc = self.nf.createVariable(varargs.get('prefix', ''), 'f8',
-                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=-9999,
+                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=-__VALUE_NAN,
                                            )
-        values_nc.missing_value=-9999
+        values_nc.missing_value=__VALUE_NAN
         values_nc.coordinates = 'lon lat'
         values_nc.esri_pe_string = self.esri_pe_string
         values_nc.standard_name = varargs.get('prefix', '')
         values_nc.long_name = varargs.get('var_long_name', '')
         values_nc.units = varargs.get('unit', '')
+        values_nc.scale_factor = varargs.get('scale_factor', '1.0')
+        values_nc.add_offset = varargs.get('offset', '0.0')
+
+        # TODO: check this: adjust missing values when scale_factor and offset are not 1.0 e 0.0        
+        values[np.isnan(values)] = (__VALUE_NAN - varargs.get('offset', '0.0')) * varargs.get('scale_factor', '1.0')
+
         for t in range(len(time_values)):
             if DEBUG_BILINEAR_INTERPOLATION:
                 values_nc[t, 1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)] = values[t, :, :]

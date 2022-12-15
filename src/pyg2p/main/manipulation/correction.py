@@ -12,6 +12,8 @@ from pyg2p.main.readers.grib import GRIBReader
 from pyg2p.main.config import GeopotentialsConfiguration
 import pyg2p.util.numeric
 
+from ..interpolation.scipy_interpolation_lib import DEBUG_BILINEAR_INTERPOLATION, \
+                                        DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
 
 class Corrector(Loggable):
 
@@ -56,7 +58,10 @@ class Corrector(Loggable):
     def correct(self, values):
         with np.errstate(over='ignore'):
             # variables below are used by numexpr evaluation namespace
-            dem = self._dem_values
+            if DEBUG_BILINEAR_INTERPOLATION:
+                dem = self._dem_values[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
+            else:
+                dem = self._dem_values
             p = values
             gem = self._gem_values
             mv = self._dem_missing_value
