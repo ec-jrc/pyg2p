@@ -62,17 +62,17 @@ class NetCDFWriter(Writer):
 
     def write(self, values, time_values, **varargs):
         # Variables
-        longitude = self.nf.createVariable('lon', 'f4', ('lon',), complevel=4, zlib=True)
+        longitude = self.nf.createVariable('lon', 'f8', ('lon',), complevel=4, zlib=True)
         longitude.standard_name = 'Longitude'
         longitude.long_name = 'Longitude coordinate'
         longitude.units = 'degrees_east'
 
-        latitude = self.nf.createVariable('lat', 'f4', ('lat',), complevel=4, zlib=True)
+        latitude = self.nf.createVariable('lat', 'f8', ('lat',), complevel=4, zlib=True)
         latitude.standard_name = 'Latitude'
         latitude.long_name = 'Latitude coordinate'
         latitude.units = 'degrees_north'
 
-        time_nc = self.nf.createVariable('time', 'f', ('time',), complevel=4, zlib=True)
+        time_nc = self.nf.createVariable('time', 'i4', ('time',), complevel=4, zlib=True)
         time_nc.standard_name = 'time'
         time_nc.units = f'hours since {varargs.get("data_date")}'
         time_nc.frequency = '1'
@@ -80,7 +80,7 @@ class NetCDFWriter(Writer):
         time_nc[:] = time_values
 
         __VALUE_NAN = -9999
-        values_nc = self.nf.createVariable(varargs.get('prefix', ''), 'f8',
+        values_nc = self.nf.createVariable(varargs.get('prefix', ''), varargs.get('value_format', 'f8'),
                                            ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=-__VALUE_NAN,
                                            )
         values_nc.missing_value=__VALUE_NAN
@@ -91,8 +91,13 @@ class NetCDFWriter(Writer):
         values_nc.units = varargs.get('unit', '')
         values_nc.scale_factor = varargs.get('scale_factor', '1.0')
         values_nc.add_offset = varargs.get('offset', '0.0')
+        if varargs.get('valid_min', None) is not None:
+            values_nc.valid_min = np.float64(varargs.get('valid_min', None))
+        if varargs.get('valid_max', None) is not None:            
+            values_nc.valid_max = np.float64(varargs.get('valid_max', None))
+        values_nc.set_auto_maskandscale(True)         
 
-        # TODO: check this: adjust missing values when scale_factor and offset are not 1.0 e 0.0        
+        # adjust missing values when scale_factor and offset are not 1.0 - 0.0        
         values[np.isnan(values)] = (__VALUE_NAN - varargs.get('offset', '0.0')) * varargs.get('scale_factor', '1.0')
 
         for t in range(len(time_values)):

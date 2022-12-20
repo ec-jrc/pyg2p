@@ -231,6 +231,9 @@ class ExecutionContext(Context):
         self._vars['outMaps.namePrefix'] = parsed_args['namePrefix']
         self._vars['outMaps.scaleFactor'] = parsed_args['scaleFactor']
         self._vars['outMaps.offset'] = parsed_args['offset']
+        self._vars['outMaps.validMin'] = parsed_args['validMin']
+        self._vars['outMaps.validMax'] = parsed_args['validMax']
+        self._vars['outMaps.valueFormat'] = parsed_args['valueFormat']
         self._vars['outMaps.outDir'] = parsed_args['outDir']
         self._vars['parameter.perturbationNumber'] = parsed_args['perturbationNumber']
         self._vars['input.file2'] = parsed_args['inputFile2']
@@ -278,6 +281,9 @@ class ExecutionContext(Context):
         parser.add_argument('-n', '--namePrefix', help='Prefix name for maps', metavar='outfiles_prefix')
         parser.add_argument('-O', '--offset', help='Map offset', metavar='offset')
         parser.add_argument('-S', '--scaleFactor', help='Map scale factor', metavar='scale_factor')
+        parser.add_argument('-vM', '--validMax', help='Max valid value', metavar='valid_max')
+        parser.add_argument('-vm', '--validMin', help='Min valid value', metavar='valid_min')
+        parser.add_argument('-vf', '--valueFormat', help='output value format (default f8)', metavar='value_format')
 
         # logging
         parser.add_argument('-l', '--loggerLevel', help='Console logging level', default='INFO',
@@ -372,6 +378,12 @@ class ExecutionContext(Context):
             self._vars['outMaps.scaleFactor'] = exec_conf['OutMaps'].get('@scaleFactor') or 1.0
         if self._vars['outMaps.offset'] is None:
             self._vars['outMaps.offset'] = exec_conf['OutMaps'].get('@offset') or 0.0
+        if self._vars['outMaps.validMin'] is None:
+            self._vars['outMaps.validMin'] = exec_conf['OutMaps'].get('@validMin')
+        if self._vars['outMaps.validMax'] is None:
+            self._vars['outMaps.validMax'] = exec_conf['OutMaps'].get('@validMax')
+        if self._vars['outMaps.valueFormat'] is None:
+            self._vars['outMaps.valueFormat'] = exec_conf['OutMaps'].get('@valueFormat')
         if self._vars['outMaps.fmap'] == 1:
             self._vars['outMaps.fmap'] = exec_conf['OutMaps'].get('@fmap') or 1
         if self._vars['outMaps.ext'] == 1:
