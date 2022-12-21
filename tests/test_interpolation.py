@@ -51,15 +51,14 @@ class TestInterpolation:
         d['interpolation.create'] = True
         d['interpolation.parallel'] = True
         d['interpolation.mode'] = 'bilinear'
-        # Test on global map in NetCDF format
-        d['interpolation.lonMap'] = 'tests/data/template_Global_03min.nc'
-        d['interpolation.latMap'] = 'tests/data/template_Global_03min.nc'
-        #d['input.file']= 'tests/data/era5_TPacc_19790101.grb'
+        # # Test on era5 grib map in NetCDF format
+        d['interpolation.lonMap'] = 'tests/data/template_test.nc'
+        d['interpolation.latMap'] = 'tests/data/template_test.nc'
+        d['input.file']= 'tests/data/era5_T2avg_19790101.grb'
 
         file = d['input.file']
         reader = GRIBReader(file)
         messages = reader.select_messages(shortName='2t')
-        #messages = reader.select_messages(shortName='tp')
         grid_id = messages.grid_id
         missing = messages.missing_value
         ctx = MockedExecutionContext(d, False)
@@ -69,7 +68,7 @@ class TestInterpolation:
         values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id, messages.grid_details)
         shape_target = PCRasterReader(d['interpolation.latMap']).values.shape
         assert shape_target == values_resampled.shape
-        os.unlink('tests/data/tbl_pf10tp_550800_scipy_invdist.npy.gz')
+        os.unlink('tests/data/tbl_era5t2avg_441_scipy_bilinear.npy.gz')
 
     @pytest.mark.slow
     def test_interpolation_create_eccodes_nearest(self):

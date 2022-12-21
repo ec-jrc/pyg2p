@@ -18,10 +18,14 @@ DEBUG_BILINEAR_INTERPOLATION = False
 # DEBUG_MIN_LON = -180
 # DEBUG_MAX_LAT = 90
 # DEBUG_MAX_LON = 180
-DEBUG_MIN_LAT = 40
-DEBUG_MIN_LON = 5
-DEBUG_MAX_LAT = 50
-DEBUG_MAX_LON = 10
+# DEBUG_MIN_LAT = 40
+# DEBUG_MIN_LON = 5
+# DEBUG_MAX_LAT = 50
+# DEBUG_MAX_LON = 10
+DEBUG_MIN_LAT = 39
+DEBUG_MIN_LON = 42
+DEBUG_MAX_LAT = 42
+DEBUG_MAX_LON = 47
 #DEBUG_NN = 15410182
 
 
@@ -508,6 +512,14 @@ class ScipyInterpolation(object):
             ix = indexes[nn]
             self.lat_in = self.lat_inALL[nn]
             self.lon_in = self.lon_inALL[nn]
+
+            # if DEBUG_BILINEAR_INTERPOLATION:
+            #     # # if nn==14753:
+            #     # if nn==72759:
+            # if nn==185623:
+            #     print('self.lat_in = {}, self.lon_in = {}, nn = {}'.format(self.lat_in,self.lon_in,nn))
+            #     if abs(self.lat_in-40.775)<0.02 and abs(self.lon_in-44.825)<0.02:
+            #         print('self.lat_in = {}, self.lon_in = {}, nn = {}'.format(self.lat_in,self.lon_in,nn))
 
             # check distances 
             if dist[0] <= 1e-10:  
