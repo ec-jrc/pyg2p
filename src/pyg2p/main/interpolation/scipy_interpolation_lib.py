@@ -214,13 +214,13 @@ def get_angle(a, b, c):
 
 # get index of the non convex vertex
 def getNonConvexVertex(p1, p2, p3, p4):
-    if get_angle(p1[0:2],p2[0:2],p3[0:2]) >= 180:
+    if get_angle(p1[0:2],p2[0:2],p3[0:2]) >= 179.9:
         return p2[3]
-    if get_angle(p2[0:2],p3[0:2],p4[0:2]) >= 180:
+    if get_angle(p2[0:2],p3[0:2],p4[0:2]) >= 179.9:
         return p3[3]
-    if get_angle(p3[0:2],p4[0:2],p1[0:2]) >= 180:
+    if get_angle(p3[0:2],p4[0:2],p1[0:2]) >= 179.9:
         return p4[3]
-    if get_angle(p4[0:2],p1[0:2],p2[0:2]) >= 180:
+    if get_angle(p4[0:2],p1[0:2],p2[0:2]) >= 179.9:
         return p1[3]
     return None #we should never get here
 
@@ -534,6 +534,12 @@ class ScipyInterpolation(object):
                 self.target_location = efas_locations[nn]
                 additional_points = 0
                 quadrilateral_is_ok = False
+                # additional checks only if source_grid_is_rotated is False
+                if self.source_grid_is_rotated == False:
+                    additional_checks_completed = False
+                else:
+                    additional_checks_completed = True
+                    max_retries = 20
                 while quadrilateral_is_ok == False and additional_points<max_retries:  
                     # find the 4 corners
                     i1, i2, i3, i4 = indexes[nn, 0:4]
@@ -554,58 +560,65 @@ class ScipyInterpolation(object):
                         [lats[2], lons[2], self.z[i3], i3],
                         [lats[3], lons[3], self.z[i4], i4]])
 
-                    # the grib file has different number of longitude points for each latitude,
-                    # thus I will make sure to use only 2 above and two below of the current point
-                    # the function will return the wrong point, if any
-                    index_wrong_points = getWrongPointDirection(self.lat_in, self.lon_in, corners_points)
-                    if len(index_wrong_points):
-                        # check if the latitude point is above the maximum or below the minimun latitude, 
-                        # to speed up the process and retrieve better "close points" from the KDTree 
-                        # I will look for nearest points of the opposite side of the globe
-                        if self.lat_in>latgrib_max or self.lat_in<latgrib_min:
-                            self.replaceIndexOppositeSide(index_wrong_points, indexes, nn)
-                        else:
-                            additional_points = self.replaceIndex(index_wrong_points, indexes, nn, additional_points)
-                    else:
-                        # check for points in grid-like shape
-                        index_wrong_point = getWrongPointGridLikeShape(self.lat_in, self.lon_in, corners_points)
-                        if index_wrong_point is not None:
-                            additional_points = self.replaceIndex([index_wrong_point], indexes, nn, additional_points)
-                        else:
-                            # check for best grid-like shape:
-                            index_wrong_point, new_lat, new_lon = getWrongPointBestGridLikeShape(self.lat_in, self.lon_in, corners_points)
-                            if index_wrong_point is not None:
-                                self.replaceIndexCloseToPoint([index_wrong_point], new_lat, new_lon, indexes, nn)
+                    # check grib type (if grig is on parallels or projected (self.source_grid_is_rotated=True))
+                    # in case we are not in parallel-like grib files, let's use the old bilinear method 
+                    # that works with every grid but is less precise
+                    # see here for possible grib files https://apps.ecmwf.int/codes/grib/format/grib1/grids/10/
+                    if additional_checks_completed == False:
+                        # the grib file has different number of longitude points for each latitude,
+                        # thus I will make sure to use only 2 above and two below of the current point
+                        # the function will return the wrong point, if any
+                        index_wrong_points = getWrongPointDirection(self.lat_in, self.lon_in, corners_points)
+                        if len(index_wrong_points):
+                            # check if the latitude point is above the maximum or below the minimun latitude, 
+                            # to speed up the process and retrieve better "close points" from the KDTree 
+                            # I will look for nearest points of the opposite side of the globe
+                            if self.lat_in>latgrib_max or self.lat_in<latgrib_min:
+                                self.replaceIndexOppositeSide(index_wrong_points, indexes, nn)
                             else:
-                                #get p1,p2,p3,p4 in clockwise order
-                                self.p1, self.p2, self.p3, self.p4 = get_clockwise_points(corners_points)
-                                # check for convexity
-                                is_convex = isConvexQuadrilateral(self.p1[0:2], self.p2[0:2], self.p3[0:2], self.p4[0:2])
-                                index_nonconvex = -1
-                                if is_convex == False:                            
-                                    index_nonconvex = getNonConvexVertex(self.p1, 
-                                                            self.p2, 
-                                                            self.p3, 
-                                                            self.p4,)
-                                    if (index_nonconvex is None):
-                                        print("Error, index_nonconvex is None for nn={}".format(nn))
-                                    
-                                    assert(index_nonconvex is not None)    
-                                    additional_points = self.replaceIndex([index_nonconvex], indexes, nn, additional_points)
+                                additional_points = self.replaceIndex(index_wrong_points, indexes, nn, additional_points)
+                        else:
+                            # check for points in grid-like shape
+                            index_wrong_point = getWrongPointGridLikeShape(self.lat_in, self.lon_in, corners_points)
+                            if index_wrong_point is not None:
+                                additional_points = self.replaceIndex([index_wrong_point], indexes, nn, additional_points)
+                            else:
+                                # check for best grid-like shape:
+                                index_wrong_point, new_lat, new_lon = getWrongPointBestGridLikeShape(self.lat_in, self.lon_in, corners_points)
+                                if index_wrong_point is not None:
+                                    self.replaceIndexCloseToPoint([index_wrong_point], new_lat, new_lon, indexes, nn)
                                 else:
-                                    # check for point in quadrilateral
-                                    is_in_quadrilateral = isPointInQuadrilateral([self.lat_in,self.lon_in], 
-                                                                                    self.p1[0:2], 
-                                                                                    self.p2[0:2], 
-                                                                                    self.p3[0:2], 
-                                                                                    self.p4[0:2], 
-                                                                                    is_convex)
-                                    if is_in_quadrilateral == False:
-                                        # get rid of the wrong point (the actual farthest one) and add the new one 
-                                        # (that is the farthest in the new list of replacement_indexes)
-                                        additional_points = self.replaceIndex([indexes[nn, 3]], indexes, nn, additional_points)                                
-                                    else:
-                                        quadrilateral_is_ok = True
+                                    additional_checks_completed = True
+                    if additional_checks_completed == True:
+                        #get p1,p2,p3,p4 in clockwise order
+                        self.p1, self.p2, self.p3, self.p4 = get_clockwise_points(corners_points)
+                        # check for convexity
+                        is_convex = isConvexQuadrilateral(self.p1[0:2], self.p2[0:2], self.p3[0:2], self.p4[0:2])
+                        index_nonconvex = -1
+                        if is_convex == False:                            
+                            index_nonconvex = getNonConvexVertex(self.p1, 
+                                                    self.p2, 
+                                                    self.p3, 
+                                                    self.p4,)
+                            if (index_nonconvex is None):
+                                print("Error, index_nonconvex is None for nn={}".format(nn))
+                            
+                            assert(index_nonconvex is not None)    
+                            additional_points = self.replaceIndex([index_nonconvex], indexes, nn, additional_points)
+                        else:
+                            # check for point in quadrilateral
+                            is_in_quadrilateral = isPointInQuadrilateral([self.lat_in,self.lon_in], 
+                                                                            self.p1[0:2], 
+                                                                            self.p2[0:2], 
+                                                                            self.p3[0:2], 
+                                                                            self.p4[0:2], 
+                                                                            is_convex)
+                            if is_in_quadrilateral == False:
+                                # get rid of the wrong point (the actual farthest one) and add the new one 
+                                # (that is the farthest in the new list of replacement_indexes)
+                                additional_points = self.replaceIndex([indexes[nn, 3]], indexes, nn, additional_points)                                
+                            else:
+                                quadrilateral_is_ok = True
 
                 if max_used_additional_points<additional_points:
                     max_used_additional_points = additional_points

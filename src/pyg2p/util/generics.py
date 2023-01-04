@@ -20,7 +20,7 @@ def is_callable(v):
 
 
 def progress_step_and_backchar(num_cells):
-    progress_step = num_cells / 250
+    progress_step = int(num_cells / 250)
     back_char = '\r'
     if not stdout.isatty():
         # out is being redirected
