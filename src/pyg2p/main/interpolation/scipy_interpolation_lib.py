@@ -109,6 +109,16 @@ def get_clockwise_points(corners_points):
 # (the wrong point will be the farthest one in latitude only (weighted to longitude value), 
 # to favorite grid-like points)
 def getWrongPointDirection(lat_in, lon_in, corners_points):
+    # check special case of two point that have exacly the same lat and lon
+    pointslist=corners_points[:,0:2]
+    if len(np.unique(pointslist, axis=0, return_index=True)[1])!=4:
+        points_to_return = []
+        for i in range(4):
+            if i not in np.unique(pointslist, axis=0, return_index=True)[1]:
+                points_to_return.append(corners_points[i,3])
+        return points_to_return
+        
+    
     w=0.01   # weight of longitude component direction compared to latitude one, to favourite grid-like points
     # check to get exacly only two points up and two down
     distances_points_up = corners_points[corners_points[:,0]<=lat_in]-[lat_in,lon_in,0,0]
@@ -502,7 +512,7 @@ class ScipyInterpolation(object):
 
         latgrib_max = self.latgrib.max()
         latgrib_min = self.latgrib.min()
-        #for nn in range(1810762,len(indexes)):
+        # for nn in range(25898400,len(indexes)):
         for nn in range(len(indexes)):
             if nn % progress_step == 0:
                 stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)'.format(back_char, nn, num_cells, outs, nn * 100. / num_cells))
@@ -516,7 +526,7 @@ class ScipyInterpolation(object):
             # if DEBUG_BILINEAR_INTERPOLATION:
             #     # # if nn==14753:
             #     # if nn==72759:
-            # if nn==185623:
+            # if nn==25898400:
             #     print('self.lat_in = {}, self.lon_in = {}, nn = {}'.format(self.lat_in,self.lon_in,nn))
             #     if abs(self.lat_in-40.775)<0.02 and abs(self.lon_in-44.825)<0.02:
             #         print('self.lat_in = {}, self.lon_in = {}, nn = {}'.format(self.lat_in,self.lon_in,nn))
