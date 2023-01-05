@@ -22,10 +22,14 @@ DEBUG_BILINEAR_INTERPOLATION = False
 # DEBUG_MIN_LON = 5
 # DEBUG_MAX_LAT = 50
 # DEBUG_MAX_LON = 10
-DEBUG_MIN_LAT = 39
-DEBUG_MIN_LON = 42
-DEBUG_MAX_LAT = 42
-DEBUG_MAX_LON = 47
+# DEBUG_MIN_LAT = 39
+# DEBUG_MIN_LON = 42
+# DEBUG_MAX_LAT = 42
+# DEBUG_MAX_LON = 47
+DEBUG_MIN_LAT = -10
+DEBUG_MIN_LON = -100
+DEBUG_MAX_LAT = 25
+DEBUG_MAX_LON = -50
 #DEBUG_NN = 15410182
 
 
@@ -503,7 +507,8 @@ class ScipyInterpolation(object):
         stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
         stdout.flush()
 
-        outs = 0    #number of points falling outside the min_upper_bound distance
+        outs = 0            # number of points falling outside the min_upper_bound distance
+        not_in_quad = 0     # number of points falling outside quadrilaterals after max_retries
 
         # max number of retry equals to a full lenght of lon coordinates
         max_retries = self.target_lonsOR.shape[0]        
@@ -604,6 +609,11 @@ class ScipyInterpolation(object):
                         self.p1, self.p2, self.p3, self.p4 = get_clockwise_points(corners_points)
                         # check for convexity
                         is_convex = isConvexQuadrilateral(self.p1[0:2], self.p2[0:2], self.p3[0:2], self.p4[0:2])
+                        if self.source_grid_is_rotated:
+                            # in case of rotated grid, actually the convexity check give worst results
+                            # so let's just skip this check
+                            is_convex = True 
+
                         index_nonconvex = -1
                         if is_convex == False:                            
                             index_nonconvex = getNonConvexVertex(self.p1, 
@@ -636,17 +646,13 @@ class ScipyInterpolation(object):
                     print("\nmax_used_additional_points: {}, nn_max_used_additional_points: {}".format(max_used_additional_points, nn_max_used_additional_points))
 
                 try:
-                    assert(quadrilateral_is_ok == True)                    
-                except AssertionError as e:
-                    ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nError: quadrilateral_is_ok is False, failed to find a correct quadrilateral: nn is {}, lat={} lon={}".format(nn, self.lat_in, self.lon_in))
-
-                try:
                     assert(len(np.unique(indexes[nn, 0:4]))==4) 
                 except AssertionError as e:
                     ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nLess then 4 distinct point! nn={} lat={} lon={}".format(nn, self.lat_in, self.lon_in))
                 
                 if quadrilateral_is_ok==False:
-                    print("\nError: quadrilateral_is_ok is False, failed to find a correct quadrilateral: nn is {}, lat={} lon={}".format(nn, self.lat_in, self.lon_in))
+                    #print("\nError: quadrilateral_is_ok is False, failed to find a correct quadrilateral: nn is {}, lat={} lon={}".format(nn, self.lat_in, self.lon_in))
+                    not_in_quad+=1
 
                 [alpha, beta] = np.clip(opt.fsolve(self._functionAlphaBeta, (0.5, 0.5)), 0, 1)
                 weight1[nn] = (1-alpha)*(1-beta)
@@ -659,7 +665,7 @@ class ScipyInterpolation(object):
                 result[nn] = weight1[nn]*self.p1[2] + weight2[nn]*self.p2[2] + weight3[nn] * self.p3[2] + weight4[nn] * self.p4[2]  
 
         stdout.write('{}{:>100}'.format(back_char, ' '))
-        stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs))
+        stdout.write('{}Building coeffs: {}/{} [outs: {}, not_in_quad: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs, not_in_quad))
         stdout.write('debug info: max_used_additional_points is {}, nn is {}\n'.format(max_used_additional_points, nn_max_used_additional_points))
         stdout.flush()
 
