@@ -464,7 +464,7 @@ class ScipyInterpolation(object):
     # take up to 2 additional points from the KDTree close to the another point on the opposite side 
     # and replace the wrong ones with new ones
     def replaceIndexOppositeSide(self, indexes_to_replace, indexes, nn):
-        self.replaceIndexCloseToPoint(indexes_to_replace, 180-self.lat_in, self.lon_in, indexes, nn)
+        return self.replaceIndexCloseToPoint(indexes_to_replace, 180-self.lat_in, self.lon_in, indexes, nn)
 
     # take additional points from the KDTree close to the another specific point
     # and replace the wrong ones with new ones
@@ -483,7 +483,10 @@ class ScipyInterpolation(object):
             indexes[nn, indexes[nn, 0:4] == indexes_to_replace[0]] = replacement_indexes
 
         if len(np.unique(indexes[nn, 0:4]))!=4:
-            print("Less then 4 distinct point!")
+            # print("Less then 4 distinct point!")
+            return False
+
+        return True
 
     def _build_weights_bilinear(self, distances, indexes, efas_locations, nnear):
         z = self.z
@@ -519,6 +522,7 @@ class ScipyInterpolation(object):
         latgrib_min = self.latgrib.min()
         # for nn in range(25898400,len(indexes)):
         for nn in range(len(indexes)):
+            skip_current_point = False
             if nn % progress_step == 0:
                 stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)'.format(back_char, nn, num_cells, outs, nn * 100. / num_cells))
                 stdout.flush()
@@ -586,10 +590,17 @@ class ScipyInterpolation(object):
                         index_wrong_points = getWrongPointDirection(self.lat_in, self.lon_in, corners_points)
                         if len(index_wrong_points):
                             # check if the latitude point is above the maximum or below the minimun latitude, 
-                            # to speed up the process and retrieve better "close points" from the KDTree 
-                            # I will look for nearest points of the opposite side of the globe
                             if self.lat_in>latgrib_max or self.lat_in<latgrib_min:
-                                self.replaceIndexOppositeSide(index_wrong_points, indexes, nn)
+                                # to speed up the process and retrieve better "close points" from the KDTree 
+                                # I will look for nearest points of the opposite side of the globe
+                                if self.replaceIndexOppositeSide(index_wrong_points, indexes, nn) == False:
+                                    # if there is no replacement with 4 points, get and empty value and skip the point
+                                    quadrilateral_is_ok = True
+                                    outs += 1
+                                    weights[nn] = np.array([1., 0., 0., 0.])
+                                    result[nn] = empty_array
+                                    skip_current_point = True
+
                             else:
                                 additional_points = self.replaceIndex(index_wrong_points, indexes, nn, additional_points)
                         else:
@@ -640,29 +651,30 @@ class ScipyInterpolation(object):
                             else:
                                 quadrilateral_is_ok = True
 
-                if max_used_additional_points<additional_points:
-                    max_used_additional_points = additional_points
-                    nn_max_used_additional_points = nn
-                    print("\nmax_used_additional_points: {}, nn_max_used_additional_points: {}".format(max_used_additional_points, nn_max_used_additional_points))
+                if skip_current_point == False:
+                    if max_used_additional_points<additional_points:
+                        max_used_additional_points = additional_points
+                        nn_max_used_additional_points = nn
+                        print("\nmax_used_additional_points: {}, nn_max_used_additional_points: {}".format(max_used_additional_points, nn_max_used_additional_points))
 
-                try:
-                    assert(len(np.unique(indexes[nn, 0:4]))==4) 
-                except AssertionError as e:
-                    ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nLess then 4 distinct point! nn={} lat={} lon={}".format(nn, self.lat_in, self.lon_in))
-                
-                if quadrilateral_is_ok==False:
-                    #print("\nError: quadrilateral_is_ok is False, failed to find a correct quadrilateral: nn is {}, lat={} lon={}".format(nn, self.lat_in, self.lon_in))
-                    not_in_quad+=1
+                    try:
+                        assert(len(np.unique(indexes[nn, 0:4]))==4) 
+                    except AssertionError as e:
+                        ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nLess then 4 distinct point! nn={} lat={} lon={}".format(nn, self.lat_in, self.lon_in))
+                    
+                    if quadrilateral_is_ok==False:
+                        #print("\nError: quadrilateral_is_ok is False, failed to find a correct quadrilateral: nn is {}, lat={} lon={}".format(nn, self.lat_in, self.lon_in))
+                        not_in_quad+=1
 
-                [alpha, beta] = np.clip(opt.fsolve(self._functionAlphaBeta, (0.5, 0.5)), 0, 1)
-                weight1[nn] = (1-alpha)*(1-beta)
-                weight2[nn] = alpha*(1-beta)
-                weight3[nn] = alpha*beta
-                weight4[nn] = (1-alpha)*beta
+                    [alpha, beta] = np.clip(opt.fsolve(self._functionAlphaBeta, (0.5, 0.5)), 0, 1)
+                    weight1[nn] = (1-alpha)*(1-beta)
+                    weight2[nn] = alpha*(1-beta)
+                    weight3[nn] = alpha*beta
+                    weight4[nn] = (1-alpha)*beta
 
-                weights[nn, 0:4] = np.array([weight1[nn], weight2[nn], weight3[nn], weight4[nn]])
-                idxs[nn, 0:4] = np.array([self.p1[3], self.p2[3], self.p3[3], self.p4[3]])
-                result[nn] = weight1[nn]*self.p1[2] + weight2[nn]*self.p2[2] + weight3[nn] * self.p3[2] + weight4[nn] * self.p4[2]  
+                    weights[nn, 0:4] = np.array([weight1[nn], weight2[nn], weight3[nn], weight4[nn]])
+                    idxs[nn, 0:4] = np.array([self.p1[3], self.p2[3], self.p3[3], self.p4[3]])
+                    result[nn] = weight1[nn]*self.p1[2] + weight2[nn]*self.p2[2] + weight3[nn] * self.p3[2] + weight4[nn] * self.p4[2]  
 
         stdout.write('{}{:>100}'.format(back_char, ' '))
         stdout.write('{}Building coeffs: {}/{} [outs: {}, not_in_quad: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs, not_in_quad))
