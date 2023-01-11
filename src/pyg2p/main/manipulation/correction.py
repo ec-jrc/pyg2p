@@ -59,7 +59,15 @@ class Corrector(Loggable):
         with np.errstate(over='ignore'):
             # variables below are used by numexpr evaluation namespace
             if DEBUG_BILINEAR_INTERPOLATION:
-                dem = self._dem_values[1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)]
+                if self._dem_values.shape==(3600,7200):
+                    # Global_3arcmin DEBUG
+                    dem = self._dem_values[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+                else:
+                    # European_1arcmin DEBUG, not supported for correction debug yet
+                    # selection_lats = np.logical_and(self._target_coords.lats[:,0]>=DEBUG_MIN_LAT,self._target_coords.lats[:,0]<=DEBUG_MAX_LAT)
+                    # selection_lons = np.logical_and(self._target_coords.lons[0,:]>=DEBUG_MIN_LON,self._target_coords.lons[0,:]<=DEBUG_MAX_LON)
+                    # dem = self._dem_values[selection_lats,:][:,selection_lons]
+                    assert(False)
             else:
                 dem = self._dem_values
             p = values

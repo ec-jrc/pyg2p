@@ -81,7 +81,7 @@ class NetCDFWriter(Writer):
 
         __VALUE_NAN = -9999
         values_nc = self.nf.createVariable(varargs.get('prefix', ''), varargs.get('value_format', 'f8'),
-                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=-__VALUE_NAN,
+                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=__VALUE_NAN,
                                            )
         values_nc.missing_value=__VALUE_NAN
         values_nc.coordinates = 'lon lat'
@@ -102,11 +102,20 @@ class NetCDFWriter(Writer):
 
         for t in range(len(time_values)):
             if DEBUG_BILINEAR_INTERPOLATION:
-                values_nc[t, 1800-(DEBUG_MAX_LAT*20):1800-(DEBUG_MIN_LAT*20), 3600+(DEBUG_MIN_LON*20):3600+(DEBUG_MAX_LON*20)] = values[t, :, :]
+                if self.lats.shape==(3600,7200):
+                    # Global_3arcmin DEBUG
+                    values_nc[t, 1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)] = values[t, :, :]
+                else:
+                    # European_1arcmin DEBUG
+                    selection_lats = np.logical_and(self.lats[:,0]>=DEBUG_MIN_LAT,self.lats[:,0]<=DEBUG_MAX_LAT)
+                    selection_lons = np.logical_and(self.lons[0,:]>=DEBUG_MIN_LON,self.lons[0,:]<=DEBUG_MAX_LON)
+                    values_all=values_nc[t,:,:].data
+                    values_all[np.ix_(selection_lats,selection_lons)] = values[t, :, :]
+                    values_nc[t,:,:]=values_all[:,:]
             else:
                 values_nc[t, :, :] = values[t,:,:]
-        longitude[:] = self.lons[1,:]
-        latitude[:] = self.lats[:,1]
+        longitude[:] = self.lons[0,:]
+        latitude[:] = self.lats[:,0]
 
     def close(self):
         self.nf.close()

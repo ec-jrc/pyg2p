@@ -11,7 +11,7 @@ from ..exceptions import (ApplicationException, INVALID_INTERPOL_METHOD,
 
 
 class Context:
-    allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist', 'bilinear')
+    allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist', 'bilinear', 'triangulation')
     default_values = {'interpolation.mode': 'grib_nearest', 'outMaps.unitTime': '24'}
 
     def __getitem__(self, param):

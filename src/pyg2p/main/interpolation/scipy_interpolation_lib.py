@@ -6,7 +6,7 @@ import numexpr as ne
 import numpy as np
 import math 
 import scipy.optimize as opt  
-from scipy.spatial import cKDTree as KDTree
+from scipy.spatial import cKDTree as KDTree, Delaunay
 
 from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD
 from pyg2p.util.numeric import mask_it, empty
@@ -22,10 +22,10 @@ DEBUG_BILINEAR_INTERPOLATION = False
 # DEBUG_MIN_LON = 5
 # DEBUG_MAX_LAT = 50
 # DEBUG_MAX_LON = 10
-# DEBUG_MIN_LAT = 39
-# DEBUG_MIN_LON = 42
-# DEBUG_MAX_LAT = 42
-# DEBUG_MAX_LON = 47
+# DEBUG_MIN_LAT = 68
+# DEBUG_MIN_LON = -24
+# DEBUG_MAX_LAT = 70
+# DEBUG_MAX_LON = -22
 DEBUG_MIN_LAT = -10
 DEBUG_MIN_LON = -100
 DEBUG_MAX_LAT = 25
@@ -275,7 +275,7 @@ class ScipyInterpolation(object):
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
                     mv_target, mv_source, target_is_rotated=False, parallel=False,
-                    bilinear=False):
+                    mode='nearest'):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
         self.source_grid_is_rotated = 'rotated' in grid_details.get('gridType')
@@ -285,7 +285,7 @@ class ScipyInterpolation(object):
         self.longrib = longrib
         self.latgrib = latgrib
         self.nnear = nnear
-        self.bilinear = bilinear
+        self.mode = mode
         
         # we receive rotated coords from GRIB_API iterator before 1.14.3
         x, y, zz = self.to_3d(longrib, latgrib, to_regular=not self.rotated_bugfix_gribapi)
@@ -314,28 +314,32 @@ class ScipyInterpolation(object):
         # Example of target rotated coords are COSMO lat/lon/dem PCRASTER maps
         self.target_latsOR=target_lats
         self.target_lonsOR=target_lons
-        x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
-        efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
-        stdout.write('Finding indexes for ' + ('nearest neighbour' if self.bilinear == False else 'bilinear interpolation') + ' k={}\n'.format(self.nnear))
 
-        distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs) 
+        if self.mode != 'triangulation':
+            stdout.write('Finding indexes for {} interpolation k={}\n'.format(self.mode, self.nnear))
+            x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
+            efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+            distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs) 
         
-        if self.nnear == 1:
-            # return distances, distances, indexes
+        if self.mode == 'nearest' and self.nnear == 1:
+            # return results, indexes
             result, indexes = self._build_nn(distances, indexes)
             weights = distances
         else:
-            if self.bilinear == False: 
-                # return distances, distances, indexes
+            if self.mode == 'invdist': 
+                # return results, distances, indexes
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear) 
             else:  
-                if self.nnear == 4: # bilinear interpolation only supported with nnear = 4
+                if self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
                     # BILINEAR INTERPOLATION
                     result, weights, indexes = self._build_weights_bilinear(distances, indexes, efas_locations, self.nnear) 
-                    ##print (result,weights)         
                 else:
-                    raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
-                                f"bilinear interpolation only supported with nnear = 4, used {self.nnear}")
+                    if self.mode == 'triangulation':
+                        # linear barycentric interpolation on Delaunay triangulation
+                        result, weights, indexes = self._build_weights_triangulation() 
+                    else:
+                        raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
+                                    f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear})")
                     
                
         stdout.write('End scipy interpolation: {}\n'.format(now_string()))
@@ -520,6 +524,12 @@ class ScipyInterpolation(object):
 
         latgrib_max = self.latgrib.max()
         latgrib_min = self.latgrib.min()
+        longrib_max = self.longrib.max()
+        longrib_min = self.longrib.min()
+        # evaluate an approx_grib_resolution by using 10 times the first longidure values 
+        # to check if the whole globe is covered
+        approx_grib_resolution = abs(self.longrib[0]-self.longrib[1])*10
+        is_global_map = (360-(longrib_max-longrib_min))<approx_grib_resolution
         # for nn in range(25898400,len(indexes)):
         for nn in range(len(indexes)):
             skip_current_point = False
@@ -537,7 +547,7 @@ class ScipyInterpolation(object):
             #     # if nn==72759:
             # if nn==25898400:
             #     print('self.lat_in = {}, self.lon_in = {}, nn = {}'.format(self.lat_in,self.lon_in,nn))
-            #     if abs(self.lat_in-40.775)<0.02 and abs(self.lon_in-44.825)<0.02:
+            #     if abs(self.lat_in-69.958)<0.02 and abs(self.lon_in-(-23.608))<0.02:
             #         print('self.lat_in = {}, self.lon_in = {}, nn = {}'.format(self.lat_in,self.lon_in,nn))
 
             # check distances 
@@ -547,7 +557,8 @@ class ScipyInterpolation(object):
                 weights[nn] = np.array([1., 0., 0., 0.])
             elif dist[0] > self.min_upper_bound:
                 outs += 1
-                weights[nn] = np.array([1., 0., 0., 0.])
+                idxs[nn] = ix
+                weights[nn] = np.array([np.nan, 0., 0., 0.])
                 result[nn] = empty_array
             else:
                 self.target_location = efas_locations[nn]
@@ -579,11 +590,20 @@ class ScipyInterpolation(object):
                         [lats[2], lons[2], self.z[i3], i3],
                         [lats[3], lons[3], self.z[i4], i4]])
 
+                    # in non-global maps, skip all points falling outside the grib min and max values
+                    if is_global_map==False and \
+                        (self.lat_in>latgrib_max or self.lat_in<latgrib_min or self.lon_in>longrib_max or self.lon_in<longrib_min):
+                            quadrilateral_is_ok = True
+                            outs += 1
+                            weights[nn] = np.array([np.nan, 0., 0., 0.])
+                            result[nn] = empty_array
+                            skip_current_point = True
+
                     # check grib type (if grig is on parallels or projected (self.source_grid_is_rotated=True))
                     # in case we are not in parallel-like grib files, let's use the old bilinear method 
                     # that works with every grid but is less precise
                     # see here for possible grib files https://apps.ecmwf.int/codes/grib/format/grib1/grids/10/
-                    if additional_checks_completed == False:
+                    if additional_checks_completed == False and skip_current_point == False:
                         # the grib file has different number of longitude points for each latitude,
                         # thus I will make sure to use only 2 above and two below of the current point
                         # the function will return the wrong point, if any
@@ -594,11 +614,11 @@ class ScipyInterpolation(object):
                                 # to speed up the process and retrieve better "close points" from the KDTree 
                                 # I will look for nearest points of the opposite side of the globe
                                 if self.replaceIndexOppositeSide(index_wrong_points, indexes, nn) == False:
-                                    # if there is no replacement with 4 points, get and empty value and skip the point
+                                    # if there is no replacement with 4 points, get only the nearest point
                                     quadrilateral_is_ok = True
                                     outs += 1
+                                    result[nn] = z[idxs[nn,0]]  # take exactly the point, weight = 1
                                     weights[nn] = np.array([1., 0., 0., 0.])
-                                    result[nn] = empty_array
                                     skip_current_point = True
 
                             else:
@@ -615,7 +635,7 @@ class ScipyInterpolation(object):
                                     self.replaceIndexCloseToPoint([index_wrong_point], new_lat, new_lon, indexes, nn)
                                 else:
                                     additional_checks_completed = True
-                    if additional_checks_completed == True:
+                    if additional_checks_completed == True and skip_current_point == False:
                         #get p1,p2,p3,p4 in clockwise order
                         self.p1, self.p2, self.p3, self.p4 = get_clockwise_points(corners_points)
                         # check for convexity
@@ -691,3 +711,7 @@ class ScipyInterpolation(object):
         second_eq = (1-alpha)*(1-beta)*self.p1[1]+alpha*(
             1-beta)*self.p2[1]+alpha*beta*self.p3[1]+(1-alpha)*beta*self.p4[1]-self.lon_in
         return [first_eq, second_eq]
+
+    def _build_weights_triangulation(self):
+        #TODO:
+        return
