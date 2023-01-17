@@ -286,6 +286,9 @@ class ScipyInterpolation(object):
         self.latgrib = latgrib
         self.nnear = nnear
         self.mode = mode
+        self._mv_target = mv_target
+        self._mv_source = mv_source
+        self.z = source_values
         
         # we receive rotated coords from GRIB_API iterator before 1.14.3
         x, y, zz = self.to_3d(longrib, latgrib, to_regular=not self.rotated_bugfix_gribapi)
@@ -297,10 +300,7 @@ class ScipyInterpolation(object):
 
         stdout.write('Building KDTree...\n')
         self.tree = KDTree(source_locations, leafsize=30)  # build the tree
-        self.z = source_values
 
-        self._mv_target = mv_target
-        self._mv_source = mv_source
         # we can calculate resolution in KM as described here:
         # http://math.boisestate.edu/~wright/montestigliano/NearestNeighborSearches.pdf
         # sphdist = R*acos(1-maxdist^2/2);
@@ -528,7 +528,7 @@ class ScipyInterpolation(object):
         longrib_min = self.longrib.min()
         # evaluate an approx_grib_resolution by using 10 times the first longidure values 
         # to check if the whole globe is covered
-        approx_grib_resolution = abs(self.longrib[0]-self.longrib[1])*10
+        approx_grib_resolution = abs(self.longrib[0]-self.longrib[1])*1.5
         is_global_map = (360-(longrib_max-longrib_min))<approx_grib_resolution
         # for nn in range(25898400,len(indexes)):
         for nn in range(len(indexes)):
@@ -713,5 +713,99 @@ class ScipyInterpolation(object):
         return [first_eq, second_eq]
 
     def _build_weights_triangulation(self):
-        #TODO:
-        return
+        # The interpolant is constructed by triangulating the input data with Qhull, 
+        # and on each triangle performing linear barycentric interpolation
+        # in the same way of the function LinearNDInterpolator, 
+        # but generating intertable like others pygtp interpolating functions
+        nnear = self.nnear
+
+        stdout.write('Finding Delaunay triangles for {} interpolation k={}\n'.format(self.mode, self.nnear))
+
+        normalized_latgrib=self.latgrib.copy()
+        normalized_longrib=self.longrib.copy()
+        normalized_longrib[normalized_longrib>180]-=360
+        z=self.z.copy()
+
+        longrib_max = normalized_longrib.max()
+        longrib_min = normalized_longrib.min()
+        # evaluate an approx_grib_resolution by using 10 times the first longidure values 
+        # to check if the whole globe is covered
+        approx_grib_resolution = abs(normalized_longrib[0]-normalized_longrib[1])*1.5
+        is_global_map = (360-(longrib_max-longrib_min))<approx_grib_resolution
+        if is_global_map:
+            #additional points map
+            original_indexes=[]
+            original_indexes = np.append(original_indexes,np.where(normalized_longrib>longrib_max-approx_grib_resolution))
+            original_indexes = np.append(original_indexes,np.where(normalized_longrib<longrib_min+approx_grib_resolution))
+            # add values on left and right borders taking them from the opposite direction
+            padded_longrib = np.append(normalized_longrib,normalized_longrib[normalized_longrib>longrib_max-approx_grib_resolution]-360)
+            padded_latgrib = np.append(normalized_latgrib,normalized_latgrib[normalized_longrib>longrib_max-approx_grib_resolution])
+            padded_z = np.append(z,z[normalized_longrib>longrib_max-approx_grib_resolution])
+            padded_longrib = np.append(padded_longrib,normalized_longrib[normalized_longrib<longrib_min+approx_grib_resolution]+360)
+            padded_latgrib = np.append(padded_latgrib,normalized_latgrib[normalized_longrib<longrib_min+approx_grib_resolution])
+            padded_z = np.append(padded_z,z[normalized_longrib<longrib_min+approx_grib_resolution])
+            normalized_longrib = padded_longrib
+            normalized_latgrib = padded_latgrib
+            z=padded_z
+        else:
+            stdout.write('Finding nearest neighbor to exclude outside triangles\n')
+            x_tmp, y_tmp, z_tmp = self.to_3d(self.target_lonsOR[:,:], self.target_latsOR[:,:], to_regular=self.target_grid_is_rotated)
+            efas_locations = np.vstack((x_tmp.ravel(), y_tmp.ravel(), z_tmp.ravel())).T
+            distances, _ = self.tree.query(efas_locations, k=1, n_jobs=self.njobs) 
+
+        tri = Delaunay(np.stack((normalized_latgrib,normalized_longrib),axis=-1))
+        p = np.stack((self.target_latsOR[:,:].ravel(),self.target_lonsOR[:,:].ravel()),axis=-1)
+        result = mask_it(np.empty((p.shape[0],) +
+                         np.shape(z[0])), self._mv_target, 1)
+        weights = np.empty((p.shape[0],) + (nnear,))
+        idxs = empty((p.shape[0],) + (nnear,), fill_value=z.size, dtype=int)
+
+        idxs_tri=tri.find_simplex(p)
+        idxs = tri.simplices[idxs_tri]
+        outs = 0
+        empty_array = empty(z[0].shape, self._mv_target)
+        num_cells = result.size
+        back_char, progress_step = progress_step_and_backchar(num_cells)
+        stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
+        stdout.flush()
+
+        for nn in range(len(idxs_tri)):
+            if nn % progress_step == 0:
+                stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)'.format(back_char, nn, num_cells, outs, nn * 100. / num_cells))
+                stdout.flush()
+            # Here, skip points that are not in triangles, or that are in triangles having a side > min_upper_bound in global maps.
+            # In non-global maps, skip all points falling outside the grib values using nearest neighbor method
+            if (idxs_tri[nn]==-1) or \
+                (is_global_map==False and distances[nn] > self.min_upper_bound):
+                outs += 1
+                weights[nn] = np.array([np.nan, 0., 0.])
+                result[nn] = empty_array
+                idxs[nn] = np.array([0., 0., 0.])
+            else:
+                # evaluate the location of vertex and exclude triangles with very far vertex
+                x_tmp, y_tmp, z_tmp = self.to_3d(normalized_longrib[idxs[nn]], normalized_latgrib[idxs[nn]], to_regular=self.target_grid_is_rotated)
+                vertex_locations = np.vstack((x_tmp.ravel(), y_tmp.ravel(), z_tmp.ravel())).T
+                if (np.linalg.norm(vertex_locations[0] - vertex_locations[1]) > self.min_upper_bound*2) or \
+                    (np.linalg.norm(vertex_locations[1] - vertex_locations[2]) > self.min_upper_bound*2) or \
+                    (np.linalg.norm(vertex_locations[0] - vertex_locations[2]) > self.min_upper_bound*2):
+                    outs += 1
+                    weights[nn] = np.array([np.nan, 0., 0.])
+                    result[nn] = empty_array
+                    idxs[nn] = np.array([0., 0., 0.])
+                else:
+                    b = tri.transform[idxs_tri[nn],:2].dot(np.transpose(p[nn] - tri.transform[idxs_tri[nn],2]))
+                    if (is_global_map==True):
+                        if idxs[nn,0]>len(self.latgrib):
+                            idxs[nn,0]=original_indexes[idxs[nn,0]-len(self.latgrib)]
+                        if idxs[nn,1]>len(self.latgrib):
+                            idxs[nn,1]=original_indexes[idxs[nn,1]-len(self.latgrib)]
+                        if idxs[nn,2]>len(self.latgrib):
+                            idxs[nn,2]=original_indexes[idxs[nn,2]-len(self.latgrib)]
+                    weights[nn] = np.append(np.transpose(b),1 - b.sum(axis=0))
+                    result[nn] = weights[nn,0]*z[idxs[nn,0]] + weights[nn,1]*z[idxs[nn,1]] + weights[nn,2]*z[idxs[nn,2]]
+                
+        stdout.write('{}{:>100}'.format(back_char, ' '))
+        stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs))
+        stdout.flush()
+
+        return result, weights, idxs
