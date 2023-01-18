@@ -142,6 +142,17 @@
             "@id": "tomm", 
             "@unit": "mm"
         }
+    },
+    "pev": {
+        "@description": "Potential Evaporation", 
+        "@shortName": "pev", 
+        "@unit": "m", 
+        "Conversion": {
+            "@cutOffNegative": true, 
+            "@function": "x=-x*1000", 
+            "@id": "tomm", 
+            "@unit": "mm"
+        }
     }, 
     "fis": {
         "@description": "Geopotential cosmo", 
@@ -260,5 +271,40 @@
         "@description": "Convective inhibition",
         "@shortName": "cin",
         "@unit": "J kg**-1"
+    },
+    "swvl1": {
+        "@description": "Soil Moisture",
+        "@shortName": "swvl1",
+        "@unit": "percentage"
+    },
+    "sd": {
+        "@description": "soil water equivalent",
+        "@shortName": "scov",
+        "@unit": "m",
+        "Conversion":{
+            "@function":"x=1000*x",
+            "@id":"tomm",
+            "@unit":"mm"
+        }
+    },
+    "sf": {
+        "@description": "snowmelt",
+        "@shortName": "smelt",
+        "@unit": "m",
+        "Conversion":{
+            "@function":"x=1000*x",
+            "@id":"tomm",
+            "@unit":"mm"
+        }
+    },
+    "smlt": {
+        "@description": "snowmelt",
+        "@shortName": "smelt",
+        "@unit": "m",
+        "Conversion":{
+            "@function":"x=1000*x",
+            "@id":"tomm",
+            "@unit":"mm"
+        }
     }
 }
