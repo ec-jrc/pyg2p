@@ -1046,6 +1046,28 @@
             3600
         ]
     },
+    "I-15.75_16.125_511_415_212065_rotated_ll_2614000_4078000_1000_-1000_32.03_59.80_2614000_4078000_1000_-1000_-10.48_36.57scipy_nearest":{
+        "filename": "cos_212065_to_2878x3479_nearest.npy",
+        "method": "nearest",
+        "source_shape": [
+            212065
+        ],
+        "target_shape": [
+            2878,
+            3479
+        ]
+    },    
+    "I-15.75_16.125_511_415_212065_rotated_ll_-1700000_1360000_1000_-1000_0.00_60.22_-1700000_1360000_1000_-1000_-10.32_37.93scipy_nearest":{
+        "filename":"cos_212065_to_2878x3479_nearest.npy",
+        "method":"nearest",
+        "source_shape":[
+            212065
+        ],
+        "target_shape":[
+            2980,
+            3570
+        ]
+    },
     "I-15.75_16.125_511_415_212065_rotated_ll_2568000_4163000_1000_-1000_31.63_60.56_2568000_4163000_1000_-1000_-19.97_40.95scipy_nearest":{
         "filename":"cos_212065_to_2981x3571_nearest.npy",
         "method":"nearest",
@@ -1132,6 +1154,72 @@
         "target_shape":[
             1500,
             3600
+        ]
+    },
+    "I-25_15_1001_601_601601_rotated_ll_4790000_2550000_5000_-5000_43.34_45.87_4790000_2550000_5000_-5000_15.83_19.90scipy_nearest": {
+        "filename": "tbl_csm_3111_scipy_nearest.npy",
+        "method": "nearest",
+        "source_shape": [
+            601601
+        ],
+        "target_shape": [
+            51,
+            61
+        ]
+    },
+    "I0_359.929_M_2560_6599680_reduced_gg_4790000_2550000_5000_-5000_43.34_45.87_4790000_2550000_5000_-5000_15.83_19.90scipy_nearest": {
+        "filename": "tbl_1_2021061700_3111_scipy_nearest.npy",
+        "method": "nearest",
+        "source_shape": [
+            6599680
+        ],
+        "target_shape": [
+            51,
+            61
+        ]
+    },
+    "I7_49_1556_1066_1644290_regular_ll_4790000_2550000_5000_-5000_43.34_45.87_4790000_2550000_5000_-5000_15.83_19.90scipy_nearest": {
+        "filename": "tbl_nmmb_3111_scipy_nearest.npy",
+        "method": "nearest",
+        "source_shape": [
+            1658696
+        ],
+        "target_shape": [
+            51,
+            61
+        ]
+    },
+    "I7_49_1556_1066_1658696_regular_ll_4790000_2550000_5000_-5000_43.34_45.87_4790000_2550000_5000_-5000_15.83_19.90scipy_nearest": {
+        "filename": "tbl_1_nmmb_3111_scipy_nearest.npy",
+        "method": "nearest",
+        "source_shape": [
+            1658696
+        ],
+        "target_shape": [
+            51,
+            61
+        ]
+    },
+    "I9.4_44.98_1187_1049_1244967_regular_ll_4790000_2550000_5000_-5000_43.34_45.87_4790000_2550000_5000_-5000_15.83_19.90scipy_nearest": {
+        "filename": "tbl_2_2021061700_3111_scipy_nearest.npy",
+        "method": "nearest",
+        "source_shape": [
+            1245163
+        ],
+        "target_shape": [
+            51,
+            61
+        ]
+    },
+    "I9.4_45_1425_961_1369425_regular_ll_4790000_2550000_5000_-5000_43.34_45.87_4790000_2550000_5000_-5000_15.83_19.90scipy_nearest": {
+        "filename": "tbl_3_2021061700_3111_scipy_nearest.npy",
+        "method": "nearest",
+        "source_shape": [
+            1369425
+        ],
+        "target_shape": [
+            51,
+            61
         ]
     }
 }

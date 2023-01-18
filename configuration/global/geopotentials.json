@@ -44,5 +44,9 @@
     "-40$80$M$214$41826$reduced_gg":"O320_p80_m40_p20_p80.grb",
     "-40$80$M$214$58717$reduced_gg":"efhs_58717.grb",
     "-40$80$M$106$14996$reduced_gg":"efhs_14996.grb",
-    "0$359.723$M$640$421120$reduced_gg":"O320_421120.grb"
+    "0$359.723$M$640$421120$reduced_gg":"O320_421120.grb",
+    "-25$15$1001$601$601601$rotated_ll": "cosmo_z_seemhews.grib",
+    "7$49$1556$1066$1644290$regular_ll": "nmmb_z_seemhews.grib",
+    "9.4$44.98$1187$1049$1244967$regular_ll": "alsmws_verif_geop_seemhews.grb2",
+    "9.4$45$1425$961$1369425$regular_ll": "icon_gp_seemhews.grib"
 }
