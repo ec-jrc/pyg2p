@@ -205,6 +205,11 @@
         "@shortName": "ssr", 
         "@unit": "W s/m^2"
     }, 
+    "ssrd": {
+        "@description": "Surface solar radiation downwards",
+        "@shortName": "ssrd",
+        "@unit": "W s/m^2"
+    },
     "ssro": {
         "@description": "Sub-Surface Runoff", 
         "@shortName": "ssro", 
