@@ -785,9 +785,10 @@ class ScipyInterpolation(object):
                 # evaluate the location of vertex and exclude triangles with very far vertex
                 x_tmp, y_tmp, z_tmp = self.to_3d(normalized_longrib[idxs[nn]], normalized_latgrib[idxs[nn]], to_regular=self.target_grid_is_rotated)
                 vertex_locations = np.vstack((x_tmp.ravel(), y_tmp.ravel(), z_tmp.ravel())).T
-                if (np.linalg.norm(vertex_locations[0] - vertex_locations[1]) > self.min_upper_bound*2) or \
-                    (np.linalg.norm(vertex_locations[1] - vertex_locations[2]) > self.min_upper_bound*2) or \
-                    (np.linalg.norm(vertex_locations[0] - vertex_locations[2]) > self.min_upper_bound*2):
+                if (is_global_map==False) and \
+                    ((np.linalg.norm(vertex_locations[0] - vertex_locations[1]) > self.min_upper_bound*10) or \
+                    (np.linalg.norm(vertex_locations[1] - vertex_locations[2]) > self.min_upper_bound*10) or \
+                    (np.linalg.norm(vertex_locations[0] - vertex_locations[2]) > self.min_upper_bound*10)):
                     outs += 1
                     weights[nn] = np.array([np.nan, 0., 0.])
                     result[nn] = empty_array
