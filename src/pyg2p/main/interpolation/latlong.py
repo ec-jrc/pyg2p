@@ -47,6 +47,9 @@ class Dem(Loggable):
         super().__init__()
         self._dem_map = dem_map
         self._log(f'Reading altitude values from: {dem_map}')
-        reader = PCRasterReader(self._dem_map)
+        if self._dem_map.endswith('.nc'):
+            reader = NetCDFReader(self._dem_map)
+        else:
+            reader = PCRasterReader(self._dem_map)
         self.mv = reader.mv
         self.values = reader.values
