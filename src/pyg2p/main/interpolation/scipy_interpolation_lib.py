@@ -837,16 +837,13 @@ class ScipyInterpolation(object):
                     
                     if len(idxs[nn][idxs[nn]>=0])==4:
                         self.lat_in, self.lon_in = p[nn]
-                        lats, lons = get_correct_lats_lons(self.lat_in, self.lon_in, self.latgrib, self.longrib, 
-                                                            idxs[nn,0], 
-                                                            idxs[nn,1], 
-                                                            idxs[nn,2], 
-                                                            idxs[nn,3])
+                        lats = normalized_latgrib[idxs[nn]]
+                        lons = normalized_longrib[idxs[nn]]
 
-                        corners_points = np.array([[lats[0], lons[0], self.z[idxs[nn,0]], idxs[nn,0]],
-                            [lats[1], lons[1], self.z[idxs[nn,1]], idxs[nn,1]],
-                            [lats[2], lons[2], self.z[idxs[nn,2]], idxs[nn,2]],
-                            [lats[3], lons[3], self.z[idxs[nn,3]], idxs[nn,3]]])
+                        corners_points = np.array([[lats[0], lons[0], z[idxs[nn,0]], idxs[nn,0]],
+                            [lats[1], lons[1], z[idxs[nn,1]], idxs[nn,1]],
+                            [lats[2], lons[2], z[idxs[nn,2]], idxs[nn,2]],
+                            [lats[3], lons[3], z[idxs[nn,3]], idxs[nn,3]]])
                         self.p1, self.p2, self.p3, self.p4 = get_clockwise_points(corners_points)
                         [alpha, beta] = np.clip(opt.fsolve(self._functionAlphaBeta, (0.5, 0.5)), 0, 1)
                         weight1 = (1-alpha)*(1-beta)
@@ -856,30 +853,15 @@ class ScipyInterpolation(object):
 
                         weights[nn, 0:4] = np.array([weight1, weight2, weight3, weight4])
                         idxs[nn, 0:4] = np.array([self.p1[3], self.p2[3], self.p3[3], self.p4[3]])
-                        if (is_global_map==True):
-                            if idxs[nn,0]>len(self.latgrib):
-                                idxs[nn,0]=original_indexes[idxs[nn,0]-len(self.latgrib)]
-                            if idxs[nn,1]>len(self.latgrib):
-                                idxs[nn,1]=original_indexes[idxs[nn,1]-len(self.latgrib)]
-                            if idxs[nn,2]>len(self.latgrib):
-                                idxs[nn,2]=original_indexes[idxs[nn,2]-len(self.latgrib)]
-                            if idxs[nn,3]>len(self.latgrib):
-                                idxs[nn,3]=original_indexes[idxs[nn,3]-len(self.latgrib)]
                         result[nn] = weight1*self.p1[2] + weight2*self.p2[2] + weight3 * self.p3[2] + weight4 * self.p4[2]                          
                         numbi+=1
                     else:
                         numtri+=1
                         b = tri.transform[idxs_tri[nn],:2].dot(np.transpose(p[nn] - tri.transform[idxs_tri[nn],2]))
-                        if (is_global_map==True):
-                            if idxs[nn,0]>len(self.latgrib):
-                                idxs[nn,0]=original_indexes[idxs[nn,0]-len(self.latgrib)]
-                            if idxs[nn,1]>len(self.latgrib):
-                                idxs[nn,1]=original_indexes[idxs[nn,1]-len(self.latgrib)]
-                            if idxs[nn,2]>len(self.latgrib):
-                                idxs[nn,2]=original_indexes[idxs[nn,2]-len(self.latgrib)]
                         weights[nn] = np.append(np.append(np.transpose(b),1 - b.sum(axis=0)),np.zeros(nnear-3))
                         result[nn] = weights[nn,0]*z[idxs[nn,0]] + weights[nn,1]*z[idxs[nn,1]] + weights[nn,2]*z[idxs[nn,2]]
-                
+        if (is_global_map==True):
+            idxs=np.where(idxs>len(self.latgrib),idxs-len(self.latgrib),idxs)        
         stdout.write('{}{:>100}'.format(back_char, ' '))
         stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs))
         if use_bilinear:
