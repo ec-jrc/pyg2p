@@ -1244,6 +1244,17 @@
             7200
         ]
     },
+    "I0_359.86_M_1280_1661440_reduced_gg_-179_-59_0_0_-59.97_89.97_-179_-59_0_0_-179.97_179.97scipy_bilinear": {
+        "filename": "tbl_fcroo6400_21600000_scipy_bilinear.npy.gz",
+        "method": "bilinear",
+        "source_shape": [
+            1661440
+        ],
+        "target_shape": [
+            3000,
+            7200
+        ]
+    },
     "I0_359.86_M_1280_1661440_reduced_gg_-179_-89_0_0_-89.97_89.97_-179_-89_0_0_-179.97_179.97scipy_bilinear": {
         "filename": "tbl_fcacco6400_25920000_scipy_bilinear.npy.gz",
         "method": "bilinear",
@@ -1252,6 +1263,39 @@
         ],
         "target_shape": [
             3600,
+            7200
+        ]
+    },
+    "I0_359.722_M_640_421120_reduced_gg_-179_-59_0_0_-59.97_89.97_-179_-59_0_0_-179.97_179.97scipy_bilinear": {
+        "filename": "tbl_1_fcroo6400_21600000_scipy_bilinear.npy.gz",
+        "method": "bilinear",
+        "source_shape": [
+            421120
+        ],
+        "target_shape": [
+            3000,
+            7200
+        ]
+    },
+    "I0_359.723_M_640_421120_reduced_gg_-179_-59_0_0_-59.97_89.97_-179_-59_0_0_-179.97_179.97scipy_bilinear": {
+        "filename": "tbl_1_fcinsto640_21600000_scipy_bilinear.npy.gz",
+        "method": "bilinear",
+        "source_shape": [
+            421120
+        ],
+        "target_shape": [
+            3000,
+            7200
+        ]
+    },
+    "I0_359.718_M_640_542080_reduced_gg_-179_-59_0_0_-59.97_89.97_-179_-59_0_0_-179.97_179.97scipy_bilinear": {
+        "filename": "tbl_1_det0to1_21600000_scipy_bilinear.npy.gz",
+        "method": "bilinear",
+        "source_shape": [
+            542080
+        ],
+        "target_shape": [
+            3000,
             7200
         ]
     }
