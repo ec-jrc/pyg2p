@@ -315,7 +315,7 @@ class ScipyInterpolation(object):
         self.target_latsOR=target_lats
         self.target_lonsOR=target_lons
 
-        if self.mode != 'triangulation':
+        if self.mode != 'triangulation' and self.mode != 'bilinear_delaunay':
             stdout.write('Finding indexes for {} interpolation k={}\n'.format(self.mode, self.nnear))
             x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
             efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
@@ -336,10 +336,14 @@ class ScipyInterpolation(object):
                 else:
                     if self.mode == 'triangulation':
                         # linear barycentric interpolation on Delaunay triangulation
-                        result, weights, indexes = self._build_weights_triangulation() 
+                        result, weights, indexes = self._build_weights_triangulation(use_bilinear=False) 
                     else:
-                        raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
-                                    f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear})")
+                        if self.mode == 'bilinear_delaunay':
+                            # bilinear interpolation on Delaunay triangulation
+                            result, weights, indexes = self._build_weights_triangulation(use_bilinear=True) 
+                        else:
+                            raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
+                                        f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear})")
                     
                
         stdout.write('End scipy interpolation: {}\n'.format(now_string()))
@@ -712,7 +716,7 @@ class ScipyInterpolation(object):
             1-beta)*self.p2[1]+alpha*beta*self.p3[1]+(1-alpha)*beta*self.p4[1]-self.lon_in
         return [first_eq, second_eq]
 
-    def _build_weights_triangulation(self):
+    def _build_weights_triangulation(self, use_bilinear = False):
         # The interpolant is constructed by triangulating the input data with Qhull, 
         # and on each triangle performing linear barycentric interpolation
         # in the same way of the function LinearNDInterpolator, 
@@ -753,14 +757,22 @@ class ScipyInterpolation(object):
             efas_locations = np.vstack((x_tmp.ravel(), y_tmp.ravel(), z_tmp.ravel())).T
             distances, _ = self.tree.query(efas_locations, k=1, n_jobs=self.njobs) 
 
-        tri = Delaunay(np.stack((normalized_latgrib,normalized_longrib),axis=-1))
+        gribpoints = np.stack((normalized_latgrib,normalized_longrib),axis=-1)
+        tri = Delaunay(gribpoints)
         p = np.stack((self.target_latsOR[:,:].ravel(),self.target_lonsOR[:,:].ravel()),axis=-1)
         result = mask_it(np.empty((p.shape[0],) +
                          np.shape(z[0])), self._mv_target, 1)
         weights = np.empty((p.shape[0],) + (nnear,))
-        idxs = empty((p.shape[0],) + (nnear,), fill_value=z.size, dtype=int)
 
-        idxs_tri=tri.find_simplex(p)
+        # plt.triplot(gribpoints[:,0], gribpoints[:,1], tri.simplices)
+        # plt.plot(gribpoints[:,0], gribpoints[:,1], 'o')
+        # plt.plot(p[:,0], p[:,1], 'x')
+        # plt.show()
+
+        # store in idxs_tri the nr of triangle of the grib in which each p is in, from p[0] to p[max]
+        idxs_tri=tri.find_simplex(p)  
+        #idxs contains the indexes of the grib vertex of the triagles that contain p
+        # e.g. idxs[nn] contains the indexes of the grib vertex containing p[nn]
         idxs = tri.simplices[idxs_tri]
         outs = 0
         empty_array = empty(z[0].shape, self._mv_target)
@@ -768,6 +780,15 @@ class ScipyInterpolation(object):
         back_char, progress_step = progress_step_and_backchar(num_cells)
         stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
         stdout.flush()
+
+        numbi=0
+        numtri=0
+
+        if use_bilinear:
+            # add the fourth point to each idxs[nn] from the near triangle on the longest side
+            idxs = np.column_stack((idxs,empty(idxs.shape[0],-1,dtype=idxs.dtype)))
+            idxs_tri_neighbors = tri.neighbors[idxs_tri]
+            idxs_tri_neighbors_to_use = empty(idxs_tri_neighbors.max()+1,-1,dtype=idxs_tri.dtype)
 
         for nn in range(len(idxs_tri)):
             if nn % progress_step == 0:
@@ -778,9 +799,8 @@ class ScipyInterpolation(object):
             if (idxs_tri[nn]==-1) or \
                 (is_global_map==False and distances[nn] > self.min_upper_bound):
                 outs += 1
-                weights[nn] = np.array([np.nan, 0., 0.])
+                weights[nn] = empty(z[0].shape)
                 result[nn] = empty_array
-                idxs[nn] = np.array([0., 0., 0.])
             else:
                 # evaluate the location of vertex and exclude triangles with very far vertex
                 x_tmp, y_tmp, z_tmp = self.to_3d(normalized_longrib[idxs[nn]], normalized_latgrib[idxs[nn]], to_regular=self.target_grid_is_rotated)
@@ -790,23 +810,80 @@ class ScipyInterpolation(object):
                     (np.linalg.norm(vertex_locations[1] - vertex_locations[2]) > self.min_upper_bound*10) or \
                     (np.linalg.norm(vertex_locations[0] - vertex_locations[2]) > self.min_upper_bound*10)):
                     outs += 1
-                    weights[nn] = np.array([np.nan, 0., 0.])
+                    weights[nn] = empty(z[0].shape)
                     result[nn] = empty_array
-                    idxs[nn] = np.array([0., 0., 0.])
                 else:
-                    b = tri.transform[idxs_tri[nn],:2].dot(np.transpose(p[nn] - tri.transform[idxs_tri[nn],2]))
-                    if (is_global_map==True):
-                        if idxs[nn,0]>len(self.latgrib):
-                            idxs[nn,0]=original_indexes[idxs[nn,0]-len(self.latgrib)]
-                        if idxs[nn,1]>len(self.latgrib):
-                            idxs[nn,1]=original_indexes[idxs[nn,1]-len(self.latgrib)]
-                        if idxs[nn,2]>len(self.latgrib):
-                            idxs[nn,2]=original_indexes[idxs[nn,2]-len(self.latgrib)]
-                    weights[nn] = np.append(np.transpose(b),1 - b.sum(axis=0))
-                    result[nn] = weights[nn,0]*z[idxs[nn,0]] + weights[nn,1]*z[idxs[nn,1]] + weights[nn,2]*z[idxs[nn,2]]
+                    if use_bilinear:
+                        # In case of bilinear interpolation, when possible, use the neighbor triangle to form a quadrilateral.
+                        # As neighbor to use, take the triangle on the longest side (opposite to the widest angle)
+                        angles=np.zeros(3)
+                        angles[0]=get_angle(gribpoints[idxs[nn,2]], gribpoints[idxs[nn,0]], gribpoints[idxs[nn,1]])
+                        if angles[0]>180:
+                            angles[0] = 360 - angles[0] 
+                        if angles[0]>=90:
+                            idx_to_use = 0
+                        else:
+                            angles[1]=get_angle(gribpoints[idxs[nn,0]], gribpoints[idxs[nn,1]], gribpoints[idxs[nn,2]])
+                            if angles[1]>180:
+                                angles[1] = 360 - angles[1] 
+                            angles[2]=180-angles[0]-angles[1]
+                            idx_to_use = np.argmax(angles)
+                        if idxs_tri_neighbors[nn,idx_to_use]>-1:
+                            if idxs_tri_neighbors_to_use[idxs_tri[nn]] == -1 and idxs_tri_neighbors_to_use[idxs_tri_neighbors[nn,idx_to_use]] == -1:
+                                idxs_tri_neighbors_to_use[idxs_tri[nn]] = idxs_tri_neighbors[nn,idx_to_use]
+                                idxs_tri_neighbors_to_use[idxs_tri_neighbors[nn,idx_to_use]] = idxs_tri[nn]
+                            if idxs_tri_neighbors_to_use[idxs_tri[nn]]>-1:
+                                idxs[nn]=np.unique(np.append(idxs[nn,0:3],tri.simplices[idxs_tri_neighbors_to_use[idxs_tri[nn]]]))
+                    
+                    if len(idxs[nn][idxs[nn]>=0])==4:
+                        self.lat_in, self.lon_in = p[nn]
+                        lats, lons = get_correct_lats_lons(self.lat_in, self.lon_in, self.latgrib, self.longrib, 
+                                                            idxs[nn,0], 
+                                                            idxs[nn,1], 
+                                                            idxs[nn,2], 
+                                                            idxs[nn,3])
+
+                        corners_points = np.array([[lats[0], lons[0], self.z[idxs[nn,0]], idxs[nn,0]],
+                            [lats[1], lons[1], self.z[idxs[nn,1]], idxs[nn,1]],
+                            [lats[2], lons[2], self.z[idxs[nn,2]], idxs[nn,2]],
+                            [lats[3], lons[3], self.z[idxs[nn,3]], idxs[nn,3]]])
+                        self.p1, self.p2, self.p3, self.p4 = get_clockwise_points(corners_points)
+                        [alpha, beta] = np.clip(opt.fsolve(self._functionAlphaBeta, (0.5, 0.5)), 0, 1)
+                        weight1 = (1-alpha)*(1-beta)
+                        weight2 = alpha*(1-beta)
+                        weight3 = alpha*beta
+                        weight4 = (1-alpha)*beta
+
+                        weights[nn, 0:4] = np.array([weight1, weight2, weight3, weight4])
+                        idxs[nn, 0:4] = np.array([self.p1[3], self.p2[3], self.p3[3], self.p4[3]])
+                        if (is_global_map==True):
+                            if idxs[nn,0]>len(self.latgrib):
+                                idxs[nn,0]=original_indexes[idxs[nn,0]-len(self.latgrib)]
+                            if idxs[nn,1]>len(self.latgrib):
+                                idxs[nn,1]=original_indexes[idxs[nn,1]-len(self.latgrib)]
+                            if idxs[nn,2]>len(self.latgrib):
+                                idxs[nn,2]=original_indexes[idxs[nn,2]-len(self.latgrib)]
+                            if idxs[nn,3]>len(self.latgrib):
+                                idxs[nn,3]=original_indexes[idxs[nn,3]-len(self.latgrib)]
+                        result[nn] = weight1*self.p1[2] + weight2*self.p2[2] + weight3 * self.p3[2] + weight4 * self.p4[2]                          
+                        numbi+=1
+                    else:
+                        numtri+=1
+                        b = tri.transform[idxs_tri[nn],:2].dot(np.transpose(p[nn] - tri.transform[idxs_tri[nn],2]))
+                        if (is_global_map==True):
+                            if idxs[nn,0]>len(self.latgrib):
+                                idxs[nn,0]=original_indexes[idxs[nn,0]-len(self.latgrib)]
+                            if idxs[nn,1]>len(self.latgrib):
+                                idxs[nn,1]=original_indexes[idxs[nn,1]-len(self.latgrib)]
+                            if idxs[nn,2]>len(self.latgrib):
+                                idxs[nn,2]=original_indexes[idxs[nn,2]-len(self.latgrib)]
+                        weights[nn] = np.append(np.append(np.transpose(b),1 - b.sum(axis=0)),np.zeros(nnear-3))
+                        result[nn] = weights[nn,0]*z[idxs[nn,0]] + weights[nn,1]*z[idxs[nn,1]] + weights[nn,2]*z[idxs[nn,2]]
                 
         stdout.write('{}{:>100}'.format(back_char, ' '))
         stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs))
+        if use_bilinear:
+            stdout.write('{}Num Bilinear interpolated points: {}, Num triangle barycentric interpolated points: {}\n'.format(back_char, numbi, numtri))
         stdout.flush()
 
         return result, weights, idxs
