@@ -269,6 +269,9 @@ def isPointInQuadrilateral(pt, v1, v2, v3, v4, is_convex):
     is_in_t2 = isPointInTriangle(pt, v1,v4,v3)
     return is_in_t1 or is_in_t2
 
+# used in triangulation for the evaluation of space between vertical grid in grib non regular grid files
+def integrand(x):
+    return 1/np.cos(x)
 
 class ScipyInterpolation(object):
     """
@@ -720,10 +723,6 @@ class ScipyInterpolation(object):
             1-beta)*self.p2[1]+alpha*beta*self.p3[1]+(1-alpha)*beta*self.p4[1]-self.lon_in
         return [first_eq, second_eq]
 
-    # used for the evaluation of space between vertical grid in grib non regular grid files
-    def integrand(x):
-        return 1/np.cos(x)
-
     def _build_weights_triangulation(self, use_bilinear = False):
         # The interpolant is constructed by triangulating the input data with Qhull, 
         # and on each triangle performing linear barycentric interpolation
@@ -772,7 +771,7 @@ class ScipyInterpolation(object):
         # In case of rotated grid, instead, use the original grid points, that is fine for the spece even if it is rotaded
         if self.source_grid_is_rotated == False:
             for i in range(gribpoints_scaled.shape[0]):
-                gribpoints_scaled[i,0], error = quad(self.integrand, 0, np.radians(gribpoints_scaled[i,0]))
+                gribpoints_scaled[i,0], error = quad(integrand, 0, np.radians(gribpoints_scaled[i,0]))
 
             gribpoints_scaled[:,0] = gribpoints_scaled[:,0]*90*10/max(gribpoints_scaled[:,0])
 
@@ -785,8 +784,8 @@ class ScipyInterpolation(object):
         # In case of rotated grid, instead, use the original grid points, that is fine for the spece even if it is rotaded
         if self.source_grid_is_rotated == False:
             for i in range(target_latsORscaled[:].shape[0]):
-                target_latsORscaled[i], error = quad(self.integrand, 0, np.radians(target_latsORscaled[i]))
-            target_latsORscaled[:] = target_latsORscaled[:]*90*10/max(quad(self.integrand, 0, np.radians(max(gribpoints[:,0]))))
+                target_latsORscaled[i], error = quad(integrand, 0, np.radians(target_latsORscaled[i]))
+            target_latsORscaled[:] = target_latsORscaled[:]*90*10/max(quad(integrand, 0, np.radians(max(gribpoints[:,0]))))
         
         target_latsORscaled = np.ones((1, self.target_latsOR.shape[1])) * target_latsORscaled.reshape(-1,1)
         p_scaled = np.stack((target_latsORscaled.ravel(),self.target_lonsOR[:,:].ravel()),axis=-1)
