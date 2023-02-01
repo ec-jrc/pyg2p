@@ -13,6 +13,10 @@ from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
 from pyg2p.util.strings import now_string
 
+#from matplotlib import pyplot as plt
+from scipy.integrate import quad
+
+
 DEBUG_BILINEAR_INTERPOLATION = False
 # DEBUG_MIN_LAT = 88
 # DEBUG_MIN_LON = -180
@@ -716,6 +720,10 @@ class ScipyInterpolation(object):
             1-beta)*self.p2[1]+alpha*beta*self.p3[1]+(1-alpha)*beta*self.p4[1]-self.lon_in
         return [first_eq, second_eq]
 
+    # used for the evaluation of space between vertical grid in grib non regular grid files
+    def integrand(x):
+        return 1/np.cos(x)
+
     def _build_weights_triangulation(self, use_bilinear = False):
         # The interpolant is constructed by triangulating the input data with Qhull, 
         # and on each triangle performing linear barycentric interpolation
@@ -739,15 +747,15 @@ class ScipyInterpolation(object):
         if is_global_map:
             #additional points map
             original_indexes=[]
-            original_indexes = np.append(original_indexes,np.where(normalized_longrib>longrib_max-approx_grib_resolution))
-            original_indexes = np.append(original_indexes,np.where(normalized_longrib<longrib_min+approx_grib_resolution))
+            original_indexes = np.append(original_indexes,np.where(normalized_longrib>longrib_max-approx_grib_resolution*2)).astype(int)
+            original_indexes = np.append(original_indexes,np.where(normalized_longrib<longrib_min+approx_grib_resolution*2)).astype(int)
             # add values on left and right borders taking them from the opposite direction
-            padded_longrib = np.append(normalized_longrib,normalized_longrib[normalized_longrib>longrib_max-approx_grib_resolution]-360)
-            padded_latgrib = np.append(normalized_latgrib,normalized_latgrib[normalized_longrib>longrib_max-approx_grib_resolution])
-            padded_z = np.append(z,z[normalized_longrib>longrib_max-approx_grib_resolution])
-            padded_longrib = np.append(padded_longrib,normalized_longrib[normalized_longrib<longrib_min+approx_grib_resolution]+360)
-            padded_latgrib = np.append(padded_latgrib,normalized_latgrib[normalized_longrib<longrib_min+approx_grib_resolution])
-            padded_z = np.append(padded_z,z[normalized_longrib<longrib_min+approx_grib_resolution])
+            padded_longrib = np.append(normalized_longrib,normalized_longrib[normalized_longrib>longrib_max-approx_grib_resolution*2]-360)
+            padded_latgrib = np.append(normalized_latgrib,normalized_latgrib[normalized_longrib>longrib_max-approx_grib_resolution*2])
+            padded_z = np.append(z,z[normalized_longrib>longrib_max-approx_grib_resolution*2])
+            padded_longrib = np.append(padded_longrib,normalized_longrib[normalized_longrib<longrib_min+approx_grib_resolution*2]+360)
+            padded_latgrib = np.append(padded_latgrib,normalized_latgrib[normalized_longrib<longrib_min+approx_grib_resolution*2])
+            padded_z = np.append(padded_z,z[normalized_longrib<longrib_min+approx_grib_resolution*2])
             normalized_longrib = padded_longrib
             normalized_latgrib = padded_latgrib
             z=padded_z
@@ -758,19 +766,42 @@ class ScipyInterpolation(object):
             distances, _ = self.tree.query(efas_locations, k=1, n_jobs=self.njobs) 
 
         gribpoints = np.stack((normalized_latgrib,normalized_longrib),axis=-1)
-        tri = Delaunay(gribpoints)
+        gribpoints_scaled = gribpoints.copy()
+        # In case of non rotated grib files, the grid has variable number of points according to the latitude, 
+        # so adjust the grid spaces for an effective triangulation
+        # In case of rotated grid, instead, use the original grid points, that is fine for the spece even if it is rotaded
+        if self.source_grid_is_rotated == False:
+            for i in range(gribpoints_scaled.shape[0]):
+                gribpoints_scaled[i,0], error = quad(self.integrand, 0, np.radians(gribpoints_scaled[i,0]))
+
+            gribpoints_scaled[:,0] = gribpoints_scaled[:,0]*90*10/max(gribpoints_scaled[:,0])
+
+        tri = Delaunay(gribpoints_scaled)        
+        #tri = Delaunay(gribpoints)
         p = np.stack((self.target_latsOR[:,:].ravel(),self.target_lonsOR[:,:].ravel()),axis=-1)
+        target_latsORscaled = self.target_latsOR[:,0].copy()
+        # In case of non rotated grib files, the grid has variable number of points according to the latitude, 
+        # so adjust the grid spaces for an effective triangulation
+        # In case of rotated grid, instead, use the original grid points, that is fine for the spece even if it is rotaded
+        if self.source_grid_is_rotated == False:
+            for i in range(target_latsORscaled[:].shape[0]):
+                target_latsORscaled[i], error = quad(self.integrand, 0, np.radians(target_latsORscaled[i]))
+            target_latsORscaled[:] = target_latsORscaled[:]*90*10/max(quad(self.integrand, 0, np.radians(max(gribpoints[:,0]))))
+        
+        target_latsORscaled = np.ones((1, self.target_latsOR.shape[1])) * target_latsORscaled.reshape(-1,1)
+        p_scaled = np.stack((target_latsORscaled.ravel(),self.target_lonsOR[:,:].ravel()),axis=-1)
+
         result = mask_it(np.empty((p.shape[0],) +
                          np.shape(z[0])), self._mv_target, 1)
         weights = np.empty((p.shape[0],) + (nnear,))
 
         # plt.triplot(gribpoints[:,0], gribpoints[:,1], tri.simplices)
         # plt.plot(gribpoints[:,0], gribpoints[:,1], 'o')
-        # plt.plot(p[:,0], p[:,1], 'x')
+        # # plt.plot(p[:,0], p[:,1], 'x')
         # plt.show()
 
         # store in idxs_tri the nr of triangle of the grib in which each p is in, from p[0] to p[max]
-        idxs_tri=tri.find_simplex(p)  
+        idxs_tri=tri.find_simplex(p_scaled)  
         #idxs contains the indexes of the grib vertex of the triagles that contain p
         # e.g. idxs[nn] contains the indexes of the grib vertex containing p[nn]
         idxs = tri.simplices[idxs_tri]
@@ -803,7 +834,7 @@ class ScipyInterpolation(object):
                 result[nn] = empty_array
             else:
                 # evaluate the location of vertex and exclude triangles with very far vertex
-                x_tmp, y_tmp, z_tmp = self.to_3d(normalized_longrib[idxs[nn]], normalized_latgrib[idxs[nn]], to_regular=self.target_grid_is_rotated)
+                x_tmp, y_tmp, z_tmp = self.to_3d(normalized_longrib[idxs[nn]], normalized_latgrib[idxs[nn]], to_regular=not self.rotated_bugfix_gribapi)
                 vertex_locations = np.vstack((x_tmp.ravel(), y_tmp.ravel(), z_tmp.ravel())).T
                 if (is_global_map==False) and \
                     ((np.linalg.norm(vertex_locations[0] - vertex_locations[1]) > self.min_upper_bound*10) or \
@@ -817,13 +848,13 @@ class ScipyInterpolation(object):
                         # In case of bilinear interpolation, when possible, use the neighbor triangle to form a quadrilateral.
                         # As neighbor to use, take the triangle on the longest side (opposite to the widest angle)
                         angles=np.zeros(3)
-                        angles[0]=get_angle(gribpoints[idxs[nn,2]], gribpoints[idxs[nn,0]], gribpoints[idxs[nn,1]])
+                        angles[0]=get_angle(gribpoints_scaled[idxs[nn,2]], gribpoints_scaled[idxs[nn,0]], gribpoints_scaled[idxs[nn,1]])
                         if angles[0]>180:
                             angles[0] = 360 - angles[0] 
                         if angles[0]>=90:
                             idx_to_use = 0
                         else:
-                            angles[1]=get_angle(gribpoints[idxs[nn,0]], gribpoints[idxs[nn,1]], gribpoints[idxs[nn,2]])
+                            angles[1]=get_angle(gribpoints_scaled[idxs[nn,0]], gribpoints_scaled[idxs[nn,1]], gribpoints_scaled[idxs[nn,2]])
                             if angles[1]>180:
                                 angles[1] = 360 - angles[1] 
                             angles[2]=180-angles[0]-angles[1]
@@ -832,8 +863,8 @@ class ScipyInterpolation(object):
                             if idxs_tri_neighbors_to_use[idxs_tri[nn]] == -1 and idxs_tri_neighbors_to_use[idxs_tri_neighbors[nn,idx_to_use]] == -1:
                                 idxs_tri_neighbors_to_use[idxs_tri[nn]] = idxs_tri_neighbors[nn,idx_to_use]
                                 idxs_tri_neighbors_to_use[idxs_tri_neighbors[nn,idx_to_use]] = idxs_tri[nn]
-                            if idxs_tri_neighbors_to_use[idxs_tri[nn]]>-1:
-                                idxs[nn]=np.unique(np.append(idxs[nn,0:3],tri.simplices[idxs_tri_neighbors_to_use[idxs_tri[nn]]]))
+                        if idxs_tri_neighbors_to_use[idxs_tri[nn]]>-1:
+                            idxs[nn]=np.unique(np.append(idxs[nn,0:3],tri.simplices[idxs_tri_neighbors_to_use[idxs_tri[nn]]]))
                     
                     if len(idxs[nn][idxs[nn]>=0])==4:
                         self.lat_in, self.lon_in = p[nn]
@@ -857,11 +888,11 @@ class ScipyInterpolation(object):
                         numbi+=1
                     else:
                         numtri+=1
-                        b = tri.transform[idxs_tri[nn],:2].dot(np.transpose(p[nn] - tri.transform[idxs_tri[nn],2]))
+                        b = tri.transform[idxs_tri[nn],:2].dot(np.transpose(p_scaled[nn] - tri.transform[idxs_tri[nn],2]))
                         weights[nn] = np.append(np.append(np.transpose(b),1 - b.sum(axis=0)),np.zeros(nnear-3))
                         result[nn] = weights[nn,0]*z[idxs[nn,0]] + weights[nn,1]*z[idxs[nn,1]] + weights[nn,2]*z[idxs[nn,2]]
         if (is_global_map==True):
-            idxs=np.where(idxs>len(self.latgrib),idxs-len(self.latgrib),idxs)        
+            idxs[idxs>len(self.latgrib)]=original_indexes[idxs[idxs>len(self.latgrib)]-len(self.latgrib)]
         stdout.write('{}{:>100}'.format(back_char, ' '))
         stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, num_cells, num_cells, outs))
         if use_bilinear:
