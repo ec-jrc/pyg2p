@@ -370,6 +370,9 @@ defining the step numbers to skip when writing maps. Same as old grib2pcraster. 
 grib2pcraster). It can be average or accumulation.</td>
         </tr>
         <tr>
+        <td>&nbsp;</td><td><b>type_halfweights</b></td><td>If set to True, includes first and last step using half weights for them</td>
+        </tr>
+        <tr>
         <td>&nbsp;</td><td>forceZeroArray</td><td>Optional. In case of “accumulation”, and only
 then, if this attribute is set to”y” (or any value different from “false”, “False”, “FALSE”, “no”,
 “NO”, “No”, “0”), the program will use a zero array as message at step 0 to compute the first
@@ -645,7 +648,8 @@ The JSON configuration in the execution file will look like:
 ```json
 {
 "Aggregation": {
-  "@type": "average"}
+  "@type": "average",
+  "@type_halfweights": "False"}
 }
 ```
 
