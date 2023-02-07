@@ -4,6 +4,7 @@ from pyg2p import Loggable
 from pyg2p.exceptions import ApplicationException, INVALID_INTERPOL_METHOD
 from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.main.readers.netcdf import NetCDFReader
+from ...util.numeric import int_fill_value
 
 class LatLong(Loggable):
 
@@ -19,8 +20,9 @@ class LatLong(Loggable):
                     f"lat map and long map should coincide when using netCDF target map, used {self._lat_map} amd {self._long_map}")
 
             reader = NetCDFReader(self._lat_map)
-            self.mv = reader.mv
             self.lats, self.lons = reader.get_lat_lon_values()
+            self.mv = int_fill_value
+
             self._id = reader.identifier()
         else:
             self._log(f'Reading latitudes values from: {self._lat_map}')
