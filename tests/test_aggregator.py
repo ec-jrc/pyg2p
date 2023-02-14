@@ -15,7 +15,7 @@ class TestAggregator:
         grib_info = grib_reader.get_grib_info({'shortName': '2t'})
         aggregator = Aggregator(aggr_step=6,
                                 aggr_type=INSTANTANEOUS,
-                                aggr_type_halfweights=False,
+                                aggr_halfweights=False,
                                 input_step=grib_info.input_step,
                                 step_type=grib_info.type_of_param,
                                 start_step=0,
@@ -38,7 +38,7 @@ class TestAggregator:
         grib_info = grib_reader.get_grib_info({'shortName': '2t'})
         aggregator = Aggregator(aggr_step=24,
                                 aggr_type=AVERAGE,
-                                aggr_type_halfweights=False,
+                                aggr_halfweights=False,
                                 input_step=grib_info.input_step,
                                 step_type=grib_info.type_of_param,
                                 start_step=0,
@@ -60,7 +60,7 @@ class TestAggregator:
         grib_info = grib_reader.get_grib_info({'shortName': '2t'})
         aggregator = Aggregator(aggr_step=24,
                                 aggr_type=AVERAGE,
-                                aggr_type_halfweights=True,
+                                aggr_halfweights=True,
                                 input_step=grib_info.input_step,
                                 step_type=grib_info.type_of_param,
                                 start_step=24,
@@ -81,7 +81,7 @@ class TestAggregator:
         grib_info = grib_reader.get_grib_info({'shortName': '2t'})
         aggregator = Aggregator(aggr_step=6,
                                 aggr_type=ACCUMULATION,
-                                aggr_type_halfweights=False,
+                                aggr_halfweights=False,
                                 input_step=grib_info.input_step,
                                 step_type=grib_info.type_of_param,
                                 start_step=0,

@@ -33,7 +33,7 @@ class Aggregator(Loggable):
         self._unit_time = int(kwargs.get('unit_time'))
         self._aggregation_step = int(kwargs.get('aggr_step'))
         self._aggregation = kwargs.get('aggr_type')  # type of manipulation
-        self._aggregation_halfweights = kwargs.get('aggr_type_halfweights')  # include first and last step using half weights for them
+        self._aggregation_halfweights = kwargs.get('aggr_halfweights')  # include first and last step using half weights for them
         self._force_zero = kwargs.get('force_zero_array')  # if true, accumulation will use a zero array at step 0.
 
         self._start = int(kwargs.get('start_step'))
@@ -165,11 +165,11 @@ class Aggregator(Loggable):
             shape_iter = values[first_key].shape
 
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
-            iter_end = self._end - self._aggregation_step + 1
+            iter_end = self._end - self._aggregation_step + 2
             if self._start > 0 and not self._second_t_res:
                 if self._aggregation_halfweights:
                     iter_start = self._start - self._aggregation_step
-                    iter_end = self._end - self._aggregation_step + 2
+                    iter_end = self._end - self._aggregation_step + 1
                 else:
                     iter_start = self._start - self._aggregation_step + 1
             elif self._second_t_res:
@@ -177,7 +177,7 @@ class Aggregator(Loggable):
             else:
                 iter_start = 0
 
-            for iter_ in range(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
+            for iter_ in range(iter_start, iter_end, self._aggregation_step):
                 if self._aggregation_halfweights == False and self._start == 0:
                     iter_from = iter_ + 1
                     iter_to = iter_ + self._aggregation_step + 1
@@ -185,7 +185,7 @@ class Aggregator(Loggable):
                     iter_from = iter_
                     iter_to = iter_ + self._aggregation_step
                 if self._aggregation_halfweights:
-                    iter_to+=1
+                    iter_to += 1
                 temp_sum = np.zeros(shape_iter)
                 v_ord_keys = list(v_ord.keys())
 

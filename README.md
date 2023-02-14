@@ -370,7 +370,7 @@ defining the step numbers to skip when writing maps. Same as old grib2pcraster. 
 grib2pcraster). It can be average or accumulation.</td>
         </tr>
         <tr>
-        <td>&nbsp;</td><td><b>type_halfweights</b></td><td>If set to True, includes first and last step using half weights for them</td>
+        <td>&nbsp;</td><td><b>halfweights</b></td><td>If set to True and type is "average", it will avaluate the average by using half weights for the first and the last step</td>
         </tr>
         <tr>
         <td>&nbsp;</td><td>forceZeroArray</td><td>Optional. In case of “accumulation”, and only
@@ -606,7 +606,7 @@ obtain neighbours and distances.
 ```
 
 #### invdist
-It's the inverse distance algorithm with scipy.kd_tree , using 8 neighbours.
+It's the inverse distance algorithm with scipy.kd_tree, using 4 neighbours.
 
 ```json
 {
@@ -625,6 +625,41 @@ Attributes p, leafsize and eps for the kd tree algorithm are default in scipy li
 | eps       | 0                    |
 | leafsize  | 10                   |
 
+#### bilinear
+It's the bilinear interpolation algorithm applyied on regular and irregular grids. On irregular grids, it tries to get the best quatrilateral around each target point, but at the same time tries to use the best stable and grid-like shape from starting points. To do so, evaluates interpolation looking at point on similar latitude, thus on projected grib files may show some irregular results. 
+
+```json
+{
+"Interpolation": {
+  "@latMap": "/dataset/maps/europe5km/lat.map",
+  "@lonMap": "/dataset/maps/europe5km/long.map",
+  "@mode": "bilinear"}
+}
+```
+
+#### triangulation
+This interpolation works on a triangular tessellation of the starting grid applying the Delaunay criteria, and the uses the linear barycentric interpolation to get the target intrpolated values. It works on all type of grib files, but for some resolutions may show some edgy shapes.
+
+```json
+{
+"Interpolation": {
+  "@latMap": "/dataset/maps/europe5km/lat.map",
+  "@lonMap": "/dataset/maps/europe5km/long.map",
+  "@mode": "triangulation"}
+}
+```
+
+#### bilinear_delaunay
+This algorithm merges bilinear interpolation and triangular tessellation. Quadrilaters used for the bilinear interpolation are obtained joining two adjacent triangles detected from the Delaunay triangulation of the source points. The merge is done giving priority to the ones distributed on a grid-like shape. When a quadrilateral is not available (there are no more adjacent triangles left on the grid able to merge), the linear barycentric interpolation is applyied. The result of this interpolation works smoothly and adapts automatically on all kind of source grib file. 
+
+```json
+{
+"Interpolation": {
+  "@latMap": "/dataset/maps/europe5km/lat.map",
+  "@lonMap": "/dataset/maps/europe5km/long.map",
+  "@mode": "bilinear_delaunay"}
+}
+```
 
 ## OutMaps configuration
 
@@ -649,7 +684,7 @@ The JSON configuration in the execution file will look like:
 {
 "Aggregation": {
   "@type": "average",
-  "@type_halfweights": "False"}
+  "@halfweights": False}
 }
 ```
 
@@ -666,7 +701,8 @@ Temperatures are often extracted as averages on 24 hours or 6 hours. Here's a ty
 "@name": "cosmo_T24",
 "Aggregation": {
 "@step": 24,
-"@type": "average"
+"@type": "average",
+"@halfweights": False
 },
 "OutMaps": {
 "@cloneMap": "/dataset/maps/europe/dem.map",
@@ -707,6 +743,30 @@ ext value will affect numbering of output maps:
 ```
 
 This is needed because we performed 24 hours average over 6 hourly steps.
+
+**Details about average parameters:**
+
+The to evaluate the average, the following steps are executed:
+
+- when "halfweights" is False, the results of the function is the sum of all the values from "start_step-aggregation_step+1" to end_step, taking for each step the value corresponding to the next available value in the grib file. E.g:
+
+  INPUT: start_step=24, end_step=<not specified, will take the end of file>, aggregation_step=24
+GRIB File: contains data starting from step 0 to 48 every 6 hours: 0,6,12,18,24,30,....
+
+  Day 1: Aggregation starts from 24-24+1=1, so it will sum up the step 6 six times, then the step 12 six times, step 18 six times, and finally the step 24 six times. The sum will be divided by the aggretation_step (24) to get the average.
+
+  Day 2: same as Day 1 starting from (24+24)-24+1=25...
+
+- when "halfweights" is True, the results of the function is the sum of all the values from "start_step-aggregation_step" to end_step, taking for each step the value corresponding to the next available value in the grib file but using half of the weights for the first and the last step in each aggregation_step cicle. E.g:
+
+  INPUT: start_step=24, end_step=<not specified, will take the end of file>, aggregation_step=24
+GRIB File: contains data starting from step 0 to 72 every 6 hours: 0,6,12,18,24,30,36,....
+
+  Day 1: Aggregation starts from 24-24=0, and will consider the step 0 value multiplied but 3, that is half of the number of steps between two step keys in the grib file. Then it will sum up the step 6 six times, then the step 12 six times, step 18 six times, and finally the step 24 again multiplied by 3. The sum will be divided by the aggretation_step (24) to get the average.
+
+  Day 2: same as Day 1 starting from (24+24)-24=24: the step 24 will have a weight of 3, while steps 30,36 and 42 will be counted 6 times, and finally the step 48 will have a weight of 3. 
+
+- if start_step is zero or is not specified, the aggregation will start from 1
 
 ### Accumulation
 For precipitation values, accumulation over 6 or 24 hours is often performed. Here's an example of configuration and execution output in DEBUG mode.
