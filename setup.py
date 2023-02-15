@@ -19,6 +19,16 @@ readme_file = os.path.join(current_dir, 'README.md')
 with open(readme_file, 'r') as f:
     long_description = f.read()
 
+"""
+---------------------------------------------------------------------------------------------------------------------------------------
+To publish a new version of this distribution (git tags and pypi package), after pushed on main branch:
+
+python setup.py testpypi
+python setup.py publish
+
+Test package install
+pip install --index-url https://test.pypi.org/simple/ pyg2p==3.2.1
+"""
 
 class UploadCommand(Command):
     """Support setup.py upload."""
@@ -55,6 +65,22 @@ class UploadCommand(Command):
 
         sys.exit()
 
+class UploadCommandTest(UploadCommand):
+
+    def run(self):
+        try:
+            self.print_console('Removing previous builds...')
+            rmtree(os.path.join(current_dir, 'dist'))
+        except OSError:
+            pass
+
+        self.print_console('Building Source and Wheel (universal) distribution...')
+        os.system('{} setup.py sdist'.format(sys.executable))
+
+        self.print_console('Uploading the package to test PyPI via Twine...')
+        os.system('twine upload --repository testpypi dist/*')
+
+        sys.exit()
 
 def setup_data_files(setup_args_):
     user_conf_dir = f'{os.path.expanduser("~")}/.pyg2p/'
@@ -114,6 +140,7 @@ setup_args = dict(name='pyg2p',
                   cmdclass={
                      'upload': UploadCommand,
                      'publish': UploadCommand,
+                     'testpypi': UploadCommandTest,
                   },
                   classifiers=[
                       # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
