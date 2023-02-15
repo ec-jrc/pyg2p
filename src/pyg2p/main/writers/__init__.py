@@ -75,7 +75,12 @@ class OutputWriter(Loggable):
         var_args = dict(prefix=self.ctx.get('outMaps.namePrefix'),
                         unit=self.ctx.get('parameter.conversionUnit'),
                         var_long_name=self.ctx.get('parameter.description'),
-                        data_date=messages.data_date)
+                        data_date=messages.data_date,
+                        valid_max=self.ctx.get('outMaps.validMax'),
+                        valid_min=self.ctx.get('outMaps.validMin'),
+                        value_format=self.ctx.get('outMaps.valueFormat'),
+                        offset=self.ctx.get('outMaps.offset'),
+                        scale_factor=self.ctx.get('outMaps.scaleFactor'))
         self.writer.init_dataset(out_filename)
 
         self.writer.write(out_values, time_values, **var_args)

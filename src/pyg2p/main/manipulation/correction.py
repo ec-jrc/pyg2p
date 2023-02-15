@@ -11,7 +11,10 @@ from pyg2p.main.readers.grib import GRIBReader
 
 from pyg2p.main.config import GeopotentialsConfiguration
 import pyg2p.util.numeric
+from pyg2p.util.numeric import int_fill_value
 
+from ..interpolation.scipy_interpolation_lib import DEBUG_BILINEAR_INTERPOLATION, \
+                                        DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
 
 class Corrector(Loggable):
 
@@ -40,7 +43,7 @@ class Corrector(Loggable):
         self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
         self._formula = ctx.get('correction.formula')
         self._gem_formula = ctx.get('correction.gemFormula')
-        self._numexpr_eval = f'where((dem!=mv) & (p!=mv) & (gem!=mv), {self._formula}, mv)'
+        self._numexpr_eval = f'where((dem!=dem_mv) & (p!=mv) & (gem!=gem_mv), {self._formula}, mv)'
         self._numexpr_eval_gem = f'where(z != mv, {self._gem_formula}, mv)'
 
         log_message = f"""
@@ -56,10 +59,23 @@ class Corrector(Loggable):
     def correct(self, values):
         with np.errstate(over='ignore'):
             # variables below are used by numexpr evaluation namespace
-            dem = self._dem_values
+            if DEBUG_BILINEAR_INTERPOLATION:
+                if self._dem_values.shape==(3600,7200):
+                    # Global_3arcmin DEBUG
+                    dem = self._dem_values[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+                else:
+                    # European_1arcmin DEBUG, not supported for correction debug yet
+                    # selection_lats = np.logical_and(self._target_coords.lats[:,0]>=DEBUG_MIN_LAT,self._target_coords.lats[:,0]<=DEBUG_MAX_LAT)
+                    # selection_lons = np.logical_and(self._target_coords.lons[0,:]>=DEBUG_MIN_LON,self._target_coords.lons[0,:]<=DEBUG_MAX_LON)
+                    # dem = self._dem_values[selection_lats,:][:,selection_lons]
+                    assert(False)
+            else:
+                dem = self._dem_values
             p = values
             gem = self._gem_values
-            mv = self._dem_missing_value
+            dem_mv = self._dem_missing_value
+            gem_mv = self._gem_missing_value
+            mv = int_fill_value
             values = ne.evaluate(self._numexpr_eval)
             # mask out values (here is already output values with destination shape)
             values = ma.masked_where(pyg2p.util.numeric.get_masks(p), values)

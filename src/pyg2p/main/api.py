@@ -41,7 +41,9 @@ class Command:
     """
     cmds_map = {'cmdpath': '-c', 'inputfile': '-i', 'second_input_file': '-I',
                 'eps': '-m', 'tend': '-e', 'tstart': '-s', 'datatime': '-T', 'datadate': '-D',
-                'ext': '-x', 'fmap': '-f', 'outdir': '-o', 'nameprefix': '-n',
+                'ext': '-x', 'fmap': '-f', 'outdir': '-o', 'nameprefix': '-n', 
+                'scalefactor': '-S', 'offset': '-O', 
+                'validMax': '-vM', 'validMin': '-vm', 'valueFormat': '-vf',
                 'log_level': '-l', 'log_dir': '-d', 'out_format': '-F',
                 'create_intertable': '-B', 'parallel': '-X', 'intertable_dir': '-N'}
 
@@ -108,6 +110,12 @@ class ApiContext(Context):
         self._vars['outMaps.fmap'] = self.api_conf.get('fmap')
         self._vars['outMaps.ext'] = self.api_conf.get('ext')
         self._vars['outMaps.namePrefix'] = self.api_conf.get('namePrefix')
+        self._vars['outMaps.scaleFactor'] = self.api_conf.get('scaleFactor')
+        self._vars['outMaps.offset'] = self.api_conf.get('offset')
+        self._vars['outMaps.validMin'] = self.api_conf.get('validMin')
+        self._vars['outMaps.validMax'] = self.api_conf.get('validMax')
+        self._vars['outMaps.valueFormat'] = self.api_conf.get('valueFormat')
+        self._vars['outMaps.offset'] = self.api_conf.get('offset')
         self._vars['outMaps.outDir'] = './'  # not used
         self._vars['parameter.perturbationNumber'] = self.api_conf.get('perturbationNumber')
         self._vars['input.file2'] = self.api_conf.get('inputFile2')
@@ -170,6 +178,16 @@ class ApiContext(Context):
         # optional parameters (can also be defined by command line)
         if not self._vars['outMaps.namePrefix']:
             self._vars['outMaps.namePrefix'] = self.api_conf['OutMaps'].get('namePrefix') or self.api_conf['Parameter']['shortName']
+        if self._vars['outMaps.scaleFactor'] is None:
+            self._vars['outMaps.scaleFactor'] = self.api_conf['OutMaps'].get('scaleFactor') or 1.0
+        if self._vars['outMaps.offset'] is None:
+            self._vars['outMaps.offset'] = self.api_conf['OutMaps'].get('offset') or 0.0
+        if self._vars['outMaps.validMin'] is None:
+            self._vars['outMaps.validMin'] = self.api_conf['OutMaps'].get('validMin')
+        if self._vars['outMaps.validMax'] is None:
+            self._vars['outMaps.validMax'] = self.api_conf['OutMaps'].get('validMax')
+        if self._vars['outMaps.valueFormat'] is None:
+            self._vars['outMaps.valueFormat'] = self.api_conf['OutMaps'].get('valueFormat')
         if self._vars['outMaps.fmap'] == 1:
             self._vars['outMaps.fmap'] = self.api_conf['OutMaps'].get('fmap') or 1
         if self._vars['outMaps.ext'] == 1:

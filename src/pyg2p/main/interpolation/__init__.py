@@ -9,7 +9,9 @@ from pyg2p import Loggable
 
 from . import grib_interpolation_lib
 from .latlong import LatLong
-from .scipy_interpolation_lib import InverseDistance
+from .scipy_interpolation_lib import ScipyInterpolation, DEBUG_BILINEAR_INTERPOLATION, \
+                                        DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
+                                        
 from ...exceptions import ApplicationException, NO_INTERTABLE_CREATED
 import pyg2p.util.files
 import pyg2p.util.numeric
@@ -18,9 +20,10 @@ import pyg2p.util.numeric
 class Interpolator(Loggable):
     _LOADED_INTERTABLES = {}
     _prefix = 'I'
-    scipy_modes_nnear = {'nearest': 1, 'invdist': 4}
+    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
     suffixes = {'grib_nearest': 'grib_nearest', 'grib_invdist': 'grib_invdist',
-                'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist'}
+                'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist',
+                'bilinear': 'scipy_bilinear', 'triangulation': 'scipy_triangulation', 'bilinear_delaunay': 'scipy_bilinear_delaunay'}
     _format_intertable = 'tbl{prognum}_{source_file}_{target_size}_{suffix}.npy.gz'.format
 
     def __init__(self, exec_ctx, mv_input):
@@ -124,14 +127,14 @@ class Interpolator(Loggable):
             coeffs = intertable['coeffs']
             return indexes[0], indexes[1], indexes[2], indexes[3], indexes[4], indexes[5], coeffs[0], coeffs[1], coeffs[2], coeffs[3]
         else:
-            # self._mode in ('invdist', 'nearest'):
-            # return indexes and weighted distances (only used with nnear=4)
+            # self._mode in ('invdist', 'nearest', 'bilinear', 'triangulation', 'bilinear_delaunay'):
+            # return indexes and weighted distances (only used with nnear > 1)
             indexes = intertable['indexes']
             coeffs = intertable['coeffs']
             return indexes, coeffs
 
     # ####### SCIPY INTERPOLATION ###################################
-    def _interpolate_scipy_invdist(self, v, weights, indexes, nnear):
+    def _interpolate_scipy_append_mv(self, v, weights, indexes, nnear):
         # append the MV efas value at the end because of how KDTree algo works
         # It gives (last_index + 1) from original values when value can't be computed.
         # These "last_index + 1" indexes are stored in intertable so we artificially add a missing value
@@ -154,16 +157,31 @@ class Interpolator(Loggable):
         return result
 
     def interpolate_scipy(self, latgrib, longrib, v, grid_id, grid_details=None):
-
-        intertable_id, intertable_name = self._intertable_filename(grid_id)
         lonefas = self._target_coords.lons
         latefas = self._target_coords.lats
+        if DEBUG_BILINEAR_INTERPOLATION:
+            # target_lats=target_lats[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+            # target_lons=target_lons[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+            if self._target_coords.lats.shape==(3600,7200):
+                # Global_3arcmin DEBUG
+                latefas=self._target_coords.lats[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+                lonefas=self._target_coords.lons[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+            else:
+                # European_1arcmin DEBUG
+                selection_lats = np.logical_and(self._target_coords.lats[:,0]>=DEBUG_MIN_LAT,self._target_coords.lats[:,0]<=DEBUG_MAX_LAT)
+                selection_lons = np.logical_and(self._target_coords.lons[0,:]>=DEBUG_MIN_LON,self._target_coords.lons[0,:]<=DEBUG_MAX_LON)
+                latefas=self._target_coords.lats[selection_lats,:][:,selection_lons]
+                lonefas=self._target_coords.lons[selection_lats,:][:,selection_lons]
+
+            intertable_id, intertable_name = 'DEBUG','DEBUG.npy'
+        else:
+            intertable_id, intertable_name = self._intertable_filename(grid_id)
 
         nnear = self.scipy_modes_nnear[self._mode]
 
         if pyg2p.util.files.exists(intertable_name) or pyg2p.util.files.exists(intertable_name + '.gz'):
             indexes, weights = self._read_intertable(intertable_name)
-            result = self._interpolate_scipy_invdist(v, weights, indexes, nnear)
+            result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
 
         elif self.create_if_missing:
             self.intertables_config.check_write()
@@ -172,11 +190,11 @@ class Interpolator(Loggable):
                 raise ApplicationException.get_exc(5000)
 
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
-            invdisttree = InverseDistance(longrib, latgrib, grid_details, v.ravel(), nnear, self.mv_out,
+            scipy_interpolation = ScipyInterpolation(longrib, latgrib, grid_details, v.ravel(), nnear, self.mv_out,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
-                                          parallel=self.parallel)
-            _, weights, indexes = invdisttree.interpolate(lonefas, latefas)
-            result = self._interpolate_scipy_invdist(v, weights, indexes, nnear)
+                                          parallel=self.parallel, mode=self._mode)
+            _, weights, indexes = scipy_interpolation.interpolate(lonefas, latefas)
+            result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
 
             # saving interpolation lookup table
             intertable = np.rec.fromarrays((indexes, weights), names=('indexes', 'coeffs'))

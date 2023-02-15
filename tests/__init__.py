@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 
-from lisfloodutilities.compare import PCRComparator, NetCDFComparator
+from lisfloodutilities.compare import Comparator
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 src_path = os.path.join(current_dir, '../src/')
@@ -20,7 +20,7 @@ logger.propagate = False
 def check_dataset_pcroutput(self, ds):
     result_dir = self.options['results'].joinpath(f'{ds}')
     reference_dir = self.options['reference'].joinpath(f'{ds}')
-    comparator = PCRComparator()
+    comparator = Comparator()
     diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
     if diffs:
         logger.info(diffs)
@@ -31,7 +31,7 @@ def check_dataset_netcdfoutput(self, ds):
     result_dir = self.options['results'].joinpath(f'{ds}')
     reference_dir = self.options['reference'].joinpath(f'{ds}')
     mask = PCRasterReader(self.options['maps'].joinpath('dem.map')).values
-    comparator = NetCDFComparator(mask)
+    comparator = Comparator(mask)
     diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
     if diffs:
         logger.info(diffs)

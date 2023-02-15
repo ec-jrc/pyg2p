@@ -6,6 +6,7 @@ from pyg2p.main.interpolation import Interpolator
 
 from pyg2p.main.manipulation.correction import Corrector
 from pyg2p.main.readers import GRIBReader, PCRasterReader
+from pyg2p.util.numeric import int_fill_value
 
 from tests import MockedExecutionContext
 
@@ -48,8 +49,9 @@ class TestCorrection:
         mv_geopotential = geopotential.missing_value
         gem = np.where(z != mv_geopotential, (z / 9.81) * 0.0065, mv_geopotential)
         gem_resampled = interpolator.interpolate_scipy(lats, lons, gem, grid_id_geopotential, geopotential.grid_details)
-        reference = np.where((dem != dem_mv) & (values_resampled != dem_mv) & (gem_resampled != dem_mv),
+        mv = int_fill_value
+        reference = np.where((dem != dem_mv) & (values_resampled != mv) & (gem_resampled != mv_geopotential),
                              values_resampled + gem_resampled - dem * 0.0065,
-                             dem_mv)
+                             mv)
 
         assert np.allclose(values_out, reference)

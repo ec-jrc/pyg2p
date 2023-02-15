@@ -15,6 +15,7 @@ class TestAggregator:
         grib_info = grib_reader.get_grib_info({'shortName': '2t'})
         aggregator = Aggregator(aggr_step=6,
                                 aggr_type=INSTANTANEOUS,
+                                aggr_halfweights=False,
                                 input_step=grib_info.input_step,
                                 step_type=grib_info.type_of_param,
                                 start_step=0,
@@ -37,9 +38,32 @@ class TestAggregator:
         grib_info = grib_reader.get_grib_info({'shortName': '2t'})
         aggregator = Aggregator(aggr_step=24,
                                 aggr_type=AVERAGE,
+                                aggr_halfweights=False,
                                 input_step=grib_info.input_step,
                                 step_type=grib_info.type_of_param,
                                 start_step=0,
+                                mv_grib=grib_info.mv,
+                                end_step=24,
+                                unit_time=24,
+                                force_zero_array=False)
+        messages = grib_reader.select_messages(shortName='2t')
+        values_orig = messages.first_resolution_values()
+        values = aggregator.do_manipulation(values_orig)
+        assert len(values) == 1
+        keys_res = list(values.keys())
+        assert keys_res[0] == Step(0, 24, 415, 24, 2)
+
+    #include first and last step using half weights for them
+    def test_average_halfweights(self):
+        ctx = MockedExecutionContext(config_dict, False)
+        grib_reader = GRIBReader(ctx.get('input.file'))
+        grib_info = grib_reader.get_grib_info({'shortName': '2t'})
+        aggregator = Aggregator(aggr_step=24,
+                                aggr_type=AVERAGE,
+                                aggr_halfweights=True,
+                                input_step=grib_info.input_step,
+                                step_type=grib_info.type_of_param,
+                                start_step=24,
                                 mv_grib=grib_info.mv,
                                 end_step=24,
                                 unit_time=24,
@@ -57,6 +81,7 @@ class TestAggregator:
         grib_info = grib_reader.get_grib_info({'shortName': '2t'})
         aggregator = Aggregator(aggr_step=6,
                                 aggr_type=ACCUMULATION,
+                                aggr_halfweights=False,
                                 input_step=grib_info.input_step,
                                 step_type=grib_info.type_of_param,
                                 start_step=0,
