@@ -10,7 +10,7 @@ sys.path.append(os.path.join(current_dir, './src/'))
 
 import pyg2p.util.files as fm
 
-version_file = os.path.join(current_dir, 'VERSION')
+version_file = os.path.join(current_dir, 'src/pyg2p/VERSION')
 
 with open(version_file, 'r') as f:
     version = f.read().strip()
@@ -105,7 +105,7 @@ setup_args = dict(name='pyg2p',
                   package_dir={'': 'src/'},
                   py_modules=[os.path.splitext(os.path.basename(path))[0] for path in glob.glob('src/*.py*')],
                   include_package_data=True,
-                  package_data={'pyg2p': ['*.json']},
+                  package_data={'pyg2p': ['*.json', 'VERSION']},
                   packages=find_packages('src'),
                   keywords="NetCDF GRIB PCRaster Lisflood EFAS GLOFAS",
                   scripts=['bin/pyg2p'],
