@@ -11,6 +11,7 @@ from pyg2p.main.readers.grib import GRIBReader
 
 from pyg2p.main.config import GeopotentialsConfiguration
 import pyg2p.util.numeric
+from pyg2p.util.numeric import int_fill_value
 
 from ..interpolation.scipy_interpolation_lib import DEBUG_BILINEAR_INTERPOLATION, \
                                         DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
@@ -42,7 +43,7 @@ class Corrector(Loggable):
         self._dem_missing_value, self._dem_values = self._read_dem(dem_map)
         self._formula = ctx.get('correction.formula')
         self._gem_formula = ctx.get('correction.gemFormula')
-        self._numexpr_eval = f'where((dem!=mv) & (p!=mv) & (gem!=mv), {self._formula}, mv)'
+        self._numexpr_eval = f'where((dem!=dem_mv) & (p!=mv) & (gem!=gem_mv), {self._formula}, mv)'
         self._numexpr_eval_gem = f'where(z != mv, {self._gem_formula}, mv)'
 
         log_message = f"""
@@ -72,7 +73,9 @@ class Corrector(Loggable):
                 dem = self._dem_values
             p = values
             gem = self._gem_values
-            mv = self._dem_missing_value
+            dem_mv = self._dem_missing_value
+            gem_mv = self._gem_missing_value
+            mv = int_fill_value
             values = ne.evaluate(self._numexpr_eval)
             # mask out values (here is already output values with destination shape)
             values = ma.masked_where(pyg2p.util.numeric.get_masks(p), values)

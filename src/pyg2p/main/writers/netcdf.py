@@ -7,6 +7,7 @@ from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.main.writers import Writer
 from pyg2p.exceptions import ApplicationException, INVALID_INTERPOL_METHOD
 from pyg2p.main.readers.netcdf import NetCDFReader
+from ...util.numeric import int_fill_value
 
 from pyg2p.main.interpolation.scipy_interpolation_lib import DEBUG_BILINEAR_INTERPOLATION, \
                                         DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
@@ -33,17 +34,14 @@ class NetCDFWriter(Writer):
                     f"lat map and long map should coincide when using netCDF target map, used {lats_map} amd {lons_map}")
 
             self.lats_map = NetCDFReader(lats_map)
-            self.coordinates_mv = self.lats_map.mv
             self.lats, self.lons = self.lats_map.get_lat_lon_values()
-            self.lats[self.lats == self.coordinates_mv] = np.nan
-            self.lons[self.lons == self.coordinates_mv] = np.nan
         else:
             self.lats_map = PCRasterReader(lats_map)
-            self.coordinates_mv = self.lats_map.mv
+            coordinates_mv = self.lats_map.mv
             self.lats = self.lats_map.values
             self.lons = PCRasterReader(lons_map).values
-            self.lats[self.lats == self.coordinates_mv] = np.nan
-            self.lons[self.lons == self.coordinates_mv] = np.nan
+            self.lats[self.lats == coordinates_mv] = np.nan
+            self.lons[self.lons == coordinates_mv] = np.nan
 
     def init_dataset(self, out_filename):
         self.nf = Dataset(out_filename, 'w', format='NETCDF4_CLASSIC')
@@ -79,11 +77,10 @@ class NetCDFWriter(Writer):
         time_nc.calendar = 'proleptic_gregorian'
         time_nc[:] = time_values
 
-        __VALUE_NAN = -9999
         values_nc = self.nf.createVariable(varargs.get('prefix', ''), varargs.get('value_format', 'f8'),
-                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=__VALUE_NAN,
+                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=int_fill_value,
                                            )
-        values_nc.missing_value=__VALUE_NAN
+        values_nc.missing_value=int_fill_value
         values_nc.coordinates = 'lon lat'
         values_nc.esri_pe_string = self.esri_pe_string
         values_nc.standard_name = varargs.get('prefix', '')
@@ -98,7 +95,7 @@ class NetCDFWriter(Writer):
         values_nc.set_auto_maskandscale(True)         
 
         # adjust missing values when scale_factor and offset are not 1.0 - 0.0        
-        values[np.isnan(values)] = (__VALUE_NAN - varargs.get('offset', '0.0')) * varargs.get('scale_factor', '1.0')
+        values[np.isnan(values)] = (int_fill_value - varargs.get('offset', '0.0')) * varargs.get('scale_factor', '1.0')
 
         for t in range(len(time_values)):
             if DEBUG_BILINEAR_INTERPOLATION:

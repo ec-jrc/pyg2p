@@ -45,6 +45,7 @@ class Controller(Loggable):
         if self.ctx.must_do_aggregation:
             aggregator = Aggregator(aggr_step=self.ctx.get('aggregation.step'),
                                     aggr_type=self.ctx.get('aggregation.type'),
+                                    aggr_halfweights=self.ctx.get('aggregation.halfweights'),
                                     input_step=grib_info.input_step,
                                     step_type=grib_info.type_of_param,
                                     start_step=start_step,
@@ -62,6 +63,7 @@ class Controller(Loggable):
         step_type = messages.step_type
         m2 = Aggregator(aggr_step=self.ctx.get('aggregation.step'),
                         aggr_type=self.ctx.get('aggregation.type'),
+                        aggr_halfweights=self.ctx.get('aggregation.halfweights'),
                         input_step=input_step, step_type=step_type, start_step=start_step,
                         end_step=end_step, unit_time=self.ctx.get('outMaps.unitTime'), mv_grib=mv_grib,
                         force_zero_array=self.ctx.get('aggregation.forceZeroArray'))

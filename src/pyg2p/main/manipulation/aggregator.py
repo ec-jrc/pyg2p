@@ -33,6 +33,7 @@ class Aggregator(Loggable):
         self._unit_time = int(kwargs.get('unit_time'))
         self._aggregation_step = int(kwargs.get('aggr_step'))
         self._aggregation = kwargs.get('aggr_type')  # type of manipulation
+        self._aggregation_halfweights = kwargs.get('aggr_halfweights')  # include first and last step using half weights for them
         self._force_zero = kwargs.get('force_zero_array')  # if true, accumulation will use a zero array at step 0.
 
         self._start = int(kwargs.get('start_step'))
@@ -164,37 +165,63 @@ class Aggregator(Loggable):
             shape_iter = values[first_key].shape
 
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
+            iter_end = self._end - self._aggregation_step + 2
             if self._start > 0 and not self._second_t_res:
-                iter_start = self._start - self._aggregation_step + 1
+                if self._aggregation_halfweights:
+                    iter_start = self._start - self._aggregation_step
+                    iter_end = self._end - self._aggregation_step + 1
+                else:
+                    iter_start = self._start - self._aggregation_step + 1
             elif self._second_t_res:
                 iter_start = self._start
             else:
                 iter_start = 0
 
-            for iter_ in range(iter_start, self._end - self._aggregation_step + 2, self._aggregation_step):
-
-                if self._start == 0:
+            for iter_ in range(iter_start, iter_end, self._aggregation_step):
+                if self._aggregation_halfweights == False and self._start == 0:
                     iter_from = iter_ + 1
                     iter_to = iter_ + self._aggregation_step + 1
                 else:
                     iter_from = iter_
                     iter_to = iter_ + self._aggregation_step
-
+                if self._aggregation_halfweights:
+                    iter_to += 1
                 temp_sum = np.zeros(shape_iter)
                 v_ord_keys = list(v_ord.keys())
 
-                for iterator_avg in range(iter_from, iter_to, 1):
-                    if iterator_avg in v_ord_keys:
-                        if self._logger.isEnabledFor(logging.DEBUG):
-                            self._log(f'temp_sum += grib[{iterator_avg}]')
-                        v_ma = v_ord[iterator_avg]
-                    else:
-                        ind_next_ = bisect.bisect_left(list(v_ord_keys), iterator_avg)
-                        next_ = list(v_ord_keys)[ind_next_]
-                        if self._logger.isEnabledFor(logging.DEBUG):
-                            self._log(f'temp_sum += grib[{iterator_avg}] from -> grib[{next_}]')
-                        v_ma = v_ord[next_]
-                    ne.evaluate('temp_sum + v_ma', out=temp_sum)
+                if self._aggregation_halfweights:
+                    count_steps=-1
+                    for iterator_avg in range(iter_from, iter_to, 1):
+                        if iterator_avg in v_ord_keys:                
+                            count_steps=count_steps+1
+                    if count_steps>0:
+                        dt1=np.round(self._aggregation_step/count_steps,0)
+                        dt2=np.round(dt1/2,0)
+
+                        for iterator_avg in range(iter_from, iter_to, 1):
+                            if iterator_avg in v_ord_keys:
+                                if self._logger.isEnabledFor(logging.DEBUG):
+                                    self._log(f'temp_sum += grib[{iterator_avg}]')
+                                if iterator_avg==iter_from or iterator_avg==(iter_to-1):
+                                    v_ma = v_ord[iterator_avg]*dt2
+                                    print("Iterator: {} weight: {}".format(iterator_avg,dt2))
+                                else:
+                                    v_ma = v_ord[iterator_avg]*dt1
+                                    print("Iterator: {} weight: {}".format(iterator_avg,dt1))
+                                ne.evaluate('temp_sum + v_ma', out=temp_sum)
+                else:
+                    for iterator_avg in range(iter_from, iter_to, 1):
+                        if iterator_avg in v_ord_keys:
+                            if self._logger.isEnabledFor(logging.DEBUG):
+                                self._log(f'temp_sum += grib[{iterator_avg}]')
+                            v_ma = v_ord[iterator_avg]
+                        else:
+                            ind_next_ = bisect.bisect_left(list(v_ord_keys), iterator_avg)
+                            next_ = list(v_ord_keys)[ind_next_]
+                            if self._logger.isEnabledFor(logging.DEBUG):
+                                self._log(f'temp_sum += grib[{iterator_avg}] from -> grib[{next_}]')
+                            v_ma = v_ord[next_]
+                        ne.evaluate('temp_sum + v_ma', out=temp_sum)
 
                 # mask result with all maskes from GRIB original values used in average (if existing any)
                 # temp_sum = ma.masked_where(pyg2p.util.numeric.get_masks(v_ord.values()), temp_sum, copy=False)

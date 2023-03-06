@@ -9,7 +9,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(current_dir, './src/'))
 
 import pyg2p.util.files as fm
-from pyg2p import __version__
+
+version_file = os.path.join(current_dir, 'src/pyg2p/VERSION')
+
+with open(version_file, 'r') as f:
+    version = f.read().strip()
 
 readme_file = os.path.join(current_dir, 'README.md')
 with open(readme_file, 'r') as f:
@@ -46,7 +50,7 @@ class UploadCommand(Command):
         os.system('twine upload dist/*')
 
         self.print_console('Pushing git tags...')
-        os.system(f'git tag {__version__}')
+        os.system('git tag v{}'.format(version))
         os.system('git push --tags')
 
         sys.exit()
@@ -90,7 +94,7 @@ requirements = [l for l in open(req_file).readlines() if l and not l.startswith(
 requirements += [f'GDAL=={gdal_version}']
 
 setup_args = dict(name='pyg2p',
-                  version=__version__,
+                  version=version,
                   description="Convert GRIB files to netCDF or PCRaster",
                   long_description=long_description,
                   long_description_content_type='text/markdown',
@@ -101,7 +105,7 @@ setup_args = dict(name='pyg2p',
                   package_dir={'': 'src/'},
                   py_modules=[os.path.splitext(os.path.basename(path))[0] for path in glob.glob('src/*.py*')],
                   include_package_data=True,
-                  package_data={'pyg2p': ['*.json']},
+                  package_data={'pyg2p': ['*.json', 'VERSION']},
                   packages=find_packages('src'),
                   keywords="NetCDF GRIB PCRaster Lisflood EFAS GLOFAS",
                   scripts=['bin/pyg2p'],

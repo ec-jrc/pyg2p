@@ -16,18 +16,25 @@ class NetCDFReader(Loggable):
         self._dataset = Dataset(nc_map)
         self._var_name = list(self._dataset.variables.items())[-1][0]  # get the last variable name
         self._rows, self._cols = self._dataset.variables[self._var_name].shape  # just use shape to know rows and cols...
-        self._origX = self._dataset.variables['lon'][:].min()
-        self._origY = self._dataset.variables['lat'][:].min()
-        self._pxlW = self._dataset.variables['lon'][1]-self._dataset.variables['lon'][0]
-        self._pxlH = self._dataset.variables['lat'][1]-self._dataset.variables['lat'][0]
+        if ('lon' in list(self._dataset.variables)):
+            self.label_lat = 'lat'
+            self.label_lon = 'lon'
+        else:
+            self.label_lat = 'y'
+            self.label_lon = 'x'
+
+        self._origX = self._dataset.variables[self.label_lon][:].min()
+        self._origY = self._dataset.variables[self.label_lat][:].min()
+        self._pxlW = self._dataset.variables[self.label_lon][1]-self._dataset.variables[self.label_lon][0]
+        self._pxlH = self._dataset.variables[self.label_lat][1]-self._dataset.variables[self.label_lat][0]
 
         self.var_name = self.find_main_var(nc_map)
         
-        self.lat_min = self._dataset.variables['lat'][:].min()
-        self.lon_min = self._dataset.variables['lon'][:].min()
-        self.lat_max = self._dataset.variables['lat'][:].max()
-        self.lon_max = self._dataset.variables['lon'][:].max()
-        self.mv = -9999
+        self.lat_min = self._dataset.variables[self.label_lat][:].min()
+        self.lon_min = self._dataset.variables[self.label_lon][:].min()
+        self.lat_max = self._dataset.variables[self.label_lat][:].max()
+        self.lon_max = self._dataset.variables[self.label_lon][:].max()
+        self.mv = self._dataset.variables[self.var_name].missing_value
 
     def find_main_var(self, path):
         variable_names = [k for k in self._dataset.variables if len(self._dataset.variables[k].dimensions) >= 2]
@@ -42,20 +49,18 @@ class NetCDFReader(Loggable):
     @property
     def values(self):
         data = self._dataset.variables[self.var_name][:].data
-        self.close()
         return data
     
     def get_lat_lon_values(self):
-        lats = np.reshape(self._dataset.variables['lat'][:],(-1,1))*np.ones(self._dataset.variables[self._var_name].shape)
-        lons = self._dataset.variables['lon'][:]*np.ones(self._dataset.variables[self._var_name].shape)
-        self.close()
+        lats = np.reshape(self._dataset.variables[self.label_lat][:],(-1,1))*np.ones(self._dataset.variables[self._var_name].shape)
+        lons = self._dataset.variables[self.label_lon][:]*np.ones(self._dataset.variables[self._var_name].shape)
         return lats.data, lons.data
 
     def get_lat_values(self):
-        return self._dataset.variables['lat'][:].data
+        return self._dataset.variables[self.label_lat][:].data
 
     def get_lon_values(self):
-        return self._dataset.variables['lon'][:].data
+        return self._dataset.variables[self.label_lon][:].data
 
     def close(self):
         self._dataset = None

@@ -20,10 +20,10 @@ import pyg2p.util.numeric
 class Interpolator(Loggable):
     _LOADED_INTERTABLES = {}
     _prefix = 'I'
-    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'bilinear': 4, 'triangulation': 3}
+    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
     suffixes = {'grib_nearest': 'grib_nearest', 'grib_invdist': 'grib_invdist',
                 'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist',
-                'bilinear': 'scipy_bilinear', 'triangulation': 'scipy_triangulation'}
+                'bilinear': 'scipy_bilinear', 'triangulation': 'scipy_triangulation', 'bilinear_delaunay': 'scipy_bilinear_delaunay'}
     _format_intertable = 'tbl{prognum}_{source_file}_{target_size}_{suffix}.npy.gz'.format
 
     def __init__(self, exec_ctx, mv_input):
@@ -127,7 +127,7 @@ class Interpolator(Loggable):
             coeffs = intertable['coeffs']
             return indexes[0], indexes[1], indexes[2], indexes[3], indexes[4], indexes[5], coeffs[0], coeffs[1], coeffs[2], coeffs[3]
         else:
-            # self._mode in ('invdist', 'nearest', 'bilinear', 'triangulation'):
+            # self._mode in ('invdist', 'nearest', 'bilinear', 'triangulation', 'bilinear_delaunay'):
             # return indexes and weighted distances (only used with nnear > 1)
             indexes = intertable['indexes']
             coeffs = intertable['coeffs']
