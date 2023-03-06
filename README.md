@@ -10,12 +10,24 @@ It can also manipulates GRIB messages (performing aggregation or simple unit con
 To install package, you can use a python virtual environment or directly install dependencies and
 package at system level (executable script will be saved into /usr/local/bin in this case).
 
+### Using miniconda:
+
+
+* Install [miniconda](https://docs.conda.io/en/latest/miniconda.html)
+
+* Create a conda env named "pyg2penv" and install dependencies:
+
+  ```bash
+  conda create --name pyg2penv python=3.7 -c conda-forge
+  conda activate pyg2penv
+  ```
+
 >IMPORTANT: Before to launch setup, you need the following steps:
 
->Install eccodes: this can be done compiling from source code or using the available conda virtual environment package by running 
+>Install eccodes (and GDAL): this can be done compiling from source code or using the available conda virtual environment package by running 
 
 ```bash
-$ conda install -c conda-forge eccodes
+$ conda install -c conda-forge eccodes gdal
 ```
 
 >Configure geopotentials and intertables paths in
@@ -31,7 +43,8 @@ Grab last archive and extract it in a folder (or clone this repository) and foll
 ```bash
 $ cd pyg2p
 $ vim configuration/global/global_conf.json # to edit shared paths !!!
-$ python setup.py install
+$ pip install -r requirements.txt
+$ pip install .
 ```
 
 After installation, you will have all dependencies installed and an executable script 'pyg2p' (in a
