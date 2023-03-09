@@ -1,7 +1,7 @@
 import time
 
 import numpy as np
-from netCDF4 import Dataset
+from netCDF4 import Dataset, default_fillvals
 
 from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.main.writers import Writer
@@ -77,10 +77,19 @@ class NetCDFWriter(Writer):
         time_nc.calendar = 'proleptic_gregorian'
         time_nc[:] = time_values
 
-        values_nc = self.nf.createVariable(varargs.get('prefix', ''), varargs.get('value_format', 'f8'),
-                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=int_fill_value,
+        missing_value_to_use = int_fill_value
+        value_format = varargs.get('value_format', 'f8')
+        # in case of value_formats i1, u1 and u2, use the default_fillvals since int_fill_value will not fit in variable format
+        if value_format in ('i1','u1','u2'):
+            missing_value_to_use = default_fillvals[value_format]
+        # in case of value_formats i2, use the usual -9999 fill value and missing value
+        if value_format=='i2':
+            missing_value_to_use = -9999
+             
+        values_nc = self.nf.createVariable(varargs.get('prefix', ''), value_format,
+                                           ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=missing_value_to_use,
                                            )
-        values_nc.missing_value=int_fill_value
+        values_nc.missing_value=missing_value_to_use
         values_nc.coordinates = 'lon lat'
         values_nc.esri_pe_string = self.esri_pe_string
         values_nc.standard_name = varargs.get('prefix', '')
@@ -89,14 +98,14 @@ class NetCDFWriter(Writer):
         values_nc.scale_factor = varargs.get('scale_factor', '1.0')
         values_nc.add_offset = varargs.get('offset', '0.0')
         if varargs.get('valid_min', None) is not None:
-            values_nc.valid_min = np.float64(varargs.get('valid_min', None))
+            values_nc.valid_min = (np.float64(varargs.get('valid_min', None)) - varargs.get('offset', '0.0')) / varargs.get('scale_factor', '1.0')
         if varargs.get('valid_max', None) is not None:            
-            values_nc.valid_max = np.float64(varargs.get('valid_max', None))
+            values_nc.valid_max = (np.float64(varargs.get('valid_max', None)) - varargs.get('offset', '0.0')) / varargs.get('scale_factor', '1.0')
         values_nc.set_auto_maskandscale(True)         
 
-        # adjust missing values when scale_factor and offset are not 1.0 - 0.0        
-        values[np.isnan(values)] = (int_fill_value - varargs.get('offset', '0.0')) * varargs.get('scale_factor', '1.0')
-
+        # adjust missing values when scale_factor and offset are not 1.0 - 0.0 
+        values[np.isnan(values)] = missing_value_to_use * varargs.get('scale_factor', '1.0') + varargs.get('offset', '0.0')
+        
         for t in range(len(time_values)):
             if DEBUG_BILINEAR_INTERPOLATION:
                 if self.lats.shape==(3600,7200):
