@@ -216,7 +216,7 @@ There are four sections of configuration.
 Defines the aggregation method and step. Method can be `accumulation`, `average` or `instantaneous`.
 
 #### OutMaps
-Here you define interpolation method and paths to coordinates PCRaster maps, output unit time, the clone map etc.
+Here you define interpolation method and paths to coordinates netCDF/PCRaster maps, output unit time, the clone map etc.
 
 #### Interpolation
 This is a subelement of OutMaps. Here you define interpolation method (see later for details), paths
@@ -292,7 +292,15 @@ Usage of user defined paths in JSON command file:
         <td><b>Execution</b></td>
         <td>name</td>
         <td>Descriptive name of the execution configuration.</td>
-        </tr>
+        </tr>        
+        <tr>
+        <td>&nbsp;</td><td>intertableDir</td><td>Alternative home folder for interpolation lookup
+tables, where pyg2p will load/save intertables. Folder must be existing. If not set, pyg2p will use intertables from ~/.pyg2p/intertables/</td>
+        </tr>    
+        <tr>
+        <td>&nbsp;</td><td>geopotentialDir</td><td>Alternative home folder for geopotential lookup
+tables. Folder must be existing. If not set, pyg2p will use geopotentials from ~/.pyg2p/geopotentials/</td>
+        </tr>    
         <tr>
         <td></td><td><b>Parameter</b></td><td>See relative table</td>
         </tr>
@@ -352,7 +360,7 @@ of interest. A dem map works fine. A typical area boolean map will not).</td>
         </tr>
         <tr>
         <td>&nbsp;</td><td><b>unitTime</b></td><td>Time unit in hours of output maps. Tipical value
-is 24 (daily maps).</td>
+is 24 (daily maps). Used in "accumulation" operation</td>
         </tr>
         <tr>
         <td>&nbsp;</td><td><b>format</b></td><td>Output file format. Default 'pcraster'. Available
@@ -363,14 +371,33 @@ formats are 'pcraster', 'netcdf'.</td>
 shortName.</td>
         </tr>
         <tr>
+        <td>&nbsp;</td><td><b>scaleFactor</b></td><td>Scale factor of the output netCDF map. Default 1.</td>
+        </tr>
+        <tr>
+        <td>&nbsp;</td><td><b>offset</b></td><td>Offset of the output netCDF map. Default 0.</td>
+        </tr>
+        <tr>
+        <td>&nbsp;</td><td><b>validMin</b></td><td>Minimum value of the output netCDF map. Values below will be set to nodata.</td>
+        </tr>
+        <tr>
+        <td>&nbsp;</td><td><b>validMax</b></td><td>Maximum value of the output netCDF map. Values above will be set to nodata.</td>
+        </tr>
+        <tr>
+        <td>&nbsp;</td><td><b>valueFormat</b></td><td>Variable type to use in the output netCDF map. Deafult f8. Available formats are: i1,i2,i4,i8,u1,u2,u4,u8,f4,f8 where i is integer, u is unsigned integer, f if float and the number corresponds to the number of bytes used (e.g. i4 is integer 32bits = 4 bytes)</td>
+        </tr>  
+        <tr>
+        <td>&nbsp;</td><td><b>outputStepUnits</b></td><td>Step units to use in output map. If not specified, it will use the stepUnits of the source Grib file. Available values are: 's': seconds, 'm': minutes, 'h': hours, '3h': 3h steps, '6h': 6h steps, '12h': 12h steps, 'D': days</td>
+        </tr>
+        <tr>      
+        <tr>
         <td>&nbsp;</td><td><b>fmap</b></td><td>First PCRaster map number. Default 1.</td>
         </tr>
         <tr>
-        <td>&nbsp;</td><td><b>Interpolation</b></td><td>See relative table.</td>
+        <td>&nbsp;</td><td><b>ext</b></td><td>Extension mode. It's the integer number
+defining the step numbers to skip when writing PCRaster maps. Same as old grib2pcraster. Default 1.</td>
         </tr>
         <tr>
-        <td>&nbsp;</td><td><b>ext</b></td><td>Extension mode. It's the integer number
-defining the step numbers to skip when writing maps. Same as old grib2pcraster. Default 1.</td>
+        <td>&nbsp;</td><td><b>Interpolation</b></td><td>See relative table.</td>
         </tr>
         <tr>
         <td colspan="3"><hr/></td>
@@ -401,11 +428,7 @@ map, even if the GRIB file has a step 0 message.</td>
         </tr>
         <tr>
         <td>&nbsp;</td><td><b>lonMap</b></td><td>PCRaster map of target longitudes.</td>
-        </tr>
-        <tr>
-        <td>&nbsp;</td><td>intertableDir</td><td>Alternative home folder for interpolation lookup
-tables, where pyg2p will load/save intertables. Folder must be existing. If not set, pyg2p will use intertables from ~/.pyg2p/intertables/</td>
-        </tr>
+        </tr>        
     </tbody>
 </table>
 
@@ -442,70 +465,78 @@ If you run pyg2p without arguments, it shows help of all input arguments.
 
 ```console
 usage: pyg2p [-h] [-c json_file] [-o out_dir] [-i input_file]
-[-I input_file_2nd] [-s tstart] [-e tend] [-m eps_member]
-[-T data_time] [-D data_date] [-f fmap] [-F format] [-x extension_step]
-[-n outfiles_prefix] [-l log_level] [-N intertable_dir] [-B] [-X]
-[-t cmds_file] [-g geopotential] [-C path] [-z path] [-W dataset]
+             [-I input_file_2nd] [-s tstart] [-e tend] [-m eps_member]
+             [-T data_time] [-D data_date] [-f fmap] [-F format]
+             [-x extension_step] [-n outfiles_prefix] [-O offset]
+             [-S scale_factor] [-vM valid_max] [-vm valid_min]
+             [-vf value_format] [-U output_step_units] [-l log_level]
+             [-N intertable_dir] [-G geopotential_dir] [-B] [-X]
+             [-g geopotential] [-W dataset]
 
-Execute the grib to pcraster conversion using parameters from the input json configuration.
-Read user manual.
+Pyg2p: Execute the grib to netCDF/PCRaster conversion, using parameters
+from CLI/json configuration.
 
 optional arguments:
--h, --help show this help message and exit
--c json_file, --commandsFile json_file
-Path to json command file
--o out_dir, --outDir out_dir
-Path where output maps will be created.
--i input_file, --inputFile input_file
-Path to input grib.
--I input_file_2nd, --inputFile2 input_file_2nd
-Path to 2nd resolution input grib.
--s tstart, --start tstart
-Grib timestep start. It overwrites the tstart in json
-execution file.
--e tend, --end tend Grib timestep end. It overwrites the tend in json
-execution file.
--m eps_member, --perturbationNumber eps_member
-eps member number
--T data_time, --dataTime data_time
-To select messages by dataTime key value
--D data_date, --dataDate data_date
-<YYYYMMDD> to select messages by dataDate key value
--f fmap, --fmap fmap First map number
--F format, --format format
-Output format. Available options: netcdf, pcraster.
-Default pcraster
--x extension_step, --ext extension_step
-Extension number step
--n outfiles_prefix, --namePrefix outfiles_prefix
-Prefix name for maps
--l log_level, --loggerLevel log_level
-Console logging level
--N intertable_dir, --intertableDir intertable_dir
-interpolation tables dir
--B, --createIntertable
-create intertable file
--X, --interpolationParallel
-Use parallelization tools to make interpolation
-faster.If -B option is not passed or intertable
-already exists it does not have any effect.
--t cmds_file, --test cmds_file
-Path to a text file containing list of commands,
-defining a battery of tests. Then it will create diff
-pcraster maps and log alerts if differences are higher
-than a threshold (edit configuration in test.json)
--g geopotential, --addGeopotential geopotential
-Add the file to geopotentials.json configuration file, to use for correction. The file will be copied into
-the right folder (configuration/geopotentials) Note:
-shortName of geopotential must be "fis" or "z"
--C path, --convertConf path
-Convert old xml configuration to new json format
--z path, --convertIntertables path
-Convert old pyg2p intertables to new version and copy
-to user folders
--W dataset, --downloadConf dataset
-Download intertables and geopotentials (FTP settings
-defined in ftp.json)
+  -h, --help            show this help message and exit
+  -c json_file, --commandsFile json_file
+                        Path to json command file
+  -o out_dir, --outDir out_dir
+                        Path where output maps will be created.
+  -i input_file, --inputFile input_file
+                        Path to input grib.
+  -I input_file_2nd, --inputFile2 input_file_2nd
+                        Path to 2nd resolution input grib.
+  -s tstart, --start tstart
+                        Grib timestep start. It overwrites the tstart in json
+                        execution file.
+  -e tend, --end tend   Grib timestep end. It overwrites the tend in json
+                        execution file.
+  -m eps_member, --perturbationNumber eps_member
+                        eps member number
+  -T data_time, --dataTime data_time
+                        To select messages by dataTime key value
+  -D data_date, --dataDate data_date
+                        <YYYYMMDD> to select messages by dataDate key value
+  -f fmap, --fmap fmap  First map number
+  -F format, --format format
+                        Output format. Available options: netcdf, pcraster.
+                        Default pcraster
+  -x extension_step, --ext extension_step
+                        Extension number step
+  -n outfiles_prefix, --namePrefix outfiles_prefix
+                        Prefix name for maps
+  -O offset, --offset offset
+                        Map offset
+  -S scale_factor, --scaleFactor scale_factor
+                        Map scale factor
+  -vM valid_max, --validMax valid_max
+                        Max valid value
+  -vm valid_min, --validMin valid_min
+                        Min valid value
+  -vf value_format, --valueFormat value_format
+                        output value format (default f8)
+  -U output_step_units, --outputStepUnits output_step_units
+                        output step units
+  -l log_level, --loggerLevel log_level
+                        Console logging level
+  -N intertable_dir, --intertableDir intertable_dir
+                        Alternate interpolation tables dir
+  -G geopotential_dir, --geopotentialDir geopotential_dir
+                        Alternate geopotential dir
+  -B, --createIntertable
+                        Flag to create intertable file
+  -X, --interpolationParallel
+                        Use parallelization tools to make interpolation
+                        faster.If -B option is not passed or intertable
+                        already exists it does not have any effect.
+  -g geopotential, --addGeopotential geopotential
+                        Add the file to geopotentials.json configuration file,
+                        to use for correction. The file will be copied into
+                        the right folder (configuration/geopotentials) Note:
+                        shortName of geopotential must be "fis" or "z"
+  -W dataset, --downloadConf dataset
+                        Download intertables and geopotentials (FTP settings
+                        defined in ftp.json)
 ```
 #### Usage examples:
 
@@ -677,16 +708,22 @@ This algorithm merges bilinear interpolation and triangular tessellation. Quadri
 ## OutMaps configuration
 
 Interpolation is configured under the OutMaps tag. With additional attributes, you also configure
-resulting PCRaster maps. Output dir is ./ by default or you can set it via command line using the
+resulting PCRaster or netCDF maps. Output dir is ./ by default or you can set it via command line using the
 option -o (--outDir).
 
 | Attribute      | Details                                                                                                                           |
 |----------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | namePrefix     | Prefix name for output map files. Default is the value of shortName key.                                                          |
-| **unitTime**   | Unit time in hours for results. This is used during aggregation operations.                                                       |
+| unitTime       | Unit time in hours for results. This is used during aggregation operations.                                                       |
 | fmap           | Extension number for the first map. Default 1.                                                                                    |
 | ext            | Extension mode. It's the integer number defining the step numbers to skip when writing maps. Same as old grib2pcraster. Default 1.|
-| **cloneMap**   | Path to a PCRaster clone map, needed by PCRaster libraries to write a new map on disk.                                            |
+| cloneMap       | Path to a PCRaster clone map, needed by PCRaster libraries to write a new map on disk.                                            |
+| scaleFactor    | Scale factor of the output netCDF map. Default 1. |
+| offset         | Offset of the output netCDF map. Default 0. |
+| validMin       | Minimum value of the output netCDF map. Values below will be set to nodata. |
+| validMax       | Maximum value of the output netCDF map. Values above will be set to nodata. |
+| valueFormat    | Variable type to use in the output netCDF map. Deafult f8. Available formats are: i1,i2,i4,i8,u1,u2,u4,u8,f4,f8 where i is integer, u is unsigned integer, f if float and the number corresponds to the number of bytes used (e.g. i4 is integer 32bits = 4 bytes) | 
+| outputStepUnits | Step units to use in output map. If not specified, it will use the stepUnits of the source Grib file. Available values are: 's': seconds, 'm': minutes, 'h': hours, '3h': 3h steps, '6h': 6h steps, '12h': 12h steps, 'D': days |
 
 ## Aggregation
 
@@ -1212,6 +1249,6 @@ Dimensions:
 Variables:
         lon: 2D array with shape (yc, xc)
         lat: 2D array with shape (yc, xc)
-        time_nc: 1D array of values representing hours since dataDate of first grib message (endStep)
+        time_nc: 1D array of values representing hours/days since dataDate of first grib message (endStep)
         values_nc: a 3D array of dimensions (time, yc, xc), with coordinates set to 'lon, lat'.
 ```

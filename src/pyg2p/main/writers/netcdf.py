@@ -1,4 +1,5 @@
 import time
+import warnings
 
 import numpy as np
 from netCDF4 import Dataset, default_fillvals
@@ -70,9 +71,47 @@ class NetCDFWriter(Writer):
         latitude.long_name = 'Latitude coordinate'
         latitude.units = 'degrees_north'
 
-        time_nc = self.nf.createVariable('time', 'i4', ('time',), complevel=4, zlib=True)
+
+        time_var_format = 'i4'
+        steps_units_netcdf_name = {'s':'seconds', 'm':'minutes', 'h':'hours', '3h':'3h steps', '6h':'6h steps',
+                                    '12h':'12h steps', 'D': 'days', 'M': 'months', 'Y': 'years', '10Y': '10Y steps', 
+                                    '30Y':'30Y steps', 'C': 'centuries'}
+        steps_units_conversion_time = {'s':1/3600, 'm':1/60, 'h':1, '3h':3, '6h':6,
+                                    '12h':12, 'D': 24}
+        
+        grib_step_units=varargs.get("grib_step_units")
+        if varargs.get('output_step_units', None) is not None:
+            # force the destination step units
+            output_step_units=varargs.get("output_step_units")
+            if output_step_units in steps_units_netcdf_name: 
+                if output_step_units!=grib_step_units:
+                    # the time_values need to be converted here
+                    # we can convert only up to daily step
+                    if (output_step_units in steps_units_conversion_time) and \
+                        (grib_step_units in steps_units_conversion_time): 
+                        time_values = time_values*steps_units_conversion_time[grib_step_units]/steps_units_conversion_time[output_step_units]
+                        if np.any(np.mod(time_values, 1) != 0):
+                            time_var_format = 'f4'
+                    else:
+                        warnings.warn('Conversion from grib stepUnits {} to outputStepUnits: {} not allowed.\nConversion is supported only up to daily time steps. The output format will be "{}"'
+                                    .format(grib_step_units, output_step_units,steps_units_netcdf_name[grib_step_units]), 
+                                    RuntimeWarning)
+                        output_step_units = grib_step_units
+            else:
+                warnings.warn('Invalid outputStepUnits: {}. Valid values are: {}\nUsing source step unit: {}'
+                              .format(output_step_units,steps_units_netcdf_name,grib_step_units), 
+                              RuntimeWarning)
+                output_step_units = grib_step_units
+        else:
+            # ok, I use the source step units
+            output_step_units=grib_step_units
+
+        netcdf_steps_units = steps_units_netcdf_name[output_step_units]
+        data_date=varargs.get("data_date")
+
+        time_nc = self.nf.createVariable('time', time_var_format, ('time',), complevel=4, zlib=True)
         time_nc.standard_name = 'time'
-        time_nc.units = f'hours since {varargs.get("data_date")}'
+        time_nc.units = f'{netcdf_steps_units} since {data_date}'
         time_nc.frequency = '1'
         time_nc.calendar = 'proleptic_gregorian'
         time_nc[:] = time_values

@@ -145,11 +145,12 @@ class GribGridDetails(Loggable):
 
 class Messages(Loggable):
 
-    def __init__(self, values, mv, unit, type_of_level, type_of_step, grid_details, val_2nd=None, data_date=None):
+    def __init__(self, values, mv, unit, type_of_level, type_of_step, step_units, grid_details, val_2nd=None, data_date=None):
         super().__init__()
         self.values_first_or_single_res = values
         self.values_second_res = val_2nd or {}
         self.step_type = type_of_step
+        self.step_units = step_units
         self.type_of_level = type_of_level
         self.unit = unit
         self.missing_value = mv
