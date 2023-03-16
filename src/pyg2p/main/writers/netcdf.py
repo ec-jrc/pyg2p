@@ -8,7 +8,7 @@ from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.main.writers import Writer
 from pyg2p.exceptions import ApplicationException, INVALID_INTERPOL_METHOD
 from pyg2p.main.readers.netcdf import NetCDFReader
-from ...util.numeric import int_fill_value
+from netCDF4 import default_fillvals
 
 from pyg2p.main.interpolation.scipy_interpolation_lib import DEBUG_BILINEAR_INTERPOLATION, \
                                         DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
@@ -116,15 +116,13 @@ class NetCDFWriter(Writer):
         time_nc.calendar = 'proleptic_gregorian'
         time_nc[:] = time_values
 
-        missing_value_to_use = int_fill_value
         value_format = varargs.get('value_format', 'f8')
-        # in case of value_formats i1, u1 and u2, use the default_fillvals since int_fill_value will not fit in variable format
-        if value_format in ('i1','u1','u2'):
-            missing_value_to_use = default_fillvals[value_format]
-        # in case of value_formats i2, use the usual -9999 fill value and missing value
-        if value_format=='i2':
-            missing_value_to_use = -9999
-             
+        if value_format is None:
+            value_format = 'f8'
+
+        # test: use always default_fillvals as the missing value 
+        missing_value_to_use = default_fillvals[value_format]
+        
         values_nc = self.nf.createVariable(varargs.get('prefix', ''), value_format,
                                            ('time', 'lat', 'lon'), zlib=True, complevel=4, fill_value=missing_value_to_use,
                                            )
