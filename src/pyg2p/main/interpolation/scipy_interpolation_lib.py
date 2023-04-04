@@ -419,74 +419,6 @@ class ScipyInterpolation(object):
         stdout.flush()
         return result, idxs
 
-    # Invdist Original version
-    # def _build_weights_invdist(self, distances, indexes, nnear):
-    #     z = self.z
-    #     result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
-    #     jinterpol = 0
-    #     num_cells = result.size
-    #     back_char, progress_step = progress_step_and_backchar(num_cells)
-
-    #     stdout.write('Skipping neighbors at distance > {}\n'.format(self.min_upper_bound))
-    #     stdout.write('{}Building coeffs: 0/{} [outs: 0] (0%)'.format(back_char, num_cells))
-    #     stdout.flush()
-
-    #     # weights will be saved in intertable along with indexes
-    #     weights = empty((len(distances),) + (nnear,))
-    #     idxs = empty((len(indexes),) + (nnear,), fill_value=z.size, dtype=int)
-    #     empty_array = empty(z[0].shape, self._mv_target)
-    #     outs = 0
-    #     for dist, ix in zip(distances, indexes):
-    #         if jinterpol % progress_step == 0:
-    #             stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)'.format(back_char, jinterpol, num_cells, outs, jinterpol * 100. / num_cells))
-    #             stdout.flush()
-    #         if dist[0] <= 1e-10:
-    #             wz = z[ix[0]]  # take exactly the point, weight = 1
-    #             idxs[jinterpol] = ix
-    #             weights[jinterpol] = np.array([1., 0., 0., 0.])
-    #         elif dist[0] <= self.min_upper_bound:
-    #             w = ne.evaluate('1 / dist ** 2')
-    #             sums = ne.evaluate('sum(w)')
-    #             ne.evaluate('w/sums', out=w)
-    #             wz = np.dot(w, z[ix])  # weighted values (result)
-    #             weights[jinterpol] = w
-    #             idxs[jinterpol] = ix
-    #         else:
-    #             outs += 1
-    #             weights[jinterpol] = np.array([1., 0., 0., 0.])
-    #             wz = empty_array
-    #         result[jinterpol] = wz
-    #         jinterpol += 1
-    #     stdout.write('{}{:>100}'.format(back_char, ' '))
-    #     stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, jinterpol, num_cells, outs))
-    #     stdout.flush()
-    #     return result, weights, idxs
-
-    # Invdist Optimized version (no broadcast)
-    # def _build_weights_invdist(self, distances, indexes, nnear):
-    #     z = self.z
-    #     result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
-    #     weights = empty((len(distances),) + (nnear,))
-    #     idxs = empty((len(indexes),) + (nnear,), fill_value=z.size, dtype=int)
-    #     empty_array = np.empty(z[0].shape)
-     
-    #     for jinterpol, (dist, ix) in enumerate(zip(distances, indexes)):
-    #         if dist[0] <= 1e-10:
-    #             wz = z[ix[0]]
-    #             idxs[jinterpol] = ix
-    #             weights[jinterpol] = np.array([1., 0., 0., 0.])
-    #         elif dist[0] <= self.min_upper_bound:
-    #             w = 1. / dist ** 2
-    #             sums = np.sum(w)
-    #             weights[jinterpol] = w / sums
-    #             wz = np.dot(weights[jinterpol], z[ix])
-    #             idxs[jinterpol] = ix
-    #         else:
-    #             weights[jinterpol] = np.array([1., 0., 0., 0.])
-    #             wz = empty_array
-    #         result[jinterpol] = wz
-    #     return result, weights, idxs
-
     # Invdist Optimized version (using broadcast)
     def _build_weights_invdist(self, distances, indexes, nnear):
         z = self.z
@@ -497,12 +429,11 @@ class ScipyInterpolation(object):
         back_char, _ = progress_step_and_backchar(num_cells)
 
         stdout.write('Skipping neighbors at distance > {}\n'.format(self.min_upper_bound))
-        stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)\n'.format(back_char, 0, 5, 0, 0))
+        stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 0, 5, 0, 0))
         stdout.flush()
 
         dist_leq_1e_10 = distances[:, 0] <= 1e-10
         dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
-        outs = np.sum(distances[:, 0] > self.min_upper_bound)
         
         # distances <= 1e-10 : take exactly the point, weight = 1
         weights[dist_leq_1e_10] = np.array([1., 0., 0., 0.])
@@ -511,20 +442,20 @@ class ScipyInterpolation(object):
 
         w = np.zeros_like(distances)
         w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
-        stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)\n'.format(back_char, 1, 5, outs, 100/5))
+        stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 1, 5, 100/5))
         stdout.flush()
         sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
-        stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)\n'.format(back_char, 2, 5, outs, 2*100/5))
+        stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 2, 5, 2*100/5))
         stdout.flush()
         weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
-        stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)\n'.format(back_char, 3, 5, outs, 3*100/5))
+        stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 3, 5, 3*100/5))
         stdout.flush()
         wz = np.einsum('ij,ij->i', weights, z[indexes])
-        stdout.write('{}Building coeffs: {}/{} [outs: {}] ({:.2f}%)\n'.format(back_char, 4, 5, outs, 4*100/5))
+        stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 4, 5, 4*100/5))
         stdout.flush()
         idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
         result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
-        stdout.write('{}Building coeffs: {}/{} [outs: {}] (100%)\n'.format(back_char, 5, 5, outs))
+        stdout.write('{}Building coeffs: {}/{} (100%)\n'.format(back_char, 5, 5))
         stdout.flush()
         return result, weights, idxs
 
