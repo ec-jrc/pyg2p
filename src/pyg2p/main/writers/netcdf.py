@@ -132,16 +132,16 @@ class NetCDFWriter(Writer):
         values_nc.standard_name = varargs.get('prefix', '')
         values_nc.long_name = varargs.get('var_long_name', '')
         values_nc.units = varargs.get('unit', '')
-        values_nc.scale_factor = varargs.get('scale_factor', '1.0')
-        values_nc.add_offset = varargs.get('offset', '0.0')
+        values_nc.scale_factor = np.float64(varargs.get('scale_factor', '1.0'))
+        values_nc.add_offset = np.float64(varargs.get('offset', '0.0'))
         if varargs.get('valid_min', None) is not None:
-            values_nc.valid_min = (np.float64(varargs.get('valid_min', None)) - varargs.get('offset', '0.0')) / varargs.get('scale_factor', '1.0')
+            values_nc.valid_min = (np.float64(varargs.get('valid_min', None)) - np.float64(varargs.get('offset', '0.0'))) / np.float64(varargs.get('scale_factor', '1.0'))
         if varargs.get('valid_max', None) is not None:            
-            values_nc.valid_max = (np.float64(varargs.get('valid_max', None)) - varargs.get('offset', '0.0')) / varargs.get('scale_factor', '1.0')
+            values_nc.valid_max = (np.float64(varargs.get('valid_max', None)) - np.float64(varargs.get('offset', '0.0'))) / np.float64(varargs.get('scale_factor', '1.0'))
         values_nc.set_auto_maskandscale(True)         
 
         # adjust missing values when scale_factor and offset are not 1.0 - 0.0 
-        values[np.isnan(values)] = missing_value_to_use * varargs.get('scale_factor', '1.0') + varargs.get('offset', '0.0')
+        values[np.isnan(values)] = np.float64(missing_value_to_use) * np.float64(varargs.get('scale_factor', '1.0')) + np.float64(varargs.get('offset', '0.0'))
         
         for t in range(len(time_values)):
             if DEBUG_BILINEAR_INTERPOLATION:
