@@ -161,6 +161,9 @@ class GRIBReader(Loggable):
             else:
                 type_of_step = codes_get(self._selected_grbs[0], 'stepType')
                 unit = codes_get(self._selected_grbs[0], 'units')
+
+            step_units = codes_get(self._selected_grbs[0], 'stepUnits', ktype=str) 
+
             type_of_level = codes_get(self._selected_grbs[0], 'levelType')
 
             missing_value = codes_get(self._selected_grbs[0], 'missingValue')
@@ -204,7 +207,7 @@ class GRIBReader(Loggable):
             if grid2:
                 key_2nd_spatial_res = min(all_values_second_res.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
-            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, grid, all_values_second_res, data_date=data_date)
+            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, step_units, grid, all_values_second_res, data_date=data_date)
         # no messages found
         else:
             raise ApplicationException.get_exc(NO_MESSAGES, details=f'using {kwargs}')

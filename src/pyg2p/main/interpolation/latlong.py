@@ -4,7 +4,7 @@ from pyg2p import Loggable
 from pyg2p.exceptions import ApplicationException, INVALID_INTERPOL_METHOD
 from pyg2p.main.readers.pcr import PCRasterReader
 from pyg2p.main.readers.netcdf import NetCDFReader
-from ...util.numeric import int_fill_value
+from netCDF4 import default_fillvals
 
 class LatLong(Loggable):
 
@@ -21,7 +21,7 @@ class LatLong(Loggable):
 
             reader = NetCDFReader(self._lat_map)
             self.lats, self.lons = reader.get_lat_lon_values()
-            self.mv = int_fill_value
+            self.mv = default_fillvals[self.lats.dtype.str[1:]] # take missing values from the default netCDF fillvals values
 
             self._id = reader.identifier()
         else:

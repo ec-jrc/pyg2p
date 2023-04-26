@@ -6,7 +6,7 @@ from pyg2p.main.interpolation import Interpolator
 
 from pyg2p.main.manipulation.correction import Corrector
 from pyg2p.main.readers import GRIBReader, PCRasterReader
-from pyg2p.util.numeric import int_fill_value
+from netCDF4 import default_fillvals
 
 from tests import MockedExecutionContext
 
@@ -49,7 +49,8 @@ class TestCorrection:
         mv_geopotential = geopotential.missing_value
         gem = np.where(z != mv_geopotential, (z / 9.81) * 0.0065, mv_geopotential)
         gem_resampled = interpolator.interpolate_scipy(lats, lons, gem, grid_id_geopotential, geopotential.grid_details)
-        mv = int_fill_value
+        mv = default_fillvals[values_resampled.dtype.str[1:]] # take missing values from the default netCDF fillvals values
+
         reference = np.where((dem != dem_mv) & (values_resampled != mv) & (gem_resampled != mv_geopotential),
                              values_resampled + gem_resampled - dem * 0.0065,
                              mv)

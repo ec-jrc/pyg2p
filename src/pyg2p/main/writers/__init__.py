@@ -76,6 +76,8 @@ class OutputWriter(Loggable):
                         unit=self.ctx.get('parameter.conversionUnit'),
                         var_long_name=self.ctx.get('parameter.description'),
                         data_date=messages.data_date,
+                        grib_step_units=messages.step_units,
+                        output_step_units=self.ctx.get('outMaps.outputStepUnits'),
                         valid_max=self.ctx.get('outMaps.validMax'),
                         valid_min=self.ctx.get('outMaps.validMin'),
                         value_format=self.ctx.get('outMaps.valueFormat'),

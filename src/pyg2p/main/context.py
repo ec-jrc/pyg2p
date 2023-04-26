@@ -234,6 +234,7 @@ class ExecutionContext(Context):
         self._vars['outMaps.validMin'] = parsed_args['validMin']
         self._vars['outMaps.validMax'] = parsed_args['validMax']
         self._vars['outMaps.valueFormat'] = parsed_args['valueFormat']
+        self._vars['outMaps.outputStepUnits'] = parsed_args['outputStepUnits']
         self._vars['outMaps.outDir'] = parsed_args['outDir']
         self._vars['parameter.perturbationNumber'] = parsed_args['perturbationNumber']
         self._vars['input.file2'] = parsed_args['inputFile2']
@@ -284,6 +285,7 @@ class ExecutionContext(Context):
         parser.add_argument('-vM', '--validMax', help='Max valid value', metavar='valid_max')
         parser.add_argument('-vm', '--validMin', help='Min valid value', metavar='valid_min')
         parser.add_argument('-vf', '--valueFormat', help='output value format (default f8)', metavar='value_format')
+        parser.add_argument('-U', '--outputStepUnits', help='output step units', metavar='output_step_units')
 
         # logging
         parser.add_argument('-l', '--loggerLevel', help='Console logging level', default='INFO',
@@ -384,6 +386,8 @@ class ExecutionContext(Context):
             self._vars['outMaps.validMax'] = exec_conf['OutMaps'].get('@validMax')
         if self._vars['outMaps.valueFormat'] is None:
             self._vars['outMaps.valueFormat'] = exec_conf['OutMaps'].get('@valueFormat')
+        if self._vars['outMaps.outputStepUnits'] is None:
+            self._vars['outMaps.outputStepUnits'] = exec_conf['OutMaps'].get('@outputStepUnits')
         if self._vars['outMaps.fmap'] == 1:
             self._vars['outMaps.fmap'] = exec_conf['OutMaps'].get('@fmap') or 1
         if self._vars['outMaps.ext'] == 1:

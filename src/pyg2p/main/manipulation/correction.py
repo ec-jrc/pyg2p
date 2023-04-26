@@ -11,7 +11,7 @@ from pyg2p.main.readers.grib import GRIBReader
 
 from pyg2p.main.config import GeopotentialsConfiguration
 import pyg2p.util.numeric
-from pyg2p.util.numeric import int_fill_value
+from netCDF4 import default_fillvals
 
 from ..interpolation.scipy_interpolation_lib import DEBUG_BILINEAR_INTERPOLATION, \
                                         DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
@@ -75,7 +75,7 @@ class Corrector(Loggable):
             gem = self._gem_values
             dem_mv = self._dem_missing_value
             gem_mv = self._gem_missing_value
-            mv = int_fill_value
+            mv = default_fillvals[values.dtype.str[1:]] # take missing values from the default netCDF fillvals values
             values = ne.evaluate(self._numexpr_eval)
             # mask out values (here is already output values with destination shape)
             values = ma.masked_where(pyg2p.util.numeric.get_masks(p), values)

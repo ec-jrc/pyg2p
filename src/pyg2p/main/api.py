@@ -42,9 +42,9 @@ class Command:
     cmds_map = {'cmdpath': '-c', 'inputfile': '-i', 'second_input_file': '-I',
                 'eps': '-m', 'tend': '-e', 'tstart': '-s', 'datatime': '-T', 'datadate': '-D',
                 'ext': '-x', 'fmap': '-f', 'outdir': '-o', 'nameprefix': '-n', 
-                'scalefactor': '-S', 'offset': '-O', 
+                'scaleFactor': '-S', 'offset': '-O', 
                 'validMax': '-vM', 'validMin': '-vm', 'valueFormat': '-vf',
-                'log_level': '-l', 'log_dir': '-d', 'out_format': '-F',
+                'log_level': '-l', 'log_dir': '-d', 'out_format': '-F', 'outputStepUnits': '-U',
                 'create_intertable': '-B', 'parallel': '-X', 'intertable_dir': '-N'}
 
     def _a(self, opt, param=''):
@@ -115,6 +115,7 @@ class ApiContext(Context):
         self._vars['outMaps.validMin'] = self.api_conf.get('validMin')
         self._vars['outMaps.validMax'] = self.api_conf.get('validMax')
         self._vars['outMaps.valueFormat'] = self.api_conf.get('valueFormat')
+        self._vars['outMaps.outputStepUnits'] = self.api_conf.get('outputStepUnits')
         self._vars['outMaps.offset'] = self.api_conf.get('offset')
         self._vars['outMaps.outDir'] = './'  # not used
         self._vars['parameter.perturbationNumber'] = self.api_conf.get('perturbationNumber')
@@ -188,6 +189,8 @@ class ApiContext(Context):
             self._vars['outMaps.validMax'] = self.api_conf['OutMaps'].get('validMax')
         if self._vars['outMaps.valueFormat'] is None:
             self._vars['outMaps.valueFormat'] = self.api_conf['OutMaps'].get('valueFormat')
+        if self._vars['outMaps.outputStepUnits'] is None:
+            self._vars['outMaps.outputStepUnits'] = self.api_conf['OutMaps'].get('outputStepUnits')
         if self._vars['outMaps.fmap'] == 1:
             self._vars['outMaps.fmap'] = self.api_conf['OutMaps'].get('fmap') or 1
         if self._vars['outMaps.ext'] == 1:
