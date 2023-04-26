@@ -2,10 +2,7 @@ CHANGE LOG
 ==========
 v 3.2
 -----
-* New interpolation methods 
-    bilinear interpolation on irregular grids
-    Delaunay triangulation
-    bilinear interpolation based on Delaunay triangulation (best performances on irregular and projected grids)
+* New interpolation methods: bilinear interpolation on irregular grids, Delaunay triangulation, bilinear interpolation based on Delaunay triangulation (best performances on irregular and projected grids)
 * Additional average computation method on Aggregator 
 * NetCDF lat/lon map reading. Scale factor, offset, variable type options in NetCDF output map writing
 
