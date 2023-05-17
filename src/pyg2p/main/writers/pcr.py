@@ -1,5 +1,6 @@
 from osgeo import gdal
 import numpy.ma as ma
+import numpy as np
 
 from pyg2p.main.writers import Writer
 
@@ -29,6 +30,7 @@ class PCRasterWriter(Writer):
         self._mask = ma.getmask(rs)
 
     def write(self, output_map_name, values):
+        values[np.isnan(values)]=self.mv
         drv = gdal.GetDriverByName(self.FORMAT)
         masked_values = self._mask_values(values)
         n = ma.count_masked(masked_values)
