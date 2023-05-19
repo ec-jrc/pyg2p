@@ -8,8 +8,6 @@ from setuptools import setup, find_packages, Command
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(current_dir, './src/'))
 
-import pyg2p.util.files as fm
-
 version_file = os.path.join(current_dir, 'src/pyg2p/VERSION')
 
 with open(version_file, 'r') as f:
@@ -82,17 +80,41 @@ class UploadCommandTest(UploadCommand):
 
         sys.exit()
 
+def delete_files_from_dir(dir_path, prefix_=''):
+    # Gather directory contents
+    if is_dir(dir_path):
+        contents = [os.path.join(dir_path, i) for i in os.listdir(dir_path)]
+        # Iterate and remove each item in the appropriate manner
+        [os.unlink(i) for i in contents if i.startswith(prefix_)]
+
+def create_dir(pathname, recreate=False):
+    if not os.path.exists(pathname):
+        os.makedirs(pathname)
+    elif recreate:
+        delete_files_from_dir(pathname)
+        os.rmdir(pathname)
+        os.makedirs(pathname)
+
+def is_dir(pathname):
+    return os.path.isdir(pathname) and pathname not in ('.', '..', './', '../')
+
+def exists(pathname, is_folder=False):
+    return os.path.exists(pathname) and (os.path.isdir(pathname) if is_folder else os.path.isfile(pathname))
+
+def filename(pathname):
+    return os.path.basename(pathname)
+
 def setup_data_files(setup_args_):
     user_conf_dir = f'{os.path.expanduser("~")}/.pyg2p/'
-    fm.create_dir(user_conf_dir)
+    create_dir(user_conf_dir)
     list_files = {t: [os.path.join(t, f) for f in os.listdir(t) if f.endswith('.json')]
                   for t in ('./templates',
                             './configuration',
                             './configuration/global')}
     for_user_to_copy = [f for f in list_files['./configuration'] if
-                        not fm.exists(os.path.join(user_conf_dir, fm.filename(f)))]
+                        not exists(os.path.join(user_conf_dir, filename(f)))]
     templates_to_copy = [f for f in list_files['./templates'] if
-                         not fm.exists(os.path.join(user_conf_dir, 'templates_samples', fm.filename(f)))]
+                         not exists(os.path.join(user_conf_dir, 'templates_samples', filename(f)))]
     data_files = [('pyg2p/configuration/', list_files['./configuration/global'])]
 
     if for_user_to_copy:

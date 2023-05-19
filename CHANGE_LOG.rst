@@ -1,6 +1,20 @@
 CHANGE LOG
 ==========
-v 3.2
+v 3.2.4
+-----
+* Added values in parameters, intertables and geopotentials config files 
+* Fix to PCRaster writer for gribfile missing values
+* Fix in setup tool
+
+v 3.2.3
+-----
+* Fixed scale/offset use in netCDF writing function
+* Using netCDF default_fillvals as missing values
+* Added choice of output stepUnit value.
+* Updated documentation
+* Optimized scipi invdist interpolation
+
+v 3.2.2
 -----
 * New interpolation methods: bilinear interpolation on irregular grids, Delaunay triangulation, bilinear interpolation based on Delaunay triangulation (best performances on irregular and projected grids)
 * Additional average computation method on Aggregator 
@@ -10,7 +24,6 @@ v 3.1
 -----
 * **74** API is much more flexible. Check documentation on how to use pyg2p programmatically.
 * **73** Intertables are saved as .gz now, to save disk space. It's possible to compress all existing intertables and use them without changes in configuration. If pyg2p doesn't find the intertable, it will try to read it with suffix .gz.
-
 
 v 3.0
 -----
