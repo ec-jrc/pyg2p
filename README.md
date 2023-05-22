@@ -27,7 +27,7 @@ package at system level (executable script will be saved into /usr/local/bin in 
 >Install eccodes (and GDAL): this can be done compiling from source code or using the available conda virtual environment package by running 
 
 ```bash
-$ conda install -c conda-forge eccodes gdal
+$ conda install -c conda-forge gdal eccodes
 ```
 
 >Configure geopotentials and intertables paths in
