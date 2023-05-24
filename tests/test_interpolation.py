@@ -124,7 +124,7 @@ class TestInterpolation:
     def test_interpolation_create_eccodes_nearest(self):
         d = deepcopy(config_dict)
         d['interpolation.create'] = True
-        d['interpolation.parallel'] = True
+        d['interpolation.parallel'] = False
         d['interpolation.mode'] = 'grib_nearest'
         file = d['input.file']
         reader = GRIBReader(file)

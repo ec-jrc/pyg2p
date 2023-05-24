@@ -1,5 +1,5 @@
 netCDF4>=1.5.3
-ujson==2.0.2
+ujson>=5.4.0
 numpy>=1.18.2
 scipy>=1.4.1
 # GDAL
@@ -10,4 +10,5 @@ numexpr>=2.7.1
 dask[bag]
 dask[array]
 toolz
-eccodes-python==0.9.7
+eccodes
+lisflood-utilities

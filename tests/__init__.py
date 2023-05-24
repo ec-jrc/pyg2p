@@ -21,10 +21,11 @@ def check_dataset_pcroutput(self, ds):
     result_dir = self.options['results'].joinpath(f'{ds}')
     reference_dir = self.options['reference'].joinpath(f'{ds}')
     comparator = Comparator()
-    diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
-    if diffs:
-        logger.info(diffs)
-    assert not diffs
+    comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
+    if comparator.errors!=None:
+        for i, e in enumerate(comparator.errors):
+            logger.info('%d - %s', i, e)
+    assert not comparator.errors
 
 
 def check_dataset_netcdfoutput(self, ds):
@@ -32,10 +33,11 @@ def check_dataset_netcdfoutput(self, ds):
     reference_dir = self.options['reference'].joinpath(f'{ds}')
     mask = PCRasterReader(self.options['maps'].joinpath('dem.map')).values
     comparator = Comparator(mask)
-    diffs = comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
-    if diffs:
-        logger.info(diffs)
-    assert not diffs
+    comparator.compare_dirs(reference_dir.as_posix(), result_dir.as_posix(), skip_missing=False)
+    if comparator.errors!=None:
+        for i, e in enumerate(comparator.errors):
+            logger.info('%d - %s', i, e)
+    assert not comparator.errors
 
 
 config_dict = {
