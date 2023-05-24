@@ -28,6 +28,12 @@ jobs:
       run: |
         pip install -r requirements.txt
         pip install .
+    - name: Workaround for poppler lib issue
+      shell: bash -el {0}
+      run: |
+        conda list
+        pip install poppler-utils
+        conda install poppler
     - name: Check installation
       shell: bash -el {0}
       run: |
