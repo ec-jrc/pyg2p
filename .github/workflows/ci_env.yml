@@ -31,9 +31,9 @@ jobs:
     - name: Check installation
       shell: bash -el {0}
       run: |
+        conda list
         gdal-config --version
         python -c "from osgeo import gdal; print(gdal.__version__)"
-        conda list
     - name: Test with pytest
       shell: bash -el {0}
       run: |
