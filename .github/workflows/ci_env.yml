@@ -33,7 +33,7 @@ jobs:
       run: |
         conda list
         pip install poppler-utils
-        conda install poppler
+        conda install poppler=>22.10.0
     - name: Check installation
       shell: bash -el {0}
       run: |
