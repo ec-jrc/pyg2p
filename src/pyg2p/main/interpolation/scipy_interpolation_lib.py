@@ -436,7 +436,9 @@ class ScipyInterpolation(object):
         dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
         
         # distances <= 1e-10 : take exactly the point, weight = 1
-        weights[dist_leq_1e_10] = np.array([1., 0., 0., 0.])
+        onlyfirst_array = np.zeros(nnear)
+        onlyfirst_array[0] = 1
+        weights[dist_leq_1e_10] = onlyfirst_array
         idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
         result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
 
