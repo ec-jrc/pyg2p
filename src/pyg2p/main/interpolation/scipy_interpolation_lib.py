@@ -337,22 +337,23 @@ class ScipyInterpolation(object):
         else:
             if self.mode == 'invdist': 
                 # return results, distances, indexes
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear) 
-            else:  
-                if self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
-                    # BILINEAR INTERPOLATION
-                    result, weights, indexes = self._build_weights_bilinear(distances, indexes, efas_locations, self.nnear) 
-                else:
-                    if self.mode == 'triangulation':
-                        # linear barycentric interpolation on Delaunay triangulation
-                        result, weights, indexes = self._build_weights_triangulation(use_bilinear=False) 
-                    else:
-                        if self.mode == 'bilinear_delaunay':
-                            # bilinear interpolation on Delaunay triangulation
-                            result, weights, indexes = self._build_weights_triangulation(use_bilinear=True) 
-                        else:
-                            raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
-                                        f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear})")
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
+            elif self.mode == 'adw':
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard')             
+            elif self.mode == 'cdd':
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD')
+            elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
+                # BILINEAR INTERPOLATION
+                result, weights, indexes = self._build_weights_bilinear(distances, indexes, efas_locations, self.nnear) 
+            elif self.mode == 'triangulation':
+                # linear barycentric interpolation on Delaunay triangulation
+                result, weights, indexes = self._build_weights_triangulation(use_bilinear=False) 
+            elif self.mode == 'bilinear_delaunay':
+                    # bilinear interpolation on Delaunay triangulation
+                    result, weights, indexes = self._build_weights_triangulation(use_bilinear=True) 
+            else:
+                raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
+                            f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear})")
                     
                
         stdout.write('End scipy interpolation: {}\n'.format(now_string()))
@@ -419,8 +420,52 @@ class ScipyInterpolation(object):
         stdout.flush()
         return result, idxs
 
-    # Invdist Optimized version (using broadcast)
-    def _build_weights_invdist(self, distances, indexes, nnear):
+    # # Invdist Optimized version (using broadcast)
+    # def _build_weights_invdist(self, distances, indexes, nnear):
+    #     z = self.z
+    #     result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
+    #     weights = empty((len(distances),) + (nnear,))
+    #     idxs = empty((len(indexes),) + (nnear,), fill_value=z.size, dtype=int)
+    #     num_cells = result.size
+    #     back_char, _ = progress_step_and_backchar(num_cells)
+
+    #     stdout.write('Skipping neighbors at distance > {}\n'.format(self.min_upper_bound))
+    #     stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 0, 5, 0, 0))
+    #     stdout.flush()
+
+    #     dist_leq_1e_10 = distances[:, 0] <= 1e-10
+    #     dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
+        
+    #     # distances <= 1e-10 : take exactly the point, weight = 1
+    #     onlyfirst_array = np.zeros(nnear)
+    #     onlyfirst_array[0] = 1
+    #     weights[dist_leq_1e_10] = onlyfirst_array
+    #     idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
+    #     result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
+
+    #     w = np.zeros_like(distances)
+    #     w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
+    #     stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 1, 5, 100/5))
+    #     stdout.flush()
+    #     sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
+    #     stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 2, 5, 2*100/5))
+    #     stdout.flush()
+    #     weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
+    #     stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 3, 5, 3*100/5))
+    #     stdout.flush()
+    #     wz = np.einsum('ij,ij->i', weights, z[indexes])
+    #     stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 4, 5, 4*100/5))
+    #     stdout.flush()
+    #     idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
+    #     result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
+    #     stdout.write('{}Building coeffs: {}/{} (100%)\n'.format(back_char, 5, 5))
+    #     stdout.flush()
+    #     return result, weights, idxs
+
+    # Inverse distance weights (IDW) interpolation, with optional Angular distance weighting (ADW) factor
+    # if adw_type == None -> simple IDW 
+    # if adw_type == Shepard -> Shepard 1968 original formulation
+    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None):
         z = self.z
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
         weights = empty((len(distances),) + (nnear,))
@@ -446,12 +491,77 @@ class ScipyInterpolation(object):
         w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 1, 5, 100/5))
         stdout.flush()
+
+        if (adw_type=='Shepard'):
+            # initialize weights
+            weight_directional = np.zeros_like(distances)
+
+            # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
+            # actually s(d) should be 
+            #   1/d                     when 0 < d < r'/3
+            #   (27/4r')*(d/r'-1)       when r'/3 < d < r'
+            #   0                       when r' < d
+            # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
+            # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
+            # r'(C^n) = di(n+1) where di is the Point having the minimum distance major than the first n Points
+            # so that
+            #   r' = r' C^4 = di(5)     when n(C) <= 4
+            #   r' = r                  when 4 < n(C) <= 10
+            #   r' = r' C^10 = di(11)   when 10 < n(C)
+            #
+            # TODO: check if the implementation needs to be updated accordingly
+            # here we take only the inverse of the distance in "s"
+            s = np.zeros_like(distances)       
+            s[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound]
+
+            self.lat_inALL = self.target_latsOR.ravel()
+            self.lon_inALL = self.target_lonsOR.ravel()
+
+            for i in range(nnear):
+                xi = self.latgrib[indexes[:,i]]
+                yi = self.longrib[indexes[:,i]]
+                
+                xi_diff = self.lat_inALL - xi
+                yi_diff = self.lon_inALL - yi
+                              
+                Di = np.sqrt(xi_diff**2 + yi_diff**2)
+                
+                xj_diff = self.lat_inALL[:, np.newaxis] - self.latgrib[indexes]
+                yj_diff = self.lon_inALL[:, np.newaxis] - self.longrib[indexes]
+                
+                Dj = np.sqrt(xj_diff**2 + yj_diff**2)
+                # TODO: check here: we could use "distances", but we are actually evaluating the cos funcion on lat and lon values, that 
+                # approximates the real angle... to use "distances" we need to operate in 3d version of the points
+                # in theory it should be OK to use the solution above, otherwise we can change it to 
+                # Di = distances[i]
+                # Dj = distances
+                # and formula cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj) + (z-zi)*(z-zj)] / di*dj
+                
+                # cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj)] / di*dj. 
+                cos_theta = (xi_diff[:,np.newaxis] * xj_diff + yi_diff[:,np.newaxis] * yj_diff) / (Di[:,np.newaxis] * Dj)
+                
+                numerator = np.sum((1 - cos_theta) * s, axis=1)
+                denominator = np.sum(s, axis=1)
+                
+                weight_directional[:, i] = numerator / denominator
+            
+            # update weights with directional ones
+            w = np.multiply(w,1+weight_directional)
+        elif (adw_type=='CDD'):
+            raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
+                        f"interpolation method not implemented yet (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
+        elif (adw_type!=None):
+            raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
+                        f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
+
+        #normalize weights
         sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 2, 5, 2*100/5))
         stdout.flush()
         weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 3, 5, 3*100/5))
         stdout.flush()
+
         wz = np.einsum('ij,ij->i', weights, z[indexes])
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 4, 5, 4*100/5))
         stdout.flush()
@@ -459,6 +569,7 @@ class ScipyInterpolation(object):
         result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
         stdout.write('{}Building coeffs: {}/{} (100%)\n'.format(back_char, 5, 5))
         stdout.flush()
+
         return result, weights, idxs
 
     # take additional points from the KDTree close to the current point and replace the wrong ones with a new ones
@@ -744,7 +855,7 @@ class ScipyInterpolation(object):
 
         longrib_max = normalized_longrib.max()
         longrib_min = normalized_longrib.min()
-        # evaluate an approx_grib_resolution by using 10 times the first longidure values 
+        # evaluate an approx_grib_resolution by using 10 times the first longitude values 
         # to check if the whole globe is covered
         approx_grib_resolution = abs(normalized_longrib[0]-normalized_longrib[1])*1.5
         is_global_map = (360-(longrib_max-longrib_min))<approx_grib_resolution
