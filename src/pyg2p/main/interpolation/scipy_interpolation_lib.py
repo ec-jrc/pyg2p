@@ -465,7 +465,7 @@ class ScipyInterpolation(object):
     # Inverse distance weights (IDW) interpolation, with optional Angular distance weighting (ADW) factor
     # if adw_type == None -> simple IDW 
     # if adw_type == Shepard -> Shepard 1968 original formulation
-    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None):
+    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False):
         z = self.z
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
         weights = empty((len(distances),) + (nnear,))
@@ -517,34 +517,51 @@ class ScipyInterpolation(object):
             self.lat_inALL = self.target_latsOR.ravel()
             self.lon_inALL = self.target_lonsOR.ravel()
 
-            for i in range(nnear):
-                xi = self.latgrib[indexes[:,i]]
-                yi = self.longrib[indexes[:,i]]
-                
-                xi_diff = self.lat_inALL - xi
-                yi_diff = self.lon_inALL - yi
-                              
+            # start_time = time.time()
+            if not use_broadcasting:
+                for i in range(nnear):
+                    xj_diff = self.lat_inALL[:, np.newaxis] - self.latgrib[indexes]
+                    yj_diff = self.lon_inALL[:, np.newaxis] - self.longrib[indexes]
+                    
+                    Dj = np.sqrt(xj_diff**2 + yj_diff**2)
+                    # TODO: check here: we could use "distances", but we are actually evaluating the cos funcion on lat and lon values, that 
+                    # approximates the real angle... to use "distances" we need to operate in 3d version of the points
+                    # in theory it should be OK to use the solution above, otherwise we can change it to 
+                    # Di = distances[i]
+                    # Dj = distances
+                    # and formula cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj) + (z-zi)*(z-zj)] / di*dj
+                    
+                    # cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj)] / di*dj. 
+                    #cos_theta = (xi_diff[:,np.newaxis] * xj_diff + yi_diff[:,np.newaxis] * yj_diff) / (Di[:,np.newaxis] * Dj)
+                    cos_theta = (xj_diff[:,i,np.newaxis] * xj_diff + yj_diff[:,i,np.newaxis] * yj_diff) / (Dj[:,i,np.newaxis] * Dj)
+                    
+                    numerator = np.sum((1 - cos_theta) * s, axis=1)
+                    denominator = np.sum(s, axis=1)
+                    
+                    weight_directional[dist_leq_min_upper_bound, i] = numerator[dist_leq_min_upper_bound] / denominator[dist_leq_min_upper_bound]
+            else:
+                # All in broadcasting:            
+                # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
+                # TODO: check if it is worth to use it on HPC 
+                # Compute xi and yi for all elements
+                xi = self.latgrib[indexes]
+                yi = self.longrib[indexes]
+                # Compute xi_diff and yi_diff for all elements
+                xi_diff = self.lat_inALL[:, np.newaxis] - xi
+                yi_diff = self.lon_inALL[:, np.newaxis] - yi
+                # Compute Di for all elements
                 Di = np.sqrt(xi_diff**2 + yi_diff**2)
-                
-                xj_diff = self.lat_inALL[:, np.newaxis] - self.latgrib[indexes]
-                yj_diff = self.lon_inALL[:, np.newaxis] - self.longrib[indexes]
-                
-                Dj = np.sqrt(xj_diff**2 + yj_diff**2)
-                # TODO: check here: we could use "distances", but we are actually evaluating the cos funcion on lat and lon values, that 
-                # approximates the real angle... to use "distances" we need to operate in 3d version of the points
-                # in theory it should be OK to use the solution above, otherwise we can change it to 
-                # Di = distances[i]
-                # Dj = distances
-                # and formula cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj) + (z-zi)*(z-zj)] / di*dj
-                
-                # cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj)] / di*dj. 
-                cos_theta = (xi_diff[:,np.newaxis] * xj_diff + yi_diff[:,np.newaxis] * yj_diff) / (Di[:,np.newaxis] * Dj)
-                
-                numerator = np.sum((1 - cos_theta) * s, axis=1)
-                denominator = np.sum(s, axis=1)
-                
-                weight_directional[:, i] = numerator / denominator
-            
+                # Compute cos_theta for all elements
+                cos_theta = (xi_diff[:, :, np.newaxis] * xi_diff[:, np.newaxis, :] + yi_diff[:, :, np.newaxis] * yi_diff[:, np.newaxis, :]) / (Di[:, :, np.newaxis] * Di[:, np.newaxis, :])
+                numerator = np.sum((1 - cos_theta) * s[:, np.newaxis, :], axis=2)
+                denominator = np.sum(s[:, np.newaxis, :], axis=2)
+                # Compute weight_directional for all elements
+                weight_directional[dist_leq_min_upper_bound, :] = numerator[dist_leq_min_upper_bound, :] / denominator[dist_leq_min_upper_bound, :]
+    
+            # end_time = time.time()
+            # elapsed_time = end_time - start_time
+            # print(f"Elapsed time for computation: {elapsed_time:.6f} seconds")
+    
             # update weights with directional ones
             w = np.multiply(w,1+weight_directional)
         elif (adw_type=='CDD'):

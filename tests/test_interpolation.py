@@ -46,6 +46,26 @@ class TestInterpolation:
         os.unlink('tests/data/tbl_pf10tp_550800_scipy_invdist.npy.gz')
 
     @pytest.mark.slow
+    def test_interpolation_create_scipy_adw(self):
+        d = deepcopy(config_dict)
+        d['interpolation.create'] = True
+        d['interpolation.parallel'] = True
+        d['interpolation.mode'] = 'adw'
+        file = d['input.file']
+        reader = GRIBReader(file)
+        messages = reader.select_messages(shortName='2t')
+        grid_id = messages.grid_id
+        missing = messages.missing_value
+        ctx = MockedExecutionContext(d, False)
+        interpolator = Interpolator(ctx, missing)
+        values_in = messages.values_first_or_single_res[messages.first_step_range]
+        lats, lons = messages.latlons
+        values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id, messages.grid_details)
+        shape_target = PCRasterReader(d['interpolation.latMap']).values.shape
+        assert shape_target == values_resampled.shape
+        os.unlink('tests/data/tbl_pf10tp_550800_scipy_adw.npy.gz')
+
+    @pytest.mark.slow
     def test_interpolation_create_scipy_bilinear(self):
         d = deepcopy(config_dict)
         d['interpolation.create'] = True
