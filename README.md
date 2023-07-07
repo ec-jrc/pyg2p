@@ -669,6 +669,20 @@ Attributes p, leafsize and eps for the kd tree algorithm are default in scipy li
 | eps       | 0                    |
 | leafsize  | 10                   |
 
+#### ADW
+It's the Angular Distance Weighted (ADW) algorithm with scipy.kd_tree, using 4 neighbours.
+If @adw_broadcasting is set to True, computations will run in full broadcasting mode but requires more memory
+
+```json
+{
+"Interpolation": {
+  "@latMap": "/dataset/maps/europe5km/lat.map",
+  "@lonMap": "/dataset/maps/europe5km/long.map",
+  "@mode": "adw",
+  "@adw_broadcasting": False}
+}
+```
+
 #### bilinear
 It's the bilinear interpolation algorithm applyied on regular and irregular grids. On irregular grids, it tries to get the best quatrilateral around each target point, but at the same time tries to use the best stable and grid-like shape from starting points. To do so, evaluates interpolation looking at point on similar latitude, thus on projected grib files may show some irregular results. 
 

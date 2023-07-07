@@ -19,6 +19,7 @@ from scipy.integrate import quad
 
 
 DEBUG_BILINEAR_INTERPOLATION = False
+DEBUG_ADW_INTERPOLATION = False
 # DEBUG_MIN_LAT = 88
 # DEBUG_MIN_LON = -180
 # DEBUG_MAX_LAT = 90
@@ -31,10 +32,14 @@ DEBUG_BILINEAR_INTERPOLATION = False
 # DEBUG_MIN_LON = -24
 # DEBUG_MAX_LAT = 70
 # DEBUG_MAX_LON = -22
-DEBUG_MIN_LAT = -10
-DEBUG_MIN_LON = -100
-DEBUG_MAX_LAT = 25
-DEBUG_MAX_LON = -50
+# DEBUG_MIN_LAT = -10
+# DEBUG_MIN_LON = -100
+# DEBUG_MAX_LAT = 25
+# DEBUG_MAX_LON = -50
+DEBUG_MIN_LAT = 7
+DEBUG_MIN_LON = 45
+DEBUG_MAX_LAT = 9
+DEBUG_MAX_LON = 50
 #DEBUG_NN = 15410182
 
 
@@ -283,7 +288,7 @@ class ScipyInterpolation(object):
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
                     mv_target, mv_source, target_is_rotated=False, parallel=False,
-                    mode='nearest'):
+                    mode='nearest', use_broadcasting = False):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
         self.source_grid_is_rotated = 'rotated' in grid_details.get('gridType')
@@ -294,6 +299,7 @@ class ScipyInterpolation(object):
         self.latgrib = latgrib
         self.nnear = nnear
         self.mode = mode
+        self.use_broadcasting = use_broadcasting
         self._mv_target = mv_target
         self._mv_source = mv_source
         self.z = source_values
@@ -339,9 +345,9 @@ class ScipyInterpolation(object):
                 # return results, distances, indexes
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
             elif self.mode == 'adw':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard')             
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting)             
             elif self.mode == 'cdd':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD')
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting)
             elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
                 # BILINEAR INTERPOLATION
                 result, weights, indexes = self._build_weights_bilinear(distances, indexes, efas_locations, self.nnear) 
@@ -466,6 +472,12 @@ class ScipyInterpolation(object):
     # if adw_type == None -> simple IDW 
     # if adw_type == Shepard -> Shepard 1968 original formulation
     def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False):
+        if DEBUG_ADW_INTERPOLATION:
+            self.min_upper_bound = 1000000000
+            if DEBUG_BILINEAR_INTERPOLATION:
+                n_debug=1940
+            else:
+                n_debug=11805340
         z = self.z
         result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
         weights = empty((len(distances),) + (nnear,))
@@ -533,12 +545,27 @@ class ScipyInterpolation(object):
                     
                     # cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj)] / di*dj. 
                     #cos_theta = (xi_diff[:,np.newaxis] * xj_diff + yi_diff[:,np.newaxis] * yj_diff) / (Di[:,np.newaxis] * Dj)
+                    # cos_theta = (xj_diff[:,i,np.newaxis] * xj_diff + yj_diff[:,i,np.newaxis] * yj_diff) / (Dj[:,i,np.newaxis] * Dj)
+                    # numerator = np.sum((1 - cos_theta) * s, axis=1)
+                    # denominator = np.sum(s, axis=1)
+                    
                     cos_theta = (xj_diff[:,i,np.newaxis] * xj_diff + yj_diff[:,i,np.newaxis] * yj_diff) / (Dj[:,i,np.newaxis] * Dj)
-                    
-                    numerator = np.sum((1 - cos_theta) * s, axis=1)
-                    denominator = np.sum(s, axis=1)
-                    
+                    # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
+                    # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
+                    cos_theta = cos_theta[:,np.concatenate([np.arange(i), np.arange(i+1, cos_theta.shape[1])])]
+                    sj = s[:,np.concatenate([np.arange(i), np.arange(i+1, s.shape[1])])]            
+                    numerator = np.sum((1 - cos_theta) * sj, axis=1)
+                    denominator = np.sum(sj, axis=1)
+                                        
                     weight_directional[dist_leq_min_upper_bound, i] = numerator[dist_leq_min_upper_bound] / denominator[dist_leq_min_upper_bound]
+
+                    # DEBUG: test the point at n_debug 11805340=lat 8.025 lon 47.0249999
+                    if DEBUG_ADW_INTERPOLATION:
+                        print("i: {}".format(i))
+                        print("cos_theta: {}".format(cos_theta[n_debug]))
+                        print("s: {}".format(s[n_debug]))
+                        print("numerator: {}".format(numerator[n_debug]))
+                        print("denominator: {}".format(denominator[n_debug]))
             else:
                 # All in broadcasting:            
                 # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
@@ -553,8 +580,21 @@ class ScipyInterpolation(object):
                 Di = np.sqrt(xi_diff**2 + yi_diff**2)
                 # Compute cos_theta for all elements
                 cos_theta = (xi_diff[:, :, np.newaxis] * xi_diff[:, np.newaxis, :] + yi_diff[:, :, np.newaxis] * yi_diff[:, np.newaxis, :]) / (Di[:, :, np.newaxis] * Di[:, np.newaxis, :])
-                numerator = np.sum((1 - cos_theta) * s[:, np.newaxis, :], axis=2)
-                denominator = np.sum(s[:, np.newaxis, :], axis=2)
+                # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
+                # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
+                # Delete the diagonal elements from cos_theta
+                # Reshape cos_theta to (n, nnear, nnear-1)
+                n = cos_theta.shape[0]
+                m = cos_theta.shape[1]
+                strided = np.lib.stride_tricks.as_strided
+                s0,s1,s2 = cos_theta[:].strides
+                cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+                sj = np.tile(s[:, np.newaxis, :], (1, 4, 1))
+                s0,s1,s2 = sj[:].strides
+                sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+
+                numerator = np.sum((1 - cos_theta) * sj, axis=2)
+                denominator = np.sum(sj, axis=2)
                 # Compute weight_directional for all elements
                 weight_directional[dist_leq_min_upper_bound, :] = numerator[dist_leq_min_upper_bound, :] / denominator[dist_leq_min_upper_bound, :]
     
@@ -563,7 +603,12 @@ class ScipyInterpolation(object):
             # print(f"Elapsed time for computation: {elapsed_time:.6f} seconds")
     
             # update weights with directional ones
+            if DEBUG_ADW_INTERPOLATION:
+                print("weight_directional: {}".format(weight_directional[n_debug]))
+                print("w (before adding angular weights): {}".format(w[n_debug]))
             w = np.multiply(w,1+weight_directional)
+            if DEBUG_ADW_INTERPOLATION:
+                print("w (after adding angular weights): {}".format(w[n_debug]))
         elif (adw_type=='CDD'):
             raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
                         f"interpolation method not implemented yet (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
@@ -576,6 +621,12 @@ class ScipyInterpolation(object):
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 2, 5, 2*100/5))
         stdout.flush()
         weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
+        if DEBUG_ADW_INTERPOLATION:
+            dist_smalltest = distances[:, 0] <= 10000
+            onlyfirst_array_test = np.zeros(nnear)
+            onlyfirst_array_test[0] = 1000
+            weights[dist_smalltest]=onlyfirst_array_test
+            print("weights (after normalization): {}".format(weights[n_debug]))
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 3, 5, 3*100/5))
         stdout.flush()
 
@@ -584,6 +635,15 @@ class ScipyInterpolation(object):
         stdout.flush()
         idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
         result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
+        if DEBUG_ADW_INTERPOLATION:
+            print("result: {}".format(result[n_debug]))
+            print("lat: {}".format(self.lat_inALL[n_debug]))
+            print("lon: {}".format(self.lon_inALL[n_debug]))
+            print("idxs: {}".format(idxs[n_debug]))
+            print("distances: {}".format(distances[n_debug]))
+            print("latgrib: {}".format(self.latgrib[idxs[n_debug]]))
+            print("longrib: {}".format(self.longrib[idxs[n_debug]]))
+            print("value: {}".format(self.z[idxs[n_debug]]))
         stdout.write('{}Building coeffs: {}/{} (100%)\n'.format(back_char, 5, 5))
         stdout.flush()
 

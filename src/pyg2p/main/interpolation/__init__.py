@@ -9,7 +9,7 @@ from pyg2p import Loggable
 
 from . import grib_interpolation_lib
 from .latlong import LatLong
-from .scipy_interpolation_lib import ScipyInterpolation, DEBUG_BILINEAR_INTERPOLATION, \
+from .scipy_interpolation_lib import ScipyInterpolation, DEBUG_BILINEAR_INTERPOLATION, DEBUG_ADW_INTERPOLATION, \
                                         DEBUG_MIN_LAT, DEBUG_MIN_LON, DEBUG_MAX_LAT, DEBUG_MAX_LON
                                         
 from ...exceptions import ApplicationException, NO_INTERTABLE_CREATED
@@ -31,6 +31,7 @@ class Interpolator(Loggable):
         self._mv_grib = mv_input
         self.interpolate_with_grib = exec_ctx.is_with_grib_interpolation
         self._mode = exec_ctx.get('interpolation.mode')
+        self._adw_broadcasting = exec_ctx.get('interpolation.adw_broadcasting')
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
@@ -177,11 +178,33 @@ class Interpolator(Loggable):
         else:
             intertable_id, intertable_name = self._intertable_filename(grid_id)
 
+        if DEBUG_ADW_INTERPOLATION:
+            # to debug create a limited controlled set of input values 
+            #
+            # np.random.seed(0)
+            # latgrib = np.random.uniform(low=3, high=11, size=10)
+            # longrib = np.random.uniform(low=46, high=50, size=10)
+            # v = np.random.uniform(low=100, high=200, size=10)
+            # latgrib = np.array([ 7.39050803,  8.72151493,  7.82210701,  7.35906546,  6.38923839,
+            #     8.1671529,  6.50069769, 10.13418401, 10.70930208,  6.06753215])
+            # longrib = np.array([49.16690015, 48.11557968, 48.27217824, 49.70238655, 46.28414423,
+            #     46.3485172, 46.08087359, 49.33047938, 49.112627, 49.48004859])
+            # v = np.array([197.86183422, 179.91585642, 146.14793623, 178.05291763, 111.82744259, 
+            #     163.99210213, 114.33532874, 194.4668917, 152.18483218, 141.466194  ])
+            # latgrib = np.array([ 7.39050803,  8.72151493,  7.82210701,  7.35906546])
+            # longrib = np.array([49.16690015, 48.11557968, 48.27217824, 49.70238655])
+            # v = np.array([100, 133, 166, 200  ])
+            latgrib = np.array([ 8,  8,  8,  8])
+            longrib = np.array([45, 48.5, 49, 50])
+            v = np.array([200, 100, 100, 100  ])
+            intertable_id, intertable_name = 'DEBUG_ADW','DEBUG_ADW.npy'
+
         nnear = self.scipy_modes_nnear[self._mode]
 
-        if pyg2p.util.files.exists(intertable_name) or pyg2p.util.files.exists(intertable_name + '.gz'):
-            indexes, weights = self._read_intertable(intertable_name)
-            result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
+        if (not DEBUG_ADW_INTERPOLATION) and \
+            (pyg2p.util.files.exists(intertable_name) or pyg2p.util.files.exists(intertable_name + '.gz')):
+                indexes, weights = self._read_intertable(intertable_name)
+                result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
 
         elif self.create_if_missing:
             self.intertables_config.check_write()
@@ -192,7 +215,7 @@ class Interpolator(Loggable):
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             scipy_interpolation = ScipyInterpolation(longrib, latgrib, grid_details, v.ravel(), nnear, self.mv_out,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
-                                          parallel=self.parallel, mode=self._mode)
+                                          parallel=self.parallel, mode=self._mode, use_broadcasting=self._adw_broadcasting)
             _, weights, indexes = scipy_interpolation.interpolate(lonefas, latefas)
             result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
 

@@ -51,6 +51,7 @@ class TestInterpolation:
         d['interpolation.create'] = True
         d['interpolation.parallel'] = True
         d['interpolation.mode'] = 'adw'
+        d['interpolation.adw_broadcasting'] = True
         file = d['input.file']
         reader = GRIBReader(file)
         messages = reader.select_messages(shortName='2t')
