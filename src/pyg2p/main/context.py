@@ -413,6 +413,7 @@ class ExecutionContext(Context):
         if exec_conf.get('Aggregation'):
             self._vars['aggregation.step'] = exec_conf['Aggregation'].get('@step')
             self._vars['aggregation.type'] = exec_conf['Aggregation'].get('@type')
+            self._vars['aggregation.halfweights'] = bool(exec_conf['Aggregation'].get('@halfweights'))
 
             self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) \
                 and bool(self._vars.get('aggregation.type'))
