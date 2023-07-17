@@ -11,7 +11,7 @@ from ..exceptions import (ApplicationException, INVALID_INTERPOL_METHOD,
 
 
 class Context:
-    allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist', 'bilinear', 'triangulation', 'bilinear_delaunay')
+    allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist', 'adw', 'cdd', 'bilinear', 'triangulation', 'bilinear_delaunay')
     default_values = {'interpolation.mode': 'grib_nearest', 'outMaps.unitTime': '24'}
 
     def __getitem__(self, param):
@@ -360,6 +360,7 @@ class ExecutionContext(Context):
         self._vars['outMaps.clone'] = exec_conf['OutMaps']['@cloneMap']
         interpolation_conf = exec_conf['OutMaps']['Interpolation']
         self._vars['interpolation.mode'] = interpolation_conf.get('@mode', self.default_values['interpolation.mode'])
+        self._vars['interpolation.adw_broadcasting'] = interpolation_conf.get('@adw_broadcasting', False)
         self._vars['interpolation.rotated_target'] = interpolation_conf.get('@rotated_target', False)
         if not self._vars['interpolation.dir'] and interpolation_conf.get('@intertableDir'):
             # get from JSON
@@ -412,6 +413,7 @@ class ExecutionContext(Context):
         if exec_conf.get('Aggregation'):
             self._vars['aggregation.step'] = exec_conf['Aggregation'].get('@step')
             self._vars['aggregation.type'] = exec_conf['Aggregation'].get('@type')
+            self._vars['aggregation.halfweights'] = bool(exec_conf['Aggregation'].get('@halfweights'))
 
             self._vars['execution.doAggregation'] = bool(self._vars.get('aggregation.step')) \
                 and bool(self._vars.get('aggregation.type'))

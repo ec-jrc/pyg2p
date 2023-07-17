@@ -27,6 +27,19 @@ jobs:
       shell: bash -el {0}
       run: |
         pip install -r requirements.txt
+        pip install .
+    - name: Workaround for poppler lib issue
+      shell: bash -el {0}
+      run: |
+        conda list
+        pip install poppler-utils
+        conda install 'poppler=>22.10.0'
+    - name: Check installation
+      shell: bash -el {0}
+      run: |
+        conda list
+        gdal-config --version
+        python -c "from osgeo import gdal; print(gdal.__version__)"
     - name: Test with pytest
       shell: bash -el {0}
       run: |

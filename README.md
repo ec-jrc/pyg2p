@@ -410,7 +410,7 @@ defining the step numbers to skip when writing PCRaster maps. Same as old grib2p
 grib2pcraster). It can be average or accumulation.</td>
         </tr>
         <tr>
-        <td>&nbsp;</td><td><b>halfweights</b></td><td>If set to True and type is "average", it will avaluate the average by using half weights for the first and the last step</td>
+        <td>&nbsp;</td><td><b>halfweights</b></td><td>If set to true and type is "average", it will avaluate the average by using half weights for the first and the last step</td>
         </tr>
         <tr>
         <td>&nbsp;</td><td>forceZeroArray</td><td>Optional. In case of “accumulation”, and only
@@ -669,6 +669,20 @@ Attributes p, leafsize and eps for the kd tree algorithm are default in scipy li
 | eps       | 0                    |
 | leafsize  | 10                   |
 
+#### ADW
+It's the Angular Distance Weighted (ADW) algorithm with scipy.kd_tree, using 4 neighbours.
+If @adw_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+
+```json
+{
+"Interpolation": {
+  "@latMap": "/dataset/maps/europe5km/lat.map",
+  "@lonMap": "/dataset/maps/europe5km/long.map",
+  "@mode": "adw",
+  "@adw_broadcasting": false}
+}
+```
+
 #### bilinear
 It's the bilinear interpolation algorithm applyied on regular and irregular grids. On irregular grids, it tries to get the best quatrilateral around each target point, but at the same time tries to use the best stable and grid-like shape from starting points. To do so, evaluates interpolation looking at point on similar latitude, thus on projected grib files may show some irregular results. 
 
@@ -734,7 +748,7 @@ The JSON configuration in the execution file will look like:
 {
 "Aggregation": {
   "@type": "average",
-  "@halfweights": False}
+  "@halfweights": false}
 }
 ```
 
@@ -752,7 +766,7 @@ Temperatures are often extracted as averages on 24 hours or 6 hours. Here's a ty
 "Aggregation": {
 "@step": 24,
 "@type": "average",
-"@halfweights": False
+"@halfweights": false
 },
 "OutMaps": {
 "@cloneMap": "/dataset/maps/europe/dem.map",
@@ -798,7 +812,7 @@ This is needed because we performed 24 hours average over 6 hourly steps.
 
 The to evaluate the average, the following steps are executed:
 
-- when "halfweights" is False, the results of the function is the sum of all the values from "start_step-aggregation_step+1" to end_step, taking for each step the value corresponding to the next available value in the grib file. E.g:
+- when "halfweights" is false, the results of the function is the sum of all the values from "start_step-aggregation_step+1" to end_step, taking for each step the value corresponding to the next available value in the grib file. E.g:
 
   INPUT: start_step=24, end_step=<not specified, will take the end of file>, aggregation_step=24
 GRIB File: contains data starting from step 0 to 48 every 6 hours: 0,6,12,18,24,30,....
@@ -807,7 +821,7 @@ GRIB File: contains data starting from step 0 to 48 every 6 hours: 0,6,12,18,24,
 
   Day 2: same as Day 1 starting from (24+24)-24+1=25...
 
-- when "halfweights" is True, the results of the function is the sum of all the values from "start_step-aggregation_step" to end_step, taking for each step the value corresponding to the next available value in the grib file but using half of the weights for the first and the last step in each aggregation_step cicle. E.g:
+- when "halfweights" is true, the results of the function is the sum of all the values from "start_step-aggregation_step" to end_step, taking for each step the value corresponding to the next available value in the grib file but using half of the weights for the first and the last step in each aggregation_step cicle. E.g:
 
   INPUT: start_step=24, end_step=<not specified, will take the end of file>, aggregation_step=24
 GRIB File: contains data starting from step 0 to 72 every 6 hours: 0,6,12,18,24,30,36,....
@@ -816,7 +830,7 @@ GRIB File: contains data starting from step 0 to 72 every 6 hours: 0,6,12,18,24,
 
   Day 2: same as Day 1 starting from (24+24)-24=24: the step 24 will have a weight of 3, while steps 30,36 and 42 will be counted 6 times, and finally the step 48 will have a weight of 3. 
 
-- if start_step is zero or is not specified, the aggregation will start from 1
+- if start_step is zero or is not specified, the aggregation will start from 0
 
 ### Accumulation
 For precipitation values, accumulation over 6 or 24 hours is often performed. Here's an example of configuration and execution output in DEBUG mode.
