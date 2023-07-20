@@ -500,34 +500,63 @@ class ScipyInterpolation(object):
         result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
 
         w = np.zeros_like(distances)
-        w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
+        if (adw_type=='Shepard') or (adw_type is None):
+            # in case of Shepard and normal IDW we use inverse squared distances
+            # while in case of CDD we use the same Wi coeafficient stored later in variable "s"
+            w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 1, 5, 100/5))
         stdout.flush()
 
-        if (adw_type=='Shepard'):
-            # initialize weights
-            weight_directional = np.zeros_like(distances)
+        if (adw_type=='Shepard') or (adw_type=='CDD'):
 
-            # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
-            # actually s(d) should be 
-            #   1/d                     when 0 < d < r'/3
-            #   (27/4r')*(d/r'-1)       when r'/3 < d < r'
-            #   0                       when r' < d
-            # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
-            # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
-            # r'(C^n) = di(n+1) where di is the Point having the minimum distance major than the first n Points
-            # so that
-            #   r' = r' C^4 = di(5)     when n(C) <= 4
-            #   r' = r                  when 4 < n(C) <= 10
-            #   r' = r' C^10 = di(11)   when 10 < n(C)
-            #
-            # TODO: check if the implementation needs to be updated accordingly
-            # here we take only the inverse of the distance in "s"
-            s = np.zeros_like(distances)       
-            s[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound]
+            if (adw_type=='Shepard'): 
+                # this implementation is based on the manuscript by Shepard et al. 1968 
+                # but do not apply selection of the stations based on distances (it uses a fixed number of k stations)
+
+                # initialize weights
+                weight_directional = np.zeros_like(distances)
+
+                # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
+                # actually s(d) should be 
+                #   1/d                     when 0 < d < r'/3
+                #   (27/4r')*(d/r'-1)       when r'/3 < d < r'
+                #   0                       when r' < d
+                # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
+                # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
+                # r'(C^n) = di(n+1) where di is the Point having the minimum distance major than the first n Points
+                # so that
+                #   r' = r' C^4 = di(5)     when n(C) <= 4
+                #   r' = r                  when 4 < n(C) <= 10
+                #   r' = r' C^10 = di(11)   when 10 < n(C)
+                #
+                # TODO: check if the implementation needs to be updated accordingly
+                # here we take only the inverse of the distance in "s"
+                s = np.zeros_like(distances)       
+                s[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound]
+            elif (adw_type=='CDD'):
+                # this implementation is based on the manuscript by Hofstra et al. 2008 
+                # but do not evaluate CDD on distances (it uses a fixed number of k stations)
+
+                # CDD should be the correlation distance decay to get the serach radius
+                # in this implementation we take always k station, regardless of the radius
+                # thus we can use CDD=max(distances)
+                CDD = np.empty((len(distances),) + np.shape(z[0]))
+                CDD[dist_leq_min_upper_bound] = np.max(distances[dist_leq_min_upper_bound],axis=1)
+                # formula for weights:
+                # wi = [e^(−x/CDD)]^m 
+                # where m is fixed to 4 and x is the distance between the station i and the point 
+                m_const = 4.0 # constant
+
+                # initialize weights
+                weight_directional = np.zeros_like(distances)
+
+                # get distance weights            
+                s = np.zeros_like(distances)       
+                s[dist_leq_min_upper_bound] = np.exp(-distances[dist_leq_min_upper_bound]*m_const/CDD[dist_leq_min_upper_bound,np.newaxis])
 
             self.lat_inALL = self.target_latsOR.ravel()
             self.lon_inALL = self.target_lonsOR.ravel()
+    
 
             # start_time = time.time()
             if not use_broadcasting:
@@ -536,19 +565,13 @@ class ScipyInterpolation(object):
                     yj_diff = self.lon_inALL[:, np.newaxis] - self.longrib[indexes]
                     
                     Dj = np.sqrt(xj_diff**2 + yj_diff**2)
-                    # TODO: check here: we could use "distances", but we are actually evaluating the cos funcion on lat and lon values, that 
+                    # we could use "distances", but we are actually evaluating the cos funcion on lat and lon values, that 
                     # approximates the real angle... to use "distances" we need to operate in 3d version of the points
                     # in theory it should be OK to use the solution above, otherwise we can change it to 
                     # Di = distances[i]
                     # Dj = distances
                     # and formula cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj) + (z-zi)*(z-zj)] / di*dj
-                    
-                    # cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj)] / di*dj. 
-                    #cos_theta = (xi_diff[:,np.newaxis] * xj_diff + yi_diff[:,np.newaxis] * yj_diff) / (Di[:,np.newaxis] * Dj)
-                    # cos_theta = (xj_diff[:,i,np.newaxis] * xj_diff + yj_diff[:,i,np.newaxis] * yj_diff) / (Dj[:,i,np.newaxis] * Dj)
-                    # numerator = np.sum((1 - cos_theta) * s, axis=1)
-                    # denominator = np.sum(s, axis=1)
-                    
+                                        
                     cos_theta = (xj_diff[:,i,np.newaxis] * xj_diff + yj_diff[:,i,np.newaxis] * yj_diff) / (Dj[:,i,np.newaxis] * Dj)
                     # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
                     # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
@@ -569,7 +592,7 @@ class ScipyInterpolation(object):
             else:
                 # All in broadcasting:            
                 # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
-                # TODO: check if it is worth to use it on HPC 
+
                 # Compute xi and yi for all elements
                 xi = self.latgrib[indexes]
                 yi = self.longrib[indexes]
@@ -601,7 +624,8 @@ class ScipyInterpolation(object):
             # end_time = time.time()
             # elapsed_time = end_time - start_time
             # print(f"Elapsed time for computation: {elapsed_time:.6f} seconds")
-    
+            if (adw_type=='CDD'):
+                w=s
             # update weights with directional ones
             if DEBUG_ADW_INTERPOLATION:
                 print("weight_directional: {}".format(weight_directional[n_debug]))
@@ -609,9 +633,6 @@ class ScipyInterpolation(object):
             w = np.multiply(w,1+weight_directional)
             if DEBUG_ADW_INTERPOLATION:
                 print("w (after adding angular weights): {}".format(w[n_debug]))
-        elif (adw_type=='CDD'):
-            raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
-                        f"interpolation method not implemented yet (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
         elif (adw_type!=None):
             raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
                         f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
