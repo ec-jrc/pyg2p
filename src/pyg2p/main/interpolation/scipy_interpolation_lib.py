@@ -626,6 +626,11 @@ class ScipyInterpolation(object):
             # print(f"Elapsed time for computation: {elapsed_time:.6f} seconds")
             if (adw_type=='CDD'):
                 w=s
+                # in CDD the weight_directional should be normalized before multiply by 1+...
+                # normalize weight_directional
+                sums_weight_directional = np.sum(weight_directional[dist_leq_min_upper_bound], axis=1, keepdims=True)
+                weight_directional[dist_leq_min_upper_bound] = weight_directional[dist_leq_min_upper_bound] / sums_weight_directional
+                
             # update weights with directional ones
             if DEBUG_ADW_INTERPOLATION:
                 print("weight_directional: {}".format(weight_directional[n_debug]))
