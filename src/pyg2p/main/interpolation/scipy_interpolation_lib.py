@@ -664,7 +664,7 @@ class ScipyInterpolation(object):
                 strided = np.lib.stride_tricks.as_strided
                 s0,s1,s2 = cos_theta[:].strides
                 cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
-                sj = np.tile(s[:, np.newaxis, :], (1, 4, 1))
+                sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
                 s0,s1,s2 = sj[:].strides
                 sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
 
