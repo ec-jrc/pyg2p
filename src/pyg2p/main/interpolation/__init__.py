@@ -20,7 +20,7 @@ import pyg2p.util.numeric
 class Interpolator(Loggable):
     _LOADED_INTERTABLES = {}
     _prefix = 'I'
-    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'adw': 4, 'cdd': 4, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
+    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'adw': 11, 'cdd': 10, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
     suffixes = {'grib_nearest': 'grib_nearest', 'grib_invdist': 'grib_invdist',
                 'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist', 'adw': 'scipy_adw', 'cdd': 'scipy_cdd',
                 'bilinear': 'scipy_bilinear', 'triangulation': 'scipy_triangulation', 'bilinear_delaunay': 'scipy_bilinear_delaunay'}
@@ -167,6 +167,10 @@ class Interpolator(Loggable):
                 # Global_3arcmin DEBUG
                 latefas=self._target_coords.lats[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
                 lonefas=self._target_coords.lons[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+                #latefas-=0.008369999999992217
+                # lonefas-=0.00851999999999431
+                #lonefas-=0.024519999999977227   
+
             else:
                 # European_1arcmin DEBUG
                 selection_lats = np.logical_and(self._target_coords.lats[:,0]>=DEBUG_MIN_LAT,self._target_coords.lats[:,0]<=DEBUG_MAX_LAT)
@@ -194,9 +198,17 @@ class Interpolator(Loggable):
             # latgrib = np.array([ 7.39050803,  8.72151493,  7.82210701,  7.35906546])
             # longrib = np.array([49.16690015, 48.11557968, 48.27217824, 49.70238655])
             # v = np.array([100, 133, 166, 200  ])
-            latgrib = np.array([ 8,  8,  8,  8])
-            longrib = np.array([45, 48.5, 49, 50])
-            v = np.array([200, 100, 100, 100  ])
+            # latgrib = np.array([ 8,  8,  8,  8])
+            # longrib = np.array([45, 48.5, 49, 50])
+            # v = np.array([200, 100, 100, 100  ])
+            
+            # OR load data points for the TEST from file
+            #data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106180600_idw.txt', delimiter='\t', skip_header=1)
+            data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106170600_20230714101901.txt', delimiter='\t', skip_header=1)
+            longrib = data[:,0]
+            latgrib = data[:,1]
+            v = data[:,2]
+
             intertable_id, intertable_name = 'DEBUG_ADW','DEBUG_ADW.npy'
 
         nnear = self.scipy_modes_nnear[self._mode]

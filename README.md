@@ -670,7 +670,7 @@ Attributes p, leafsize and eps for the kd tree algorithm are default in scipy li
 | leafsize  | 10                   |
 
 #### ADW
-It's the Angular Distance Weighted (ADW) algorithm with scipy.kd_tree, using 4 neighbours.
+It's the Angular Distance Weighted (ADW) algorithm by Shepard et al. 1968, with scipy.kd_tree using 11 neighbours.
 If @adw_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
 
 ```json

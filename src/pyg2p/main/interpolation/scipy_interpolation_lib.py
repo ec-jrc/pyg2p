@@ -36,10 +36,28 @@ DEBUG_ADW_INTERPOLATION = False
 # DEBUG_MIN_LON = -100
 # DEBUG_MAX_LAT = 25
 # DEBUG_MAX_LON = -50
-DEBUG_MIN_LAT = 7
-DEBUG_MIN_LON = 45
-DEBUG_MAX_LAT = 9
-DEBUG_MAX_LON = 50
+# DEBUG_MIN_LAT = 7
+# DEBUG_MIN_LON = 45
+# DEBUG_MAX_LAT = 9
+# DEBUG_MAX_LON = 50
+# DEBUG_MIN_LAT = (45.31663-2)
+# DEBUG_MIN_LON = (0.46648-2) #0.50048
+# DEBUG_MAX_LAT = (45.31663+2)
+# DEBUG_MAX_LON = (0.46648+2) #0.50048
+# DEBUG_MIN_LAT = (45.31663-2)
+# DEBUG_MIN_LON = (0.50048-2) 
+# DEBUG_MAX_LAT = (45.31663+2)
+# DEBUG_MAX_LON = (0.50048+2) 
+# lat 45.28263, lon 0.45948
+# DEBUG_MIN_LAT = (45.28263-2)
+# DEBUG_MIN_LON = (0.45948-2) 
+# DEBUG_MAX_LAT = (45.28263+2)
+# DEBUG_MAX_LON = (0.45948+2) 
+# lat 45.28263 lon 0.5517
+DEBUG_MIN_LAT = (45.28263-20)
+DEBUG_MIN_LON = (0.5517-20) 
+DEBUG_MAX_LAT = (45.28263+20)
+DEBUG_MAX_LON = (0.5517+20) 
 #DEBUG_NN = 15410182
 
 
@@ -344,7 +362,7 @@ class ScipyInterpolation(object):
             if self.mode == 'invdist': 
                 # return results, distances, indexes
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
-            elif self.mode == 'adw':
+            elif self.mode == 'adw' and self.nnear == 11:
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting)             
             elif self.mode == 'cdd':
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting)
@@ -475,7 +493,8 @@ class ScipyInterpolation(object):
         if DEBUG_ADW_INTERPOLATION:
             self.min_upper_bound = 1000000000
             if DEBUG_BILINEAR_INTERPOLATION:
-                n_debug=1940
+                #n_debug=1940
+                n_debug=3120
             else:
                 n_debug=11805340
         z = self.z
@@ -500,8 +519,9 @@ class ScipyInterpolation(object):
         result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
 
         w = np.zeros_like(distances)
-        if (adw_type=='Shepard') or (adw_type is None):
-            # in case of Shepard and normal IDW we use inverse squared distances
+        if (adw_type is None):
+            # in case of normal IDW we use inverse squared distances
+            # while in case of Shepard we use the square of the coeafficient stored later in variable "s"
             # while in case of CDD we use the same Wi coeafficient stored later in variable "s"
             w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 1, 5, 100/5))
@@ -511,15 +531,15 @@ class ScipyInterpolation(object):
 
             if (adw_type=='Shepard'): 
                 # this implementation is based on the manuscript by Shepard et al. 1968 
-                # but do not apply selection of the stations based on distances (it uses a fixed number of k stations)
+                # now it applies the selection of station, too. k=11 stations are need to perform the full elavaluation
 
                 # initialize weights
                 weight_directional = np.zeros_like(distances)
 
                 # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
                 # actually s(d) should be 
-                #   1/d                     when 0 < d < r'/3
-                #   (27/4r')*(d/r'-1)       when r'/3 < d < r'
+                #   1/d                     when 0 < d <= r'/3
+                #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
                 #   0                       when r' < d
                 # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
                 # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
@@ -529,10 +549,42 @@ class ScipyInterpolation(object):
                 #   r' = r                  when 4 < n(C) <= 10
                 #   r' = r' C^10 = di(11)   when 10 < n(C)
                 #
-                # TODO: check if the implementation needs to be updated accordingly
-                # here we take only the inverse of the distance in "s"
-                s = np.zeros_like(distances)       
-                s[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound]
+                # evaluate r from pi*r= 7(N/A):
+                # A = area of the polygon containing all points
+                # N = numbero of points
+                # trick: I can evaluate r from the KD Tree of distances: r should be the radius that contains 7 points as an average
+                # so I can set it as the value that contains 70% of the whole distance dataset.
+                # Given the ordered distances struct, the quickest way to do it is to evaluate the average of all distances of the 7th 
+                # element of the distance arrays
+                r_ref = np.average(distances[:,6])
+                # prepare r, initialize with di(11):
+                r=distances[:,10].copy()
+                # evaluate r' for each point. to do that, 
+                # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^4 (that is = di(5))
+                r_1_flag = distances[:,3]>r_ref
+                # copy the corresponding fifth distance di(5) as the radius
+                r[r_1_flag]=distances[r_1_flag,4]
+                # 2) check if n(C)>4 and n(C)<=10
+                r_2_flag = distances[:,9]>r_ref
+                r_2_flag = np.logical_and(~r_1_flag,r_2_flag)
+                # copy r as the radius
+                r[r_2_flag]=r_ref
+                # 3) all the other case, n(C)>10, will be equal to di(11) (already set at the initialization, so do nothing here)
+                
+                # apply the distance rule based on the radiuses
+                s = np.zeros_like(distances)
+                r = np.tile(r, (11,1)).T
+                #   1/d                     when 0 < d <= r'/3
+                dist_leq_r3 = distances <= r/3
+                s[dist_leq_r3] = 1. / distances[dist_leq_r3]
+                #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
+                dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r)
+                s[dist_g_r3_leq_r] = (27/(4*r[dist_g_r3_leq_r]))*((distances[dist_g_r3_leq_r]/r[dist_g_r3_leq_r] - 1) ** 2)
+                #   0                       when r' < d  (keep the default zero value)
+
+                # while in case of Shepard we use the square of the coeafficient stored later in variable "s"
+                w[dist_leq_min_upper_bound] = s[dist_leq_min_upper_bound] ** 2
+
             elif (adw_type=='CDD'):
                 # this implementation is based on the manuscript by Hofstra et al. 2008 
                 # but do not evaluate CDD on distances (it uses a fixed number of k stations)
@@ -648,10 +700,10 @@ class ScipyInterpolation(object):
         stdout.flush()
         weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
         if DEBUG_ADW_INTERPOLATION:
-            dist_smalltest = distances[:, 0] <= 10000
-            onlyfirst_array_test = np.zeros(nnear)
-            onlyfirst_array_test[0] = 1000
-            weights[dist_smalltest]=onlyfirst_array_test
+            # dist_smalltest = distances[:, 0] <= 10000
+            # onlyfirst_array_test = np.zeros(nnear)
+            # onlyfirst_array_test[0] = 1000
+            # weights[dist_smalltest]=onlyfirst_array_test
             print("weights (after normalization): {}".format(weights[n_debug]))
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 3, 5, 3*100/5))
         stdout.flush()
@@ -663,8 +715,15 @@ class ScipyInterpolation(object):
         result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
         if DEBUG_ADW_INTERPOLATION:
             print("result: {}".format(result[n_debug]))
+            if adw_type is None:
+                self.lat_inALL = self.target_latsOR.ravel()
+                self.lon_inALL = self.target_lonsOR.ravel()
+
             print("lat: {}".format(self.lat_inALL[n_debug]))
             print("lon: {}".format(self.lon_inALL[n_debug]))
+            # Lon 0.46648 Lat 45.31663
+            # Lon 0.50048 Lat 45.31663
+
             print("idxs: {}".format(idxs[n_debug]))
             print("distances: {}".format(distances[n_debug]))
             print("latgrib: {}".format(self.latgrib[idxs[n_debug]]))
