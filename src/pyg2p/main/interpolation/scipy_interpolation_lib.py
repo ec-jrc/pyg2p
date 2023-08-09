@@ -570,30 +570,33 @@ class ScipyInterpolation(object):
                 # Given the ordered distances struct, the quickest way to do it is to evaluate the average of all distances of the 7th 
                 # element of the distance arrays
                 
-                r_ref = np.average(distances[:,6])
-                # prepare r, initialize with di(11): 
-                r=distances[:,10].copy()
+                r_ref = np.mean(distances[:, 6])
+                # prepare r, initialize with di(11):                 
+                r = distances[:, 10].copy()
                 # evaluate r' for each point. to do that, 
                 # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^4 (that is = di(5))
-                r_1_flag = distances[:,3]>r_ref
+                
+                r_1_flag = distances[:, 3] > r_ref
                 # copy the corresponding fifth distance di(5) as the radius
-                r[r_1_flag] = distances[r_1_flag,4]
+                r[r_1_flag] = distances[r_1_flag, 4]
                 # 2) check if n(C)>4 and n(C)<=10
-                r_2_flag = distances[:,9]>r_ref
-                r_2_flag = np.logical_and(~r_1_flag,r_2_flag)
+                r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
                 # copy r as the radius
-                r[r_2_flag]=r_ref
+                r[r_2_flag] = r_ref
                 # 3) all the other case, n(C)>10, will be equal to di(11) (already set at the initialization, so do nothing here)
                 
                 # apply the distance rule based on the radiuses
                 s = np.zeros_like(distances)
-                r = np.tile(r, (11,1)).T
+                r_broadcasted = r[:, np.newaxis]
+                
                 #   1/d                     when 0 < d <= r'/3
-                dist_leq_r3 = distances <= r/3
+                dist_leq_r3 = distances <= r_broadcasted / 3
                 s[dist_leq_r3] = 1. / distances[dist_leq_r3]
+                
                 #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
-                dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r)
-                s[dist_g_r3_leq_r] = (27/(4*r[dist_g_r3_leq_r]))*((distances[dist_g_r3_leq_r]/r[dist_g_r3_leq_r] - 1) ** 2)
+                dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r_broadcasted)
+                s[dist_g_r3_leq_r] = ((27 / (4 * r_broadcasted)) * ((distances / r_broadcasted - 1) ** 2))[dist_g_r3_leq_r]
+                
                 #   0                       when r' < d  (keep the default zero value)
 
                 # in case of Shepard we use the square of the coeafficient stored later in variable "s"
