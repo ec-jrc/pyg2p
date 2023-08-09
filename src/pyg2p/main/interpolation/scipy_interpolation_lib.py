@@ -54,10 +54,10 @@ DEBUG_ADW_INTERPOLATION = False
 # DEBUG_MAX_LAT = (45.28263+2)
 # DEBUG_MAX_LON = (0.45948+2) 
 # lat 45.28263 lon 0.5517
-DEBUG_MIN_LAT = (45.28263-20)
-DEBUG_MIN_LON = (0.5517-20) 
-DEBUG_MAX_LAT = (45.28263+20)
-DEBUG_MAX_LON = (0.5517+20) 
+DEBUG_MIN_LAT = (45.28263-40)
+DEBUG_MIN_LON = (0.5517-60) 
+DEBUG_MAX_LAT = (45.28263+40)
+DEBUG_MAX_LON = (0.5517+60) 
 #DEBUG_NN = 15410182
 
 
@@ -318,6 +318,10 @@ class ScipyInterpolation(object):
         self.nnear = nnear
         self.mode = mode
         self.use_broadcasting = use_broadcasting
+        
+        if DEBUG_ADW_INTERPOLATION:
+            self.use_broadcasting = True
+
         self._mv_target = mv_target
         self._mv_source = mv_source
         self.z = source_values
@@ -333,13 +337,16 @@ class ScipyInterpolation(object):
         stdout.write('Building KDTree...\n')
         self.tree = KDTree(source_locations, leafsize=30)  # build the tree
 
-        # we can calculate resolution in KM as described here:
-        # http://math.boisestate.edu/~wright/montestigliano/NearestNeighborSearches.pdf
-        # sphdist = R*acos(1-maxdist^2/2);
-        # Finding actual resolution of source GRID
-        distances, indexes = self.tree.query(source_locations, k=2, n_jobs=self.njobs)
-        # set max of distances as min upper bound and add an empirical correction value
-        self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
+        if self.mode == "adw":
+            self.min_upper_bound = None # not used in adw (Shepard) algorithm
+        else:
+            # we can calculate resolution in KM as described here:
+            # http://math.boisestate.edu/~wright/montestigliano/NearestNeighborSearches.pdf
+            # sphdist = R*acos(1-maxdist^2/2);
+            # Finding actual resolution of source GRID
+            distances, indexes = self.tree.query(source_locations, k=2, n_jobs=self.njobs)
+            # set max of distances as min upper bound and add an empirical correction value
+            self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
 
     def interpolate(self, target_lons, target_lats):
         # Target coordinates  HAVE to be rotated coords in case GRIB grid is rotated
@@ -353,6 +360,8 @@ class ScipyInterpolation(object):
             x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
             efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
             distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs) 
+            checktime = time.time()
+            stdout.write('KDtree time (sec): {}\n'.format(checktime - start))
         
         if self.mode == 'nearest' and self.nnear == 1:
             # return results, indexes
@@ -491,7 +500,8 @@ class ScipyInterpolation(object):
     # if adw_type == Shepard -> Shepard 1968 original formulation
     def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False):
         if DEBUG_ADW_INTERPOLATION:
-            self.min_upper_bound = 1000000000
+            if adw_type != "Shepard":
+                self.min_upper_bound = 1000000000
             if DEBUG_BILINEAR_INTERPOLATION:
                 #n_debug=1940
                 n_debug=3120
@@ -508,17 +518,19 @@ class ScipyInterpolation(object):
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 0, 5, 0, 0))
         stdout.flush()
 
-        dist_leq_1e_10 = distances[:, 0] <= 1e-10
-        dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
+        if adw_type != "Shepard":
+            dist_leq_1e_10 = distances[:, 0] <= 1e-10
+            dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
         
-        # distances <= 1e-10 : take exactly the point, weight = 1
-        onlyfirst_array = np.zeros(nnear)
-        onlyfirst_array[0] = 1
-        weights[dist_leq_1e_10] = onlyfirst_array
-        idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
-        result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
+            # distances <= 1e-10 : take exactly the point, weight = 1
+            onlyfirst_array = np.zeros(nnear)
+            onlyfirst_array[0] = 1
+            weights[dist_leq_1e_10] = onlyfirst_array
+            idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
+            result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
 
-        w = np.zeros_like(distances)
+            w = np.zeros_like(distances)
+
         if (adw_type is None):
             # in case of normal IDW we use inverse squared distances
             # while in case of Shepard we use the square of the coeafficient stored later in variable "s"
@@ -534,7 +546,8 @@ class ScipyInterpolation(object):
                 # now it applies the selection of station, too. k=11 stations are need to perform the full elavaluation
 
                 # initialize weights
-                weight_directional = np.zeros_like(distances)
+                if (use_broadcasting == False):
+                    weight_directional = np.zeros_like(distances)
 
                 # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
                 # actually s(d) should be 
@@ -551,19 +564,20 @@ class ScipyInterpolation(object):
                 #
                 # evaluate r from pi*r= 7(N/A):
                 # A = area of the polygon containing all points
-                # N = numbero of points
+                # N = number of points
                 # trick: I can evaluate r from the KD Tree of distances: r should be the radius that contains 7 points as an average
                 # so I can set it as the value that contains 70% of the whole distance dataset.
                 # Given the ordered distances struct, the quickest way to do it is to evaluate the average of all distances of the 7th 
                 # element of the distance arrays
+                
                 r_ref = np.average(distances[:,6])
-                # prepare r, initialize with di(11):
+                # prepare r, initialize with di(11): 
                 r=distances[:,10].copy()
                 # evaluate r' for each point. to do that, 
                 # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^4 (that is = di(5))
                 r_1_flag = distances[:,3]>r_ref
                 # copy the corresponding fifth distance di(5) as the radius
-                r[r_1_flag]=distances[r_1_flag,4]
+                r[r_1_flag] = distances[r_1_flag,4]
                 # 2) check if n(C)>4 and n(C)<=10
                 r_2_flag = distances[:,9]>r_ref
                 r_2_flag = np.logical_and(~r_1_flag,r_2_flag)
@@ -582,8 +596,8 @@ class ScipyInterpolation(object):
                 s[dist_g_r3_leq_r] = (27/(4*r[dist_g_r3_leq_r]))*((distances[dist_g_r3_leq_r]/r[dist_g_r3_leq_r] - 1) ** 2)
                 #   0                       when r' < d  (keep the default zero value)
 
-                # while in case of Shepard we use the square of the coeafficient stored later in variable "s"
-                w[dist_leq_min_upper_bound] = s[dist_leq_min_upper_bound] ** 2
+                # in case of Shepard we use the square of the coeafficient stored later in variable "s"
+                w = s ** 2
 
             elif (adw_type=='CDD'):
                 # this implementation is based on the manuscript by Hofstra et al. 2008 
@@ -631,8 +645,10 @@ class ScipyInterpolation(object):
                     sj = s[:,np.concatenate([np.arange(i), np.arange(i+1, s.shape[1])])]            
                     numerator = np.sum((1 - cos_theta) * sj, axis=1)
                     denominator = np.sum(sj, axis=1)
-                                        
-                    weight_directional[dist_leq_min_upper_bound, i] = numerator[dist_leq_min_upper_bound] / denominator[dist_leq_min_upper_bound]
+                    if (adw_type=='Shepard'):
+                        weight_directional[:,i] = numerator / denominator
+                    else:
+                        weight_directional[dist_leq_min_upper_bound, i] = numerator[dist_leq_min_upper_bound] / denominator[dist_leq_min_upper_bound]
 
                     # DEBUG: test the point at n_debug 11805340=lat 8.025 lon 47.0249999
                     if DEBUG_ADW_INTERPOLATION:
@@ -671,7 +687,10 @@ class ScipyInterpolation(object):
                 numerator = np.sum((1 - cos_theta) * sj, axis=2)
                 denominator = np.sum(sj, axis=2)
                 # Compute weight_directional for all elements
-                weight_directional[dist_leq_min_upper_bound, :] = numerator[dist_leq_min_upper_bound, :] / denominator[dist_leq_min_upper_bound, :]
+                if (adw_type=='Shepard'):
+                    weight_directional = numerator / denominator
+                else:
+                    weight_directional[dist_leq_min_upper_bound, :] = numerator[dist_leq_min_upper_bound, :] / denominator[dist_leq_min_upper_bound, :]
     
             # end_time = time.time()
             # elapsed_time = end_time - start_time
@@ -694,11 +713,15 @@ class ScipyInterpolation(object):
             raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
                         f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
 
-        #normalize weights
-        sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 2, 5, 2*100/5))
         stdout.flush()
-        weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
+        #normalize weights
+        if (adw_type=='Shepard'):
+            sums = np.sum(w, axis=1, keepdims=True)
+            weights = w / sums
+        else:
+            sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
+            weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
         if DEBUG_ADW_INTERPOLATION:
             # dist_smalltest = distances[:, 0] <= 10000
             # onlyfirst_array_test = np.zeros(nnear)
@@ -711,8 +734,12 @@ class ScipyInterpolation(object):
         wz = np.einsum('ij,ij->i', weights, z[indexes])
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 4, 5, 4*100/5))
         stdout.flush()
-        idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
-        result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
+        if (adw_type=='Shepard'):
+            idxs = indexes
+            result = wz
+        else:
+            idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
+            result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
         if DEBUG_ADW_INTERPOLATION:
             print("result: {}".format(result[n_debug]))
             if adw_type is None:

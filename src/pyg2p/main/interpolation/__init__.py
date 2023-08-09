@@ -203,8 +203,8 @@ class Interpolator(Loggable):
             # v = np.array([200, 100, 100, 100  ])
             
             # OR load data points for the TEST from file
-            #data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106180600_idw.txt', delimiter='\t', skip_header=1)
-            data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106170600_20230714101901.txt', delimiter='\t', skip_header=1)
+            data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106180600_idw.txt', delimiter='\t', skip_header=1)
+            #data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106170600_20230714101901.txt', delimiter='\t', skip_header=1)
             longrib = data[:,0]
             latgrib = data[:,1]
             v = data[:,2]
