@@ -17,6 +17,8 @@ from pyg2p.util.strings import now_string
 #from matplotlib import pyplot as plt
 from scipy.integrate import quad
 
+from numba import njit
+
 
 DEBUG_BILINEAR_INTERPOLATION = False
 DEBUG_ADW_INTERPOLATION = False
@@ -297,6 +299,103 @@ def isPointInQuadrilateral(pt, v1, v2, v3, v4, is_convex):
 def integrand(x):
     return 1/np.cos(x)
 
+
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_compute_weights_from_cutoff_distances(distances, s):
+    # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
+    # actually s(d) should be 
+    #   1/d                     when 0 < d <= r'/3
+    #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
+    #   0                       when r' < d
+    # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
+    # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
+    # r'(C^n) = di(n+1) where di is the Point having the minimum distance major than the first n Points
+    # so that
+    #   r' = r' C^4 = di(5)     when n(C) <= 4
+    #   r' = r                  when 4 < n(C) <= 10
+    #   r' = r' C^10 = di(11)   when 10 < n(C)
+    #
+    # evaluate r from pi*r= 7(N/A):
+    # A = area of the polygon containing all points
+    # N = number of points
+    # trick: I can evaluate r from the KD Tree of distances: r should be the radius that contains 7 points as an average
+    # so I can set it as the value that contains 70% of the whole distance dataset.
+    # Given the ordered distances struct, the quickest way to do it is to evaluate the average of all distances of the 7th 
+    # element of the distance arrays
+    
+    r_ref = np.mean(distances[:, 6])
+    # prepare r, initialize with di(11):                 
+    r = distances[:, 10].copy()
+    # evaluate r' for each point. to do that, 
+    # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^4 (that is = di(5))
+    
+    r_1_flag = distances[:, 3] > r_ref
+    # copy the corresponding fifth distance di(5) as the radius
+    r[r_1_flag] = distances[r_1_flag, 4]
+    # 2) check if n(C)>4 and n(C)<=10
+    r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
+    # copy r as the radius
+    r[r_2_flag] = r_ref
+    # 3) all the other case, n(C)>10, will be equal to di(11) (already set at the initialization, so do nothing here)
+    
+    # apply the distance rule based on the radiuses
+    r_broadcasted = r.reshape(-1,1)
+    
+    #   1/d                     when 0 < d <= r'/3
+    dist_leq_r3 = distances <= r_broadcasted / 3
+    s.ravel()[dist_leq_r3.ravel()] = 1. / distances.ravel()[dist_leq_r3.ravel()]
+    
+    #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
+    dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r_broadcasted)
+    s.ravel()[dist_g_r3_leq_r.ravel()] = ((27 / (4 * r_broadcasted)) * ((distances / r_broadcasted - 1) ** 2)).ravel()[dist_g_r3_leq_r.ravel()]
+    
+    #   0                       when r' < d  (keep the default zero value)
+
+    # in case of Shepard we use the square of the coeafficient stored later in variable "s"
+    w = s ** 2
+    return w, s
+
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_compute_weights_directional_in_broadcasting(
+    s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
+    # All in broadcasting: 
+    # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
+    if DEBUG_ADW_INTERPOLATION:
+        print("Using full broadcasting")
+    # Compute xi and yi for all elements
+    k=indexes.shape[1]
+    xi = latgrib.ravel()[indexes.ravel()]
+    yi = longrib.ravel()[indexes.ravel()]
+    # Compute xi_diff and yi_diff for all elements
+    xi_diff = lat_inALL.reshape(-1,1) - xi.reshape(-1,k)
+    yi_diff = lon_inALL.reshape(-1,1) - yi.reshape(-1,k)
+    # Compute Di for all elements
+    Di = np.sqrt(xi_diff**2 + yi_diff**2)
+    # Compute cos_theta for all elements
+    cos_theta = (xi_diff.reshape(-1,k,1)* xi_diff.reshape(-1,1,k) + yi_diff.reshape(-1,k,1) * yi_diff.reshape(-1,1,k)) / (Di.reshape(-1,k,1) * Di.reshape(-1,1,k))
+    # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
+    # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
+    # Delete the diagonal elements from cos_theta
+    # Reshape cos_theta to (n, nnear, nnear-1)
+    n = cos_theta.shape[0]
+    m = cos_theta.shape[1]
+    strided = np.lib.stride_tricks.as_strided
+    s0,s1,s2 = cos_theta[:].strides
+    cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
+    sj = s.T.repeat(k).reshape(k,-1,k).transpose(1,2,0).copy()
+    s0,s1,s2 = sj[:].strides
+    sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
+    # sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
+    # s0,s1,s2 = sj[:].strides
+    # sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+
+    numerator = np.sum((1 - cos_theta) * sj, axis=2)
+    denominator = np.sum(sj, axis=2)
+    # Compute weight_directional for all elements
+    weight_directional = numerator / denominator
+    return weight_directional
+
+
 class ScipyInterpolation(object):
     """
     http://docs.scipy.org/doc/scipy/reference/spatial.html
@@ -548,59 +647,11 @@ class ScipyInterpolation(object):
                 # initialize weights
                 if (use_broadcasting == False):
                     weight_directional = np.zeros_like(distances)
-
-                # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
-                # actually s(d) should be 
-                #   1/d                     when 0 < d <= r'/3
-                #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
-                #   0                       when r' < d
-                # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
-                # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
-                # r'(C^n) = di(n+1) where di is the Point having the minimum distance major than the first n Points
-                # so that
-                #   r' = r' C^4 = di(5)     when n(C) <= 4
-                #   r' = r                  when 4 < n(C) <= 10
-                #   r' = r' C^10 = di(11)   when 10 < n(C)
-                #
-                # evaluate r from pi*r= 7(N/A):
-                # A = area of the polygon containing all points
-                # N = number of points
-                # trick: I can evaluate r from the KD Tree of distances: r should be the radius that contains 7 points as an average
-                # so I can set it as the value that contains 70% of the whole distance dataset.
-                # Given the ordered distances struct, the quickest way to do it is to evaluate the average of all distances of the 7th 
-                # element of the distance arrays
-                
-                r_ref = np.mean(distances[:, 6])
-                # prepare r, initialize with di(11):                 
-                r = distances[:, 10].copy()
-                # evaluate r' for each point. to do that, 
-                # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^4 (that is = di(5))
-                
-                r_1_flag = distances[:, 3] > r_ref
-                # copy the corresponding fifth distance di(5) as the radius
-                r[r_1_flag] = distances[r_1_flag, 4]
-                # 2) check if n(C)>4 and n(C)<=10
-                r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
-                # copy r as the radius
-                r[r_2_flag] = r_ref
-                # 3) all the other case, n(C)>10, will be equal to di(11) (already set at the initialization, so do nothing here)
-                
-                # apply the distance rule based on the radiuses
+                start = time.time()
                 s = np.zeros_like(distances)
-                r_broadcasted = r[:, np.newaxis]
-                
-                #   1/d                     when 0 < d <= r'/3
-                dist_leq_r3 = distances <= r_broadcasted / 3
-                s[dist_leq_r3] = 1. / distances[dist_leq_r3]
-                
-                #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
-                dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r_broadcasted)
-                s[dist_g_r3_leq_r] = ((27 / (4 * r_broadcasted)) * ((distances / r_broadcasted - 1) ** 2))[dist_g_r3_leq_r]
-                
-                #   0                       when r' < d  (keep the default zero value)
-
-                # in case of Shepard we use the square of the coeafficient stored later in variable "s"
-                w = s ** 2
+                w, s = adw_compute_weights_from_cutoff_distances(distances, s)
+                checktime = time.time()
+                stdout.write('adw_compute_weights_from_cutoff_distances time (sec): {}\n'.format(checktime - start))
 
             elif (adw_type=='CDD'):
                 # this implementation is based on the manuscript by Hofstra et al. 2008 
@@ -661,40 +712,45 @@ class ScipyInterpolation(object):
                         print("numerator: {}".format(numerator[n_debug]))
                         print("denominator: {}".format(denominator[n_debug]))
             else:
-                # All in broadcasting:            
-                # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
-
-                # Compute xi and yi for all elements
-                xi = self.latgrib[indexes]
-                yi = self.longrib[indexes]
-                # Compute xi_diff and yi_diff for all elements
-                xi_diff = self.lat_inALL[:, np.newaxis] - xi
-                yi_diff = self.lon_inALL[:, np.newaxis] - yi
-                # Compute Di for all elements
-                Di = np.sqrt(xi_diff**2 + yi_diff**2)
-                # Compute cos_theta for all elements
-                cos_theta = (xi_diff[:, :, np.newaxis] * xi_diff[:, np.newaxis, :] + yi_diff[:, :, np.newaxis] * yi_diff[:, np.newaxis, :]) / (Di[:, :, np.newaxis] * Di[:, np.newaxis, :])
-                # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
-                # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
-                # Delete the diagonal elements from cos_theta
-                # Reshape cos_theta to (n, nnear, nnear-1)
-                n = cos_theta.shape[0]
-                m = cos_theta.shape[1]
-                strided = np.lib.stride_tricks.as_strided
-                s0,s1,s2 = cos_theta[:].strides
-                cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
-                sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
-                s0,s1,s2 = sj[:].strides
-                sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
-
-                numerator = np.sum((1 - cos_theta) * sj, axis=2)
-                denominator = np.sum(sj, axis=2)
-                # Compute weight_directional for all elements
-                if (adw_type=='Shepard'):
-                    weight_directional = numerator / denominator
+                # All in broadcasting:     
+                if (adw_type=='Shepard'):       
+                    start = time.time()
+                    weight_directional = adw_compute_weights_directional_in_broadcasting(
+                        s, self.latgrib, self.longrib, indexes,
+                        self.lat_inALL, self.lon_inALL)
+                    checktime = time.time()
+                    stdout.write('adw_compute_weights_directional_in_broadcasting time (sec): {}\n'.format(checktime - start))
                 else:
+                    # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
+
+                    # Compute xi and yi for all elements
+                    xi = self.latgrib[indexes]
+                    yi = self.longrib[indexes]
+                    # Compute xi_diff and yi_diff for all elements
+                    xi_diff = self.lat_inALL[:, np.newaxis] - xi
+                    yi_diff = self.lon_inALL[:, np.newaxis] - yi
+                    # Compute Di for all elements
+                    Di = np.sqrt(xi_diff**2 + yi_diff**2)
+                    # Compute cos_theta for all elements
+                    cos_theta = (xi_diff[:, :, np.newaxis] * xi_diff[:, np.newaxis, :] + yi_diff[:, :, np.newaxis] * yi_diff[:, np.newaxis, :]) / (Di[:, :, np.newaxis] * Di[:, np.newaxis, :])
+                    # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
+                    # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
+                    # Delete the diagonal elements from cos_theta
+                    # Reshape cos_theta to (n, nnear, nnear-1)
+                    n = cos_theta.shape[0]
+                    m = cos_theta.shape[1]
+                    strided = np.lib.stride_tricks.as_strided
+                    s0,s1,s2 = cos_theta[:].strides
+                    cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+                    sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
+                    s0,s1,s2 = sj[:].strides
+                    sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+
+                    numerator = np.sum((1 - cos_theta) * sj, axis=2)
+                    denominator = np.sum(sj, axis=2)
+                    # Compute weight_directional for all elements
                     weight_directional[dist_leq_min_upper_bound, :] = numerator[dist_leq_min_upper_bound, :] / denominator[dist_leq_min_upper_bound, :]
-    
+
             # end_time = time.time()
             # elapsed_time = end_time - start_time
             # print(f"Elapsed time for computation: {elapsed_time:.6f} seconds")
