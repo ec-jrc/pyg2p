@@ -168,6 +168,7 @@ class GRIBReader(Loggable):
 
             missing_value = codes_get(self._selected_grbs[0], 'missingValue')
             data_date = codes_get(self._selected_grbs[0], 'dataDate')
+            data_time = codes_get(self._selected_grbs[0], 'dataTime')
             all_values = {}
             all_values_second_res = {}
             grid2 = None
@@ -207,7 +208,7 @@ class GRIBReader(Loggable):
             if grid2:
                 key_2nd_spatial_res = min(all_values_second_res.keys())
                 grid.set_2nd_resolution(grid2, key_2nd_spatial_res)
-            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, step_units, grid, all_values_second_res, data_date=data_date)
+            return Messages(all_values, missing_value, unit, type_of_level, type_of_step, step_units, grid, all_values_second_res, data_date=data_date, data_time=str(data_time)[:2])
         # no messages found
         else:
             raise ApplicationException.get_exc(NO_MESSAGES, details=f'using {kwargs}')
