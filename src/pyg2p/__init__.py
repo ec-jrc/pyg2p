@@ -145,7 +145,7 @@ class GribGridDetails(Loggable):
 
 class Messages(Loggable):
 
-    def __init__(self, values, mv, unit, type_of_level, type_of_step, step_units, grid_details, val_2nd=None, data_date=None):
+    def __init__(self, values, mv, unit, type_of_level, type_of_step, step_units, grid_details, val_2nd=None, data_date=None, data_time='0'):
         super().__init__()
         self.values_first_or_single_res = values
         self.values_second_res = val_2nd or {}
@@ -154,7 +154,7 @@ class Messages(Loggable):
         self.type_of_level = type_of_level
         self.unit = unit
         self.missing_value = mv
-        self.data_date = datetime.strptime(str(data_date), '%Y%m%d')
+        self.data_date = datetime.strptime(f'{data_date}{data_time}', '%Y%m%d%H')
 
         self.grid_details = grid_details
         # order key list to get first step
