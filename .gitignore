@@ -5,7 +5,7 @@
 /build
 pyg2p.egg-info
 /dist
-
+*.nbc
 /.python-version
 .coverage
 .coverage.*

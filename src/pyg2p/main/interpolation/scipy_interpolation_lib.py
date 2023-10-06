@@ -9,6 +9,9 @@ import math
 import scipy.optimize as opt  
 from scipy.spatial import cKDTree as KDTree, Delaunay
 
+from pyg2p.main.readers.netcdf import NetCDFReader
+from pyg2p.main.readers.pcr import PCRasterReader
+
 from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD
 from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
@@ -56,10 +59,22 @@ DEBUG_ADW_INTERPOLATION = False
 # DEBUG_MAX_LAT = (45.28263+2)
 # DEBUG_MAX_LON = (0.45948+2) 
 # lat 45.28263 lon 0.5517
-DEBUG_MIN_LAT = (45.28263-40)
-DEBUG_MIN_LON = (0.5517-60) 
-DEBUG_MAX_LAT = (45.28263+40)
-DEBUG_MAX_LON = (0.5517+60) 
+
+# DEBUG_MIN_LAT = (45.28263-40)
+# DEBUG_MIN_LON = (0.5517-60) 
+# DEBUG_MAX_LAT = (45.28263+40)
+# DEBUG_MAX_LON = (0.5517+60) 
+
+# Full European 1arcmin, step 0.01666666666667993:
+# DEBUG_MIN_LAT = 22.758333333333333
+# DEBUG_MIN_LON = -25.241666666666667
+# DEBUG_MAX_LAT = 72.24166666666667
+# DEBUG_MAX_LON = 50.24166666666666
+DEBUG_MIN_LAT = 45-10
+DEBUG_MIN_LON = 8-10
+DEBUG_MAX_LAT = 45+10
+DEBUG_MAX_LON = 8+10
+
 #DEBUG_NN = 15410182
 
 
@@ -305,7 +320,7 @@ def adw_compute_weights_from_cutoff_distances(distances, s):
     # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
     # actually s(d) should be 
     #   1/d                     when 0 < d <= r'/3
-    #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
+    #   (27/4r')*[(d/r'-1)^2]   when r'/3 < d <= r'
     #   0                       when r' < d
     # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
     # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
@@ -356,12 +371,103 @@ def adw_compute_weights_from_cutoff_distances(distances, s):
     return w, s
 
 @njit(parallel=True, fastmath=False, cache=True)
-def adw_compute_weights_directional_in_broadcasting(
+def cdd_hofstra_compute_weights_from_cutoff_distances(distances, CDD_map, s):
+    # Hofstra et al. 2008 
+    # CDD is the correlation distance decay to get the serach radius
+
+    # formula for weights:
+    # where m is fixed to 4 and x is the distance between the station i and the point 
+    m_const = 4.0 # constant
+    # wi = [e^(−x/CDD)]^m       when 0  < d <= CDD
+    #   0                       when CDD < d
+    # The orginal method consider a range of 3 to 10 data points e removes distant points
+    #
+
+    # 1) chech if the distance in the third position is higher that CDD, if so, we should store a missing value
+    # because it means we don't have a minimum of 3 points within the CDD radius
+    missingval_flag = distances[:, 2] > CDD_map
+    
+    # apply the distance rule based on the radiuses
+    CDD_broadcasted = CDD_map.reshape(-1,1)
+    
+    #   [e^(−x/CDD)]^m       when 0  < d <= CDD
+    dist_leq_CDD = distances <= CDD_broadcasted
+    s.ravel()[dist_leq_CDD.ravel()] = np.exp(-distances*m_const/CDD_broadcasted).ravel()[dist_leq_CDD.ravel()]
+        
+    #   0                       when CDD < d  (keep the default zero value)
+
+    s[missingval_flag] = 0
+    return s
+
+@njit(parallel=True, fastmath=False, cache=True)
+def cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, s, m_const = 4, min_num_of_station = 4, radius_ratio=1/3):
+    # mix Hofstra and Shepard methods 
+    # uses Shepard approach to smooth borders:
+    #   wi = [e^(−x/CDD)]^m                                             when 0  < d <= CDD*radius_ratio  e^(-radius_ratio)^m
+    #   [1/(radius_ratio-1)^2]*{[e^(-radius_ratio)]^m}*[(d/CDD-1)^2]    when CDD*radius_ratio < d <= CDD  
+    #   0                                                               when CDD < d
+    # furthermore, as in Shepard, increases adjust radius value in these cases:
+    #   having n(C) number of points having distance < CDD
+    #   r' = r' C^min_num_of_station = di(min_num_of_station+1)     when n(C) <= min_num_of_station
+    #   r' = CDD                when min_num_of_station < n(C) <= 10
+    #   r' = r' C^10 = di(11)   when 10 < n(C)
+
+    r_ref = CDD_map
+    # prepare r, initialize with di(11):                 
+    r = distances[:, 10].copy()
+    # evaluate r' for each point. to do that, 
+    # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^min_num_of_station (that is = di(min_num_of_station+1))
+    r_1_flag = distances[:, min_num_of_station-1] > r_ref
+    # copy the corresponding fifth distance di(min_num_of_station+1) as the radius
+    r[r_1_flag] = distances[r_1_flag, min_num_of_station]
+    # 2) check if n(C)>min_num_of_station and n(C)<=10
+    r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
+    # copy CDD as the radius
+    r[r_2_flag] = r_ref[r_2_flag]
+    # 3) all the other case, n(C)>10, will be equal to di(11) (already set at the initialization, so do nothing here)
+    
+    # apply the distance rule based on the radiuses
+    r_broadcasted = r.reshape(-1,1)
+    
+    #   wi = [e^(−x/CDD)]^m     when 0 < d <= CDD*radius_ratio  e^(-radius_ratio)^m
+    dist_leq_r3 = distances <= r_broadcasted * radius_ratio
+    s.ravel()[dist_leq_r3.ravel()] = np.exp(-distances*m_const/r_broadcasted).ravel()[dist_leq_r3.ravel()]
+    
+    #   [1/(radius_ratio-1)^2]*{[e^(-radius_ratio)]^m}*[(d/CDD-1)^2]   when CDD*radius_ratio < d <= CDD
+    dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r_broadcasted)
+    s.ravel()[dist_g_r3_leq_r.ravel()] = (( (1/(radius_ratio-1)**2) * np.exp(-m_const*radius_ratio)) * ((distances / r_broadcasted - 1) ** 2)).ravel()[dist_g_r3_leq_r.ravel()]
+    
+    #   0                       when r' < d  (keep the default zero value)
+    return s
+
+
+@njit(parallel=True, fastmath=False, cache=True)
+def cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexes, longrib, latgrib, TargetLonRes, TargetLatRes, LonOrigin, LatOrigin, s):
+    # New et al. 2000 
+    # no search radius applied
+    # consider all the available nearest station, and use their respective CDD to compute the weights
+
+    # formula for weights:
+    # where m is fixed to 4 and x is the distance between the station i and the point 
+    m_const = 4.0 # constant
+    # wi = [e^(−x/CDD)]^m       
+        
+    #   [e^(−x/CDD)]^m       when 0  < d <= CDD
+
+    CDD_values = CDD_map[np.clip(((LatOrigin-latgrib[indexes])/TargetLatRes).astype(int),0,CDD_map.shape[0]-1), \
+                                        np.clip(((LonOrigin-longrib[indexes])/TargetLonRes).astype(int),0,CDD_map.shape[1]-1)]
+    dist_leq_CDD = distances <= CDD_values
+    s.ravel()[dist_leq_CDD.ravel()] = np.exp(-distances*m_const/CDD_values).ravel()[dist_leq_CDD.ravel()]
+        
+    return s
+
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_and_cdd_compute_weights_directional_in_broadcasting(
     s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
     # All in broadcasting: 
     # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
     if DEBUG_ADW_INTERPOLATION:
-        print("Using full broadcasting")
+        print("\nUsing full broadcasting")
     # Compute xi and yi for all elements
     k=indexes.shape[1]
     xi = latgrib.ravel()[indexes.ravel()]
@@ -393,6 +499,7 @@ def adw_compute_weights_directional_in_broadcasting(
     denominator = np.sum(sj, axis=2)
     # Compute weight_directional for all elements
     weight_directional = numerator / denominator
+    
     return weight_directional
 
 
@@ -405,7 +512,7 @@ class ScipyInterpolation(object):
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
                     mv_target, mv_source, target_is_rotated=False, parallel=False,
-                    mode='nearest', use_broadcasting = False):
+                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, use_broadcasting = False):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
         self.source_grid_is_rotated = 'rotated' in grid_details.get('gridType')
@@ -416,6 +523,9 @@ class ScipyInterpolation(object):
         self.latgrib = latgrib
         self.nnear = nnear
         self.mode = mode
+        self.cdd_map = cdd_map
+        self.cdd_mode = cdd_mode
+        self.cdd_options = cdd_options
         self.use_broadcasting = use_broadcasting
         
         if DEBUG_ADW_INTERPOLATION:
@@ -472,8 +582,12 @@ class ScipyInterpolation(object):
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
             elif self.mode == 'adw' and self.nnear == 11:
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting)             
-            elif self.mode == 'cdd':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting)
+            elif self.mode == 'cdd' and self.cdd_mode=="MixHofstraShepard" and self.nnear == 11:
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, 
+                                                                       cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
+            elif self.mode == 'cdd' and self.cdd_mode!="MixHofstraShepard":
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, 
+                                                                       cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
             elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
                 # BILINEAR INTERPOLATION
                 result, weights, indexes = self._build_weights_bilinear(distances, indexes, efas_locations, self.nnear) 
@@ -597,7 +711,8 @@ class ScipyInterpolation(object):
     # Inverse distance weights (IDW) interpolation, with optional Angular distance weighting (ADW) factor
     # if adw_type == None -> simple IDW 
     # if adw_type == Shepard -> Shepard 1968 original formulation
-    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False):
+    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False, 
+                               cdd_map='', cdd_mode='', cdd_options=None):
         if DEBUG_ADW_INTERPOLATION:
             if adw_type != "Shepard":
                 self.min_upper_bound = 1000000000
@@ -617,7 +732,7 @@ class ScipyInterpolation(object):
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 0, 5, 0, 0))
         stdout.flush()
 
-        if adw_type != "Shepard":
+        if (adw_type is None):
             dist_leq_1e_10 = distances[:, 0] <= 1e-10
             dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
         
@@ -630,15 +745,17 @@ class ScipyInterpolation(object):
 
             w = np.zeros_like(distances)
 
-        if (adw_type is None):
             # in case of normal IDW we use inverse squared distances
             # while in case of Shepard we use the square of the coeafficient stored later in variable "s"
             # while in case of CDD we use the same Wi coeafficient stored later in variable "s"
             w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
+
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 1, 5, 100/5))
         stdout.flush()
 
         if (adw_type=='Shepard') or (adw_type=='CDD'):
+            self.lat_inALL = self.target_latsOR.ravel()
+            self.lon_inALL = self.target_lonsOR.ravel()
 
             if (adw_type=='Shepard'): 
                 # this implementation is based on the manuscript by Shepard et al. 1968 
@@ -654,28 +771,108 @@ class ScipyInterpolation(object):
                 stdout.write('adw_compute_weights_from_cutoff_distances time (sec): {}\n'.format(checktime - start))
 
             elif (adw_type=='CDD'):
-                # this implementation is based on the manuscript by Hofstra et al. 2008 
-                # but do not evaluate CDD on distances (it uses a fixed number of k stations)
+                # this implementation is based on the manuscript by Hofstra et al. 2008 and New et al. 2000 
 
-                # CDD should be the correlation distance decay to get the serach radius
-                # in this implementation we take always k station, regardless of the radius
-                # thus we can use CDD=max(distances)
-                CDD = np.empty((len(distances),) + np.shape(z[0]))
-                CDD[dist_leq_min_upper_bound] = np.max(distances[dist_leq_min_upper_bound],axis=1)
-                # formula for weights:
-                # wi = [e^(−x/CDD)]^m 
-                # where m is fixed to 4 and x is the distance between the station i and the point 
-                m_const = 4.0 # constant
+                #read CDD map or txt file
+                CDD_map = None
+                stdout.write(f'Reading CDD values from: {cdd_map}')
+                if cdd_map.endswith('.nc'):
+                    reader = NetCDFReader(cdd_map)
+                else:
+                    reader = PCRasterReader(cdd_map)
+                # CDD map values are in km, so convert to meters to compare with distances
+                CDD_map = reader.values * 1000
 
-                # initialize weights
-                weight_directional = np.zeros_like(distances)
+                if DEBUG_BILINEAR_INTERPOLATION:
+                    # target_lats=target_lats[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+                    # target_lons=target_lons[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+                    if CDD_map.shape==(3600,7200):
+                        # Global_3arcmin DEBUG
+                        CDD_map=CDD_map[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+                        #latefas-=0.008369999999992217
+                        # lonefas-=0.00851999999999431
+                        #lonefas-=0.024519999999977227   
 
-                # get distance weights            
-                s = np.zeros_like(distances)       
-                s[dist_leq_min_upper_bound] = np.exp(-distances[dist_leq_min_upper_bound]*m_const/CDD[dist_leq_min_upper_bound,np.newaxis])
+                    else:
+                        # European_1arcmin DEBUG
+                        CDD_map=CDD_map[round((72.24166666666667-DEBUG_MAX_LAT)/0.01666666666667993):round((72.24166666666667-DEBUG_MIN_LAT)/0.01666666666667993), \
+                            round((-25.241666666666667-DEBUG_MIN_LON)/-0.01666666666667993):round((-25.241666666666667-DEBUG_MAX_LON)/-0.01666666666667993)]
 
-            self.lat_inALL = self.target_latsOR.ravel()
-            self.lon_inALL = self.target_lonsOR.ravel()
+                #CDDmode = 'NewEtAl'
+                #CDDmode = 'Hofstra'
+                #CDDmode = 'MixHofstraShepard'       #uses Shepard approach to smooth borders
+                CDDmode = cdd_mode
+                
+                CDDmodeWeights = 'All'
+                #CDDmodeWeights = 'OnlyTOP10'
+                if (CDDmode == 'Hofstra'):
+                    CDD_map = CDD_map.ravel()
+                    try:
+                        assert(len(CDD_map)==len(self.lat_inALL)) 
+                    except AssertionError as e:
+                        ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nCDD map should have the same resolution of target map. CDD map len={}, target map len={}".format(len(CDD_map), len(self.lat_inALL)))
+
+                    stdout.write('\nEvaluating cutoffs...')
+                    
+                    s = np.zeros_like(distances)       
+                    s = cdd_hofstra_compute_weights_from_cutoff_distances(distances, CDD_map, s)
+                elif CDDmode == 'MixHofstraShepard':
+                    CDD_map = CDD_map.ravel()
+                    try:
+                        assert(len(CDD_map)==len(self.lat_inALL)) 
+                    except AssertionError as e:
+                        ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nCDD map should have the same resolution of target map. CDD map len={}, target map len={}".format(len(CDD_map), len(self.lat_inALL)))
+
+                    if DEBUG_ADW_INTERPOLATION:
+                        stdout.write('\nEvaluating cutoffs...')
+                    
+                    s = np.zeros_like(distances)      
+                    if cdd_options is None:
+                        # Hofstra standard values
+                        m_const = 4
+                        min_num_of_station = 4
+                        radius_ratio = 1/3
+                    else:
+                        # Custom values
+                        m_const, min_num_of_station, radius_ratio = cdd_options.values()
+                    cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, s, m_const, min_num_of_station, radius_ratio)
+                elif CDDmode == 'NewEtAl':
+                    s = np.zeros_like(distances)  
+                    TargetLonRes=self.target_lonsOR[0,0]-self.target_lonsOR[0,1]
+                    TargetLatRes=self.target_latsOR[0,0]-self.target_latsOR[1,0]
+                    LonOrigin=self.target_lonsOR[0,0]
+                    LatOrigin=self.target_latsOR[0,0]
+                    s = cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexes, self.longrib, self.latgrib, 
+                                                                        TargetLonRes, TargetLatRes, LonOrigin, LatOrigin, s)
+                else:
+                    ApplicationException.get_exc(WEIRD_STUFF, "\nCDD mode unknown={}".format(CDDmode))
+
+                # consider only TOP 10 weights instead of all:
+                if CDDmodeWeights == "OnlyTOP10":
+                    # indices of top 10 values in each row
+                    #   idx = np.argpartition(s, 10, axis=1)  # get indices of top 10 values
+                    #   rows = np.arange(s.shape[0])[:, None]
+                    #   s[rows, idx[:, :-10]] = 0
+                    # all in one row:
+                    s[np.arange(s.shape[0])[:, None], np.argpartition(s, 10, axis=1)[:, :-10]] = 0
+
+
+                
+                # ####### Old version: 
+                # CDD should be the correlation distance decay to get the search radius
+                # # in this implementation we take always k station, regardless of the radius
+                # # thus we can use CDD=max(distances)
+                # CDD = np.empty((len(distances),) + np.shape(z[0]))
+                # CDD[dist_leq_min_upper_bound] = np.max(distances[dist_leq_min_upper_bound],axis=1)
+                # # formula for weights:
+                # # wi = [e^(−x/CDD)]^m 
+                # # where m is fixed to 4 and x is the distance between the station i and the point 
+                # m_const = 4.0 # constant
+                # # initialize weights
+                # weight_directional = np.zeros_like(distances)
+                # # get distance weights            
+                # s = np.zeros_like(distances)       
+                # s[dist_leq_min_upper_bound] = np.exp(-distances[dist_leq_min_upper_bound]*m_const/CDD[dist_leq_min_upper_bound,np.newaxis])
     
 
             # start_time = time.time()
@@ -699,10 +896,7 @@ class ScipyInterpolation(object):
                     sj = s[:,np.concatenate([np.arange(i), np.arange(i+1, s.shape[1])])]            
                     numerator = np.sum((1 - cos_theta) * sj, axis=1)
                     denominator = np.sum(sj, axis=1)
-                    if (adw_type=='Shepard'):
-                        weight_directional[:,i] = numerator / denominator
-                    else:
-                        weight_directional[dist_leq_min_upper_bound, i] = numerator[dist_leq_min_upper_bound] / denominator[dist_leq_min_upper_bound]
+                    weight_directional[:,i] = numerator / denominator
 
                     # DEBUG: test the point at n_debug 11805340=lat 8.025 lon 47.0249999
                     if DEBUG_ADW_INTERPOLATION:
@@ -713,43 +907,17 @@ class ScipyInterpolation(object):
                         print("denominator: {}".format(denominator[n_debug]))
             else:
                 # All in broadcasting:     
-                if (adw_type=='Shepard'):       
-                    start = time.time()
-                    weight_directional = adw_compute_weights_directional_in_broadcasting(
-                        s, self.latgrib, self.longrib, indexes,
-                        self.lat_inALL, self.lon_inALL)
-                    checktime = time.time()
-                    stdout.write('adw_compute_weights_directional_in_broadcasting time (sec): {}\n'.format(checktime - start))
-                else:
-                    # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
+                start = time.time()
+                weight_directional = adw_and_cdd_compute_weights_directional_in_broadcasting(
+                    s, self.latgrib, self.longrib, indexes,
+                    self.lat_inALL, self.lon_inALL)
+                checktime = time.time()
+                stdout.write('adw_and_cdd_compute_weights_directional_in_broadcasting time (sec): {}\n'.format(checktime - start))
 
-                    # Compute xi and yi for all elements
-                    xi = self.latgrib[indexes]
-                    yi = self.longrib[indexes]
-                    # Compute xi_diff and yi_diff for all elements
-                    xi_diff = self.lat_inALL[:, np.newaxis] - xi
-                    yi_diff = self.lon_inALL[:, np.newaxis] - yi
-                    # Compute Di for all elements
-                    Di = np.sqrt(xi_diff**2 + yi_diff**2)
-                    # Compute cos_theta for all elements
-                    cos_theta = (xi_diff[:, :, np.newaxis] * xi_diff[:, np.newaxis, :] + yi_diff[:, :, np.newaxis] * yi_diff[:, np.newaxis, :]) / (Di[:, :, np.newaxis] * Di[:, np.newaxis, :])
-                    # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
-                    # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
-                    # Delete the diagonal elements from cos_theta
-                    # Reshape cos_theta to (n, nnear, nnear-1)
-                    n = cos_theta.shape[0]
-                    m = cos_theta.shape[1]
-                    strided = np.lib.stride_tricks.as_strided
-                    s0,s1,s2 = cos_theta[:].strides
-                    cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
-                    sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
-                    s0,s1,s2 = sj[:].strides
-                    sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
-
-                    numerator = np.sum((1 - cos_theta) * sj, axis=2)
-                    denominator = np.sum(sj, axis=2)
-                    # Compute weight_directional for all elements
-                    weight_directional[dist_leq_min_upper_bound, :] = numerator[dist_leq_min_upper_bound, :] / denominator[dist_leq_min_upper_bound, :]
+            # replace all the nan values with "1"
+            # this is because we have NaNs when denominator is zero, that happens when only one station is considered 
+            # in the angular evaluation, thus no agle is present
+            weight_directional = np.nan_to_num(weight_directional, nan=1)
 
             # end_time = time.time()
             # elapsed_time = end_time - start_time
@@ -758,8 +926,8 @@ class ScipyInterpolation(object):
                 w=s
                 # in CDD the weight_directional should be normalized before multiply by 1+...
                 # normalize weight_directional
-                sums_weight_directional = np.sum(weight_directional[dist_leq_min_upper_bound], axis=1, keepdims=True)
-                weight_directional[dist_leq_min_upper_bound] = weight_directional[dist_leq_min_upper_bound] / sums_weight_directional
+                sums_weight_directional = np.sum(weight_directional, axis=1, keepdims=True)
+                weight_directional = weight_directional / sums_weight_directional
                 
             # update weights with directional ones
             if DEBUG_ADW_INTERPOLATION:
@@ -768,6 +936,18 @@ class ScipyInterpolation(object):
             w = np.multiply(w,1+weight_directional)
             if DEBUG_ADW_INTERPOLATION:
                 print("w (after adding angular weights): {}".format(w[n_debug]))
+
+            # if (adw_type=='Shepard'):
+            #     # TODO: Add Gradient
+            #     # for each D included in C', evaluate A and B
+            #     # A = Sum{wj[(zj-zi)(xj-xi)/d(Dj,Di)^2]}/Sum(wj)
+            #     # B = Sum{wj[(zj-zi)(yj-yi)/d(Dj,Di)^2]}/Sum(wj)
+            #     # v = O.1[max{zi} - min{zi}] / [max{(A^2+B^2)}]^(1/2). 
+            #     # Dzi = [Ai(x-xi) + Bi(y-yi)][v/(v+di)]
+            #     # final results:
+            #     # value = Sum[wi(zi+Dzi)] / Sum(wi) when d!=0, else zi
+
+
         elif (adw_type!=None):
             raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
                         f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
@@ -775,7 +955,7 @@ class ScipyInterpolation(object):
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 2, 5, 2*100/5))
         stdout.flush()
         #normalize weights
-        if (adw_type=='Shepard'):
+        if (adw_type=='Shepard') or (adw_type=='CDD'):
             sums = np.sum(w, axis=1, keepdims=True)
             weights = w / sums
         else:
@@ -793,7 +973,7 @@ class ScipyInterpolation(object):
         wz = np.einsum('ij,ij->i', weights, z[indexes])
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 4, 5, 4*100/5))
         stdout.flush()
-        if (adw_type=='Shepard'):
+        if (adw_type=='Shepard') or (adw_type=='CDD'):
             idxs = indexes
             result = wz
         else:

@@ -20,7 +20,7 @@ import pyg2p.util.numeric
 class Interpolator(Loggable):
     _LOADED_INTERTABLES = {}
     _prefix = 'I'
-    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'adw': 11, 'cdd': 10, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
+    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'adw': 11, 'cdd': 11, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
     suffixes = {'grib_nearest': 'grib_nearest', 'grib_invdist': 'grib_invdist',
                 'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist', 'adw': 'scipy_adw', 'cdd': 'scipy_cdd',
                 'bilinear': 'scipy_bilinear', 'triangulation': 'scipy_triangulation', 'bilinear_delaunay': 'scipy_bilinear_delaunay'}
@@ -31,7 +31,10 @@ class Interpolator(Loggable):
         self._mv_grib = mv_input
         self.interpolate_with_grib = exec_ctx.is_with_grib_interpolation
         self._mode = exec_ctx.get('interpolation.mode')
-        self._adw_broadcasting = exec_ctx.get('interpolation.adw_broadcasting')
+        self._cdd_map = exec_ctx.get('interpolation.cdd_map')
+        self._cdd_mode = exec_ctx.get('interpolation.cdd_mode')
+        self._cdd_options = exec_ctx.get('interpolation.cdd_options')
+        self._use_broadcasting = exec_ctx.get('interpolation.use_broadcasting')
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
@@ -227,7 +230,9 @@ class Interpolator(Loggable):
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             scipy_interpolation = ScipyInterpolation(longrib, latgrib, grid_details, v.ravel(), nnear, self.mv_out,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
-                                          parallel=self.parallel, mode=self._mode, use_broadcasting=self._adw_broadcasting)
+                                          parallel=self.parallel, mode=self._mode, 
+                                          cdd_map=self._cdd_map, cdd_mode=self._cdd_mode, cdd_options = self._cdd_options,
+                                          use_broadcasting=self._use_broadcasting)
             _, weights, indexes = scipy_interpolation.interpolate(lonefas, latefas)
             result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
 

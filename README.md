@@ -671,7 +671,7 @@ Attributes p, leafsize and eps for the kd tree algorithm are default in scipy li
 
 #### ADW
 It's the Angular Distance Weighted (ADW) algorithm by Shepard et al. 1968, with scipy.kd_tree using 11 neighbours.
-If @adw_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+If @use_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
 
 ```json
 {
@@ -679,7 +679,30 @@ If @adw_broadcasting is set to true, computations will run in full broadcasting 
   "@latMap": "/dataset/maps/europe5km/lat.map",
   "@lonMap": "/dataset/maps/europe5km/long.map",
   "@mode": "adw",
-  "@adw_broadcasting": false}
+  "@use_broadcasting": false}
+}
+```
+
+#### CDD
+It's the Correlation Distance Decay (CDD) modified implementation of the Angular Distance Weighted algorithm, with scipy.kd_tree using 11 neighbours. It needs a map of CDD values for each point, to be specified in the field @cdd_map
+@cdd_mode can be one of the following values: "Hofstra", "NewEtAl" or "MixHofstraShepard"
+In case of mode "MixHofstraShepard", @cdd_options allows to customize the parameters of Hofstra and Shepard algorithm.
+If @use_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+
+```json
+{
+"Interpolation": {
+  "@latMap": "/dataset/maps/europe5km/lat.map",
+  "@lonMap": "/dataset/maps/europe5km/long.map",
+  "@mode": "cdd",
+  "@cdd_map": "/dataset/maps/europe5km/cdd_map.nc",
+  "@cdd_mode": "MixHofstraShepard",
+  "@cdd_options": {
+    "m_const": 4,
+    "min_num_of_station": 4,
+    "radius_ratio": 0.3333333333333333
+  },
+  "@use_broadcasting": false}
 }
 ```
 
