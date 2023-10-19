@@ -74,6 +74,10 @@ DEBUG_MIN_LAT = 45-10
 DEBUG_MIN_LON = 8-10
 DEBUG_MAX_LAT = 45+10
 DEBUG_MAX_LON = 8+10
+# DEBUG_MIN_LAT = 57.95-0
+# DEBUG_MIN_LON = 16.80-0
+# DEBUG_MAX_LAT = 57.95+5
+# DEBUG_MAX_LON = 16.80+5
 
 #DEBUG_NN = 15410182
 
@@ -400,7 +404,7 @@ def cdd_hofstra_compute_weights_from_cutoff_distances(distances, CDD_map, s):
     return s
 
 @njit(parallel=True, fastmath=False, cache=True)
-def cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, s, m_const = 4, min_num_of_station = 4, radius_ratio=1/3):
+def cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, nnear, s, m_const = 4, min_num_of_station = 4, radius_ratio=1/3):
     # mix Hofstra and Shepard methods 
     # uses Shepard approach to smooth borders:
     #   wi = [e^(−x/CDD)]^m                                             when 0  < d <= CDD*radius_ratio  e^(-radius_ratio)^m
@@ -409,22 +413,24 @@ def cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map
     # furthermore, as in Shepard, increases adjust radius value in these cases:
     #   having n(C) number of points having distance < CDD
     #   r' = r' C^min_num_of_station = di(min_num_of_station+1)     when n(C) <= min_num_of_station
-    #   r' = CDD                when min_num_of_station < n(C) <= 10
-    #   r' = r' C^10 = di(11)   when 10 < n(C)
+    #   r' = CDD                when min_num_of_station < n(C) <= 10    n.b: 10 = [nnear-1]
+    #   r' = r' C^10 = di(11)   when 10 < n(C)                          n.b: 10 = [nnear-1]
 
     r_ref = CDD_map
-    # prepare r, initialize with di(11):                 
-    r = distances[:, 10].copy()
+    # prepare r, initialize with di(11) [nnear]:
+    #r = distances[:, 10].copy()
+    r = distances[:, nnear-1].copy()
     # evaluate r' for each point. to do that, 
     # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^min_num_of_station (that is = di(min_num_of_station+1))
     r_1_flag = distances[:, min_num_of_station-1] > r_ref
     # copy the corresponding fifth distance di(min_num_of_station+1) as the radius
     r[r_1_flag] = distances[r_1_flag, min_num_of_station]
-    # 2) check if n(C)>min_num_of_station and n(C)<=10
-    r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
+    # 2) check if n(C)>min_num_of_station and n(C)<=10 [nnear-1]
+    #r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
+    r_2_flag = np.logical_and(~r_1_flag, distances[:, nnear-2] > r_ref)
     # copy CDD as the radius
     r[r_2_flag] = r_ref[r_2_flag]
-    # 3) all the other case, n(C)>10, will be equal to di(11) (already set at the initialization, so do nothing here)
+    # 3) all the other case, n(C)>10 [nnear-1], will be equal to di(11) (already set at the initialization, so do nothing here)
     
     # apply the distance rule based on the radiuses
     r_broadcasted = r.reshape(-1,1)
@@ -582,10 +588,7 @@ class ScipyInterpolation(object):
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
             elif self.mode == 'adw' and self.nnear == 11:
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting)             
-            elif self.mode == 'cdd' and self.cdd_mode=="MixHofstraShepard" and self.nnear == 11:
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, 
-                                                                       cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
-            elif self.mode == 'cdd' and self.cdd_mode!="MixHofstraShepard":
+            elif self.mode == 'cdd':
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, 
                                                                        cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
             elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
@@ -835,7 +838,7 @@ class ScipyInterpolation(object):
                     else:
                         # Custom values
                         m_const, min_num_of_station, radius_ratio = cdd_options.values()
-                    cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, s, m_const, min_num_of_station, radius_ratio)
+                    cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, nnear, s, m_const, min_num_of_station, radius_ratio)
                 elif CDDmode == 'NewEtAl':
                     s = np.zeros_like(distances)  
                     TargetLonRes=self.target_lonsOR[0,0]-self.target_lonsOR[0,1]
