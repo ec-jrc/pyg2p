@@ -981,6 +981,18 @@ class ScipyInterpolation(object):
         if (adw_type=='Shepard') or (adw_type=='CDD'):
             idxs = indexes
             result = wz
+            
+            if (adw_type=='Shepard'):
+                # in Shepard, we still have NaN values because of the denominator when the distance is equal to 0
+                # so we just take the exact value when the point is exacly on the station coordinates
+                dist_leq_1e_10 = distances[:, 0] <= 1e-10
+            
+                # distances <= 1e-10 : take exactly the point, weight = 1
+                onlyfirst_array = np.zeros(nnear)
+                onlyfirst_array[0] = 1
+                weights[dist_leq_1e_10] = onlyfirst_array
+                idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
+                result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
         else:
             idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
             result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
