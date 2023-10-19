@@ -686,7 +686,7 @@ If @use_broadcasting is set to true, computations will run in full broadcasting 
 #### CDD
 It's the Correlation Distance Decay (CDD) modified implementation of the Angular Distance Weighted algorithm, with scipy.kd_tree using 11 neighbours. It needs a map of CDD values for each point, to be specified in the field @cdd_map
 @cdd_mode can be one of the following values: "Hofstra", "NewEtAl" or "MixHofstraShepard"
-In case of mode "MixHofstraShepard", @cdd_options allows to customize the parameters of Hofstra and Shepard algorithm.
+In case of mode "MixHofstraShepard", @cdd_options allows to customize the parameters of Hofstra and Shepard algorithm ("weights_mode": can be "All" or "OnlyTOP10" to take 10 higher values only in the interpolation of each point).
 If @use_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
 
 ```json
@@ -700,7 +700,8 @@ If @use_broadcasting is set to true, computations will run in full broadcasting 
   "@cdd_options": {
     "m_const": 4,
     "min_num_of_station": 4,
-    "radius_ratio": 0.3333333333333333
+    "radius_ratio": 0.3333333333333333,
+    "weights_mode": "All"
   },
   "@use_broadcasting": false}
 }

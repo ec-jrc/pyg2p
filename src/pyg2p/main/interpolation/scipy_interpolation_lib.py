@@ -806,8 +806,8 @@ class ScipyInterpolation(object):
                 #CDDmode = 'MixHofstraShepard'       #uses Shepard approach to smooth borders
                 CDDmode = cdd_mode
                 
-                CDDmodeWeights = 'All'
-                #CDDmodeWeights = 'OnlyTOP10'
+                weights_mode = 'All'
+                #weights_mode = 'OnlyTOP10'
                 if (CDDmode == 'Hofstra'):
                     CDD_map = CDD_map.ravel()
                     try:
@@ -835,9 +835,10 @@ class ScipyInterpolation(object):
                         m_const = 4
                         min_num_of_station = 4
                         radius_ratio = 1/3
+                        weights_mode = "All"
                     else:
                         # Custom values
-                        m_const, min_num_of_station, radius_ratio = cdd_options.values()
+                        m_const, min_num_of_station, radius_ratio, weights_mode = cdd_options.values()
                     cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, nnear, s, m_const, min_num_of_station, radius_ratio)
                 elif CDDmode == 'NewEtAl':
                     s = np.zeros_like(distances)  
@@ -851,7 +852,7 @@ class ScipyInterpolation(object):
                     ApplicationException.get_exc(WEIRD_STUFF, "\nCDD mode unknown={}".format(CDDmode))
 
                 # consider only TOP 10 weights instead of all:
-                if CDDmodeWeights == "OnlyTOP10":
+                if weights_mode == "OnlyTOP10":
                     # indices of top 10 values in each row
                     #   idx = np.argpartition(s, 10, axis=1)  # get indices of top 10 values
                     #   rows = np.arange(s.shape[0])[:, None]
@@ -880,6 +881,7 @@ class ScipyInterpolation(object):
 
             # start_time = time.time()
             if not use_broadcasting:
+                weight_directional = np.zeros_like(distances)
                 for i in range(nnear):
                     xj_diff = self.lat_inALL[:, np.newaxis] - self.latgrib[indexes]
                     yj_diff = self.lon_inALL[:, np.newaxis] - self.longrib[indexes]
