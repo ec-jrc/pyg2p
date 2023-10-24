@@ -6,6 +6,7 @@
 pyg2p.egg-info
 /dist
 *.nbc
+*.nbi
 /.python-version
 .coverage
 .coverage.*
