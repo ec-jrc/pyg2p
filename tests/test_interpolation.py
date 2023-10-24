@@ -25,7 +25,7 @@ class TestInterpolation:
         shape_target = PCRasterReader(config_dict['interpolation.latMap']).values.shape
         assert shape_target == values_resampled.shape
 
-    @pytest.mark.slow
+    #@pytest.mark.slow
     def test_interpolation_create_scipy_invdist(self):
         d = deepcopy(config_dict)
         d['interpolation.create'] = True
@@ -45,7 +45,7 @@ class TestInterpolation:
         assert shape_target == values_resampled.shape
         os.unlink('tests/data/tbl_pf10tp_550800_scipy_invdist.npy.gz')
 
-    @pytest.mark.slow
+    #@pytest.mark.slow
     def test_interpolation_create_scipy_adw(self):
         d = deepcopy(config_dict)
         d['interpolation.create'] = True
@@ -72,8 +72,11 @@ class TestInterpolation:
         d['interpolation.create'] = True
         d['interpolation.parallel'] = True
         d['interpolation.mode'] = 'cdd'
-        d['interpolation.cdd_map'] = 'tests/data/cdd_map.nc'
+        d['interpolation.lonMap'] = 'tests/data/template_test.nc'
+        d['interpolation.latMap'] = 'tests/data/template_test.nc'
+        d['interpolation.cdd_map'] = 'tests/data/cdd_temp_map.nc'
         d['interpolation.cdd_options'] = None
+        d['interpolation.cdd_mode'] = 'MixHofstraShepard'
         d['interpolation.use_broadcasting'] = True
         file = d['input.file']
         reader = GRIBReader(file)
@@ -87,7 +90,7 @@ class TestInterpolation:
         values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id, messages.grid_details)
         shape_target = PCRasterReader(d['interpolation.latMap']).values.shape
         assert shape_target == values_resampled.shape
-        os.unlink('tests/data/tbl_pf10tp_550800_scipy_adw.npy.gz')
+        os.unlink('tests/data/tbl_input_360000_scipy_cdd.npy.gz')
 
     @pytest.mark.slow
     def test_interpolation_create_scipy_bilinear(self):
@@ -112,7 +115,7 @@ class TestInterpolation:
         values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id, messages.grid_details)
         shape_target = PCRasterReader(d['interpolation.latMap']).values.shape
         assert shape_target == values_resampled.shape
-        os.unlink('tests/data/tbl_era5t2avg_441_scipy_bilinear.npy.gz')
+        os.unlink('tests/data/tbl_era5t2avg_360000_scipy_bilinear.npy.gz')
 
     @pytest.mark.slow
     def test_interpolation_create_scipy_triangulation(self):
@@ -137,7 +140,7 @@ class TestInterpolation:
         values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id, messages.grid_details)
         shape_target = PCRasterReader(d['interpolation.latMap']).values.shape
         assert shape_target == values_resampled.shape
-        os.unlink('tests/data/tbl_era5t2avg_441_scipy_triangulation.npy.gz')
+        os.unlink('tests/data/tbl_era5t2avg_360000_scipy_triangulation.npy.gz')
 
     @pytest.mark.slow
     def test_interpolation_create_scipy_bilinear_delaunay(self):
@@ -162,7 +165,7 @@ class TestInterpolation:
         values_resampled = interpolator.interpolate_scipy(lats, lons, values_in, grid_id, messages.grid_details)
         shape_target = PCRasterReader(d['interpolation.latMap']).values.shape
         assert shape_target == values_resampled.shape
-        os.unlink('tests/data/tbl_era5t2avg_441_scipy_bilinear_delaunay.npy.gz')
+        os.unlink('tests/data/tbl_era5t2avg_360000_scipy_bilinear_delaunay.npy.gz')
 
     @pytest.mark.slow
     def test_interpolation_create_eccodes_nearest(self):
