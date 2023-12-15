@@ -518,7 +518,8 @@ class ScipyInterpolation(object):
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
                     mv_target, mv_source, target_is_rotated=False, parallel=False,
-                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, use_broadcasting = False):
+                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, use_broadcasting = False,
+                    num_of_splits = None):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
         self.source_grid_is_rotated = 'rotated' in grid_details.get('gridType')
@@ -533,6 +534,7 @@ class ScipyInterpolation(object):
         self.cdd_mode = cdd_mode
         self.cdd_options = cdd_options
         self.use_broadcasting = use_broadcasting
+        self.num_of_splits = num_of_splits
         
         if DEBUG_ADW_INTERPOLATION:
             self.use_broadcasting = True
@@ -563,7 +565,36 @@ class ScipyInterpolation(object):
             # set max of distances as min upper bound and add an empirical correction value
             self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
 
-    def interpolate(self, target_lons, target_lats):
+    def interpolate(self, lonefas, latefas):        
+        if (self.num_of_splits is not None):
+            # Define the size of the subsets, only in lonm
+            subset_size = lonefas.shape[0]//self.num_of_splits
+
+            # Initialize empty arrays to store the results
+            weights = np.empty((lonefas.shape[0]*lonefas.shape[1],self.nnear))
+            indexes = np.empty((lonefas.shape[0]*lonefas.shape[1],self.nnear),dtype=int)
+            result = np.empty((lonefas.shape[0]*lonefas.shape[1]))
+
+            # Iterate over the subsets of the arrays
+            for i in range(0, lonefas.shape[0], subset_size):
+                subset_lonefas = lonefas[i:i+subset_size, :]
+                subset_latefas = latefas[i:i+subset_size, :]
+
+                # Call the interpolate function for the subset
+                subset_result, subset_weights, subset_indexes = self.interpolate_split(subset_lonefas, subset_latefas)
+
+                # Collect the results back into the weights and indexes arrays
+                weights[i*lonefas.shape[1]:(i+subset_size)*lonefas.shape[1],:] = subset_weights
+                indexes[i*lonefas.shape[1]:(i+subset_size)*lonefas.shape[1],:] = subset_indexes
+                result[i*lonefas.shape[1]:(i+subset_size)*lonefas.shape[1]] = subset_result
+        
+        else:
+            result, weights, indexes = self.interpolate_split(lonefas, latefas)
+
+        return result, weights, indexes
+
+
+    def interpolate_split(self, target_lons, target_lats):        
         # Target coordinates  HAVE to be rotated coords in case GRIB grid is rotated
         # Example of target rotated coords are COSMO lat/lon/dem PCRASTER maps
         self.target_latsOR=target_lats

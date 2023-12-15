@@ -364,6 +364,7 @@ class ExecutionContext(Context):
         self._vars['interpolation.cdd_mode'] = interpolation_conf.get('@cdd_mode', '')
         self._vars['interpolation.cdd_options'] = interpolation_conf.get('@cdd_options', None)
         self._vars['interpolation.use_broadcasting'] = interpolation_conf.get('@use_broadcasting', False)
+        self._vars['interpolation.num_of_splits'] = interpolation_conf.get('@num_of_splits', None)
         self._vars['interpolation.rotated_target'] = interpolation_conf.get('@rotated_target', False)
         if not self._vars['interpolation.dir'] and interpolation_conf.get('@intertableDir'):
             # get from JSON

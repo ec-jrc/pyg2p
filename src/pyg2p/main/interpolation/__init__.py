@@ -35,6 +35,7 @@ class Interpolator(Loggable):
         self._cdd_mode = exec_ctx.get('interpolation.cdd_mode')
         self._cdd_options = exec_ctx.get('interpolation.cdd_options')
         self._use_broadcasting = exec_ctx.get('interpolation.use_broadcasting')
+        self._num_of_splits = exec_ctx.get('interpolation.num_of_splits')
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
@@ -232,8 +233,9 @@ class Interpolator(Loggable):
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
                                           parallel=self.parallel, mode=self._mode, 
                                           cdd_map=self._cdd_map, cdd_mode=self._cdd_mode, cdd_options = self._cdd_options,
-                                          use_broadcasting=self._use_broadcasting)
-            _, weights, indexes = scipy_interpolation.interpolate(lonefas, latefas)
+                                          use_broadcasting=self._use_broadcasting,
+                                          num_of_splits=self._num_of_splits)
+            _, weights, indexes = scipy_interpolation.interpolate(lonefas, latefas)            
             result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
 
             # saving interpolation lookup table
