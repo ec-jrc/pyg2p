@@ -571,9 +571,9 @@ class ScipyInterpolation(object):
             subset_size = lonefas.shape[0]//self.num_of_splits
 
             # Initialize empty arrays to store the results
-            weights = np.empty((lonefas.shape[0]*lonefas.shape[1],self.nnear))
+            weights = np.empty((lonefas.shape[0]*lonefas.shape[1],self.nnear),dtype=lonefas.dtype)
             indexes = np.empty((lonefas.shape[0]*lonefas.shape[1],self.nnear),dtype=int)
-            result = np.empty((lonefas.shape[0]*lonefas.shape[1]))
+            result = np.empty((lonefas.shape[0]*lonefas.shape[1]),dtype=lonefas.dtype)
 
             # Iterate over the subsets of the arrays
             for i in range(0, lonefas.shape[0], subset_size):
@@ -606,6 +606,8 @@ class ScipyInterpolation(object):
             x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
             efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
             distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs) 
+            if efas_locations.dtype==np.dtype('float32'):
+                distances=np.float32(distances)
             checktime = time.time()
             stdout.write('KDtree time (sec): {}\n'.format(checktime - start))
         
@@ -667,6 +669,12 @@ class ScipyInterpolation(object):
             x = ne.evaluate('r * {x}'.format(x=x_formula))
             y = ne.evaluate('r * {y}'.format(y=y_formula))
             z = ne.evaluate('r * {z}'.format(z=z_formula))
+
+        if lons.dtype==np.dtype('float32'):
+            x=np.float32(x)
+            y=np.float32(y)
+            z=np.float32(z)
+
         return x, y, z
 
     def _build_nn(self, distances, indexes):
@@ -756,8 +764,8 @@ class ScipyInterpolation(object):
             else:
                 n_debug=11805340
         z = self.z
-        result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
-        weights = empty((len(distances),) + (nnear,))
+        result = mask_it(np.empty((len(distances),) + np.shape(z[0]),dtype=z.dtype), self._mv_target, 1)
+        weights = empty((len(distances),) + (nnear,),dtype=z.dtype)
         idxs = empty((len(indexes),) + (nnear,), fill_value=z.size, dtype=int)
         num_cells = result.size
         back_char, _ = progress_step_and_backchar(num_cells)
@@ -1019,7 +1027,7 @@ class ScipyInterpolation(object):
                 dist_leq_1e_10 = distances[:, 0] <= 1e-10
             
                 # distances <= 1e-10 : take exactly the point, weight = 1
-                onlyfirst_array = np.zeros(nnear)
+                onlyfirst_array = np.zeros(nnear, dtype=weights.dtype)
                 onlyfirst_array[0] = 1
                 weights[dist_leq_1e_10] = onlyfirst_array
                 idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]

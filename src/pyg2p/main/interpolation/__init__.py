@@ -228,6 +228,14 @@ class Interpolator(Loggable):
                 self._log('Trying to interpolate without grib lat/lons. Probably a malformed grib!', 'ERROR')
                 raise ApplicationException.get_exc(5000)
 
+            # CR: to use float32 computations uncomment here:
+            # longrib=np.float32(longrib)
+            # latgrib=np.float32(latgrib)
+            # lonefas=np.float32(lonefas)
+            # latefas=np.float32(latefas)
+            # v=np.float32(v)
+            # self.mv_out=np.float32(self.mv_out)
+            
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             scipy_interpolation = ScipyInterpolation(longrib, latgrib, grid_details, v.ravel(), nnear, self.mv_out,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
