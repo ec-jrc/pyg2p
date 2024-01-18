@@ -561,7 +561,7 @@ class ScipyInterpolation(object):
             # http://math.boisestate.edu/~wright/montestigliano/NearestNeighborSearches.pdf
             # sphdist = R*acos(1-maxdist^2/2);
             # Finding actual resolution of source GRID
-            distances, indexes = self.tree.query(source_locations, k=2, n_jobs=self.njobs)
+            distances, indexes = self.tree.query(source_locations, k=2, workers=self.njobs)
             # set max of distances as min upper bound and add an empirical correction value
             self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
 
@@ -605,7 +605,7 @@ class ScipyInterpolation(object):
             stdout.write('Finding indexes for {} interpolation k={}\n'.format(self.mode, self.nnear))
             x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
             efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
-            distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs) 
+            distances, indexes = self.tree.query(efas_locations, k=self.nnear, workers=self.njobs) 
             if efas_locations.dtype==np.dtype('float32'):
                 distances=np.float32(distances)
             checktime = time.time()
@@ -1060,7 +1060,7 @@ class ScipyInterpolation(object):
     def replaceIndex(self, indexes_to_replace, indexes, nn, additional_points):
         additional_points += len(indexes_to_replace)
         # replace the unwanted index with next one:
-        _, replacement_indexes = self.tree.query(self.target_location, k=self.nnear+additional_points, n_jobs=self.njobs) 
+        _, replacement_indexes = self.tree.query(self.target_location, k=self.nnear+additional_points, workers=self.njobs) 
         # print("replacement_indexes: {}".format(replacement_indexes))
 
         # delete all the current indexes from the replaceent_indexes 
@@ -1087,7 +1087,7 @@ class ScipyInterpolation(object):
         # replace up to 2 unwanted indexes with next ones:
         x, y, z = self.to_3d(new_lon, new_lat, to_regular=self.target_grid_is_rotated)
         new_target_location = [x,y,z]
-        _, replacement_indexes = self.tree.query(new_target_location, k=len(indexes_to_replace), n_jobs=self.njobs) 
+        _, replacement_indexes = self.tree.query(new_target_location, k=len(indexes_to_replace), workers=self.njobs) 
         # print("replacement_indexes: {}".format(replacement_indexes))
         
         # get rid of the wrong points and add the farthest among the new selected points
@@ -1362,7 +1362,7 @@ class ScipyInterpolation(object):
             stdout.write('Finding nearest neighbor to exclude outside triangles\n')
             x_tmp, y_tmp, z_tmp = self.to_3d(self.target_lonsOR[:,:], self.target_latsOR[:,:], to_regular=self.target_grid_is_rotated)
             efas_locations = np.vstack((x_tmp.ravel(), y_tmp.ravel(), z_tmp.ravel())).T
-            distances, _ = self.tree.query(efas_locations, k=1, n_jobs=self.njobs) 
+            distances, _ = self.tree.query(efas_locations, k=1, workers=self.njobs) 
 
         gribpoints = np.stack((normalized_latgrib,normalized_longrib),axis=-1)
         gribpoints_scaled = gribpoints.copy()
