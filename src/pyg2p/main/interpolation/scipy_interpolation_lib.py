@@ -320,7 +320,7 @@ def integrand(x):
 
 
 @njit(parallel=True, fastmath=False, cache=True)
-def adw_compute_weights_from_cutoff_distances(distances, s):
+def adw_compute_weights_from_cutoff_distances(distances, s, ref_radius):
     # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
     # actually s(d) should be 
     #   1/d                     when 0 < d <= r'/3
@@ -342,7 +342,11 @@ def adw_compute_weights_from_cutoff_distances(distances, s):
     # Given the ordered distances struct, the quickest way to do it is to evaluate the average of all distances of the 7th 
     # element of the distance arrays
     
-    r_ref = np.mean(distances[:, 6])
+    if ref_radius==None:
+        r_ref = np.mean(distances[:, 6])
+    else:
+        r_ref = ref_radius 
+    
     # prepare r, initialize with di(11):                 
     r = distances[:, 10].copy()
     # evaluate r' for each point. to do that, 
@@ -567,6 +571,20 @@ class ScipyInterpolation(object):
 
     def interpolate(self, lonefas, latefas):        
         if (self.num_of_splits is not None):
+            ref_radius = None
+            if self.mode == 'adw' and self.nnear == 11:
+                start = time.time()
+                stdout.write('Finding global reference radius {} interpolation k=7\n'.format(self.mode))
+                x, y, z = self.to_3d(lonefas, latefas, to_regular=self.target_grid_is_rotated)
+                efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+                distances, indexes = self.tree.query(efas_locations, k=7, workers=self.njobs) 
+                if efas_locations.dtype==np.dtype('float32'):
+                    distances=np.float32(distances)
+
+                ref_radius=np.mean(distances[:, 6])
+                checktime = time.time()
+                stdout.write('KDtree find radius time (sec): {}\n'.format(checktime - start))
+
             # Define the size of the subsets, only in lonm
             subset_size = lonefas.shape[0]//self.num_of_splits
 
@@ -581,7 +599,7 @@ class ScipyInterpolation(object):
                 subset_latefas = latefas[i:i+subset_size, :]
 
                 # Call the interpolate function for the subset
-                subset_result, subset_weights, subset_indexes = self.interpolate_split(subset_lonefas, subset_latefas)
+                subset_result, subset_weights, subset_indexes = self.interpolate_split(subset_lonefas, subset_latefas, ref_radius)
 
                 # Collect the results back into the weights and indexes arrays
                 weights[i*lonefas.shape[1]:(i+subset_size)*lonefas.shape[1],:] = subset_weights
@@ -594,7 +612,7 @@ class ScipyInterpolation(object):
         return result, weights, indexes
 
 
-    def interpolate_split(self, target_lons, target_lats):        
+    def interpolate_split(self, target_lons, target_lats, ref_radius=None):        
         # Target coordinates  HAVE to be rotated coords in case GRIB grid is rotated
         # Example of target rotated coords are COSMO lat/lon/dem PCRASTER maps
         self.target_latsOR=target_lats
@@ -620,9 +638,9 @@ class ScipyInterpolation(object):
                 # return results, distances, indexes
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
             elif self.mode == 'adw' and self.nnear == 11:
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting)             
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting, ref_radius=ref_radius)             
             elif self.mode == 'cdd':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, 
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, ref_radius=None,
                                                                        cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
             elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
                 # BILINEAR INTERPOLATION
@@ -753,14 +771,15 @@ class ScipyInterpolation(object):
     # Inverse distance weights (IDW) interpolation, with optional Angular distance weighting (ADW) factor
     # if adw_type == None -> simple IDW 
     # if adw_type == Shepard -> Shepard 1968 original formulation
-    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False, 
+    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False, ref_radius = None, 
                                cdd_map='', cdd_mode='', cdd_options=None):
         if DEBUG_ADW_INTERPOLATION:
             if adw_type != "Shepard":
                 self.min_upper_bound = 1000000000
             if DEBUG_BILINEAR_INTERPOLATION:
                 #n_debug=1940
-                n_debug=3120
+                #n_debug=3120
+                n_debug=1120
             else:
                 n_debug=11805340
         z = self.z
@@ -808,7 +827,7 @@ class ScipyInterpolation(object):
                     weight_directional = np.zeros_like(distances)
                 start = time.time()
                 s = np.zeros_like(distances)
-                w, s = adw_compute_weights_from_cutoff_distances(distances, s)
+                w, s = adw_compute_weights_from_cutoff_distances(distances, s, ref_radius)
                 checktime = time.time()
                 stdout.write('adw_compute_weights_from_cutoff_distances time (sec): {}\n'.format(checktime - start))
 
