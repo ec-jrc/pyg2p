@@ -20,7 +20,7 @@ import pyg2p.util.numeric
 class Interpolator(Loggable):
     _LOADED_INTERTABLES = {}
     _prefix = 'I'
-    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'adw': 4, 'cdd': 4, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
+    scipy_modes_nnear = {'nearest': 1, 'invdist': 4, 'adw': 11, 'cdd': 11, 'bilinear': 4, 'triangulation': 3, 'bilinear_delaunay': 4}
     suffixes = {'grib_nearest': 'grib_nearest', 'grib_invdist': 'grib_invdist',
                 'nearest': 'scipy_nearest', 'invdist': 'scipy_invdist', 'adw': 'scipy_adw', 'cdd': 'scipy_cdd',
                 'bilinear': 'scipy_bilinear', 'triangulation': 'scipy_triangulation', 'bilinear_delaunay': 'scipy_bilinear_delaunay'}
@@ -31,7 +31,11 @@ class Interpolator(Loggable):
         self._mv_grib = mv_input
         self.interpolate_with_grib = exec_ctx.is_with_grib_interpolation
         self._mode = exec_ctx.get('interpolation.mode')
-        self._adw_broadcasting = exec_ctx.get('interpolation.adw_broadcasting')
+        self._cdd_map = exec_ctx.get('interpolation.cdd_map')
+        self._cdd_mode = exec_ctx.get('interpolation.cdd_mode')
+        self._cdd_options = exec_ctx.get('interpolation.cdd_options')
+        self._use_broadcasting = exec_ctx.get('interpolation.use_broadcasting')
+        self._num_of_splits = exec_ctx.get('interpolation.num_of_splits')
         self._source_filename = pyg2p.util.files.filename(exec_ctx.get('input.file'))
         self._suffix = self.suffixes[self._mode]
         self._intertable_dirs = exec_ctx.get('interpolation.dirs')
@@ -167,6 +171,10 @@ class Interpolator(Loggable):
                 # Global_3arcmin DEBUG
                 latefas=self._target_coords.lats[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
                 lonefas=self._target_coords.lons[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+                #latefas-=0.008369999999992217
+                # lonefas-=0.00851999999999431
+                #lonefas-=0.024519999999977227   
+
             else:
                 # European_1arcmin DEBUG
                 selection_lats = np.logical_and(self._target_coords.lats[:,0]>=DEBUG_MIN_LAT,self._target_coords.lats[:,0]<=DEBUG_MAX_LAT)
@@ -194,9 +202,18 @@ class Interpolator(Loggable):
             # latgrib = np.array([ 7.39050803,  8.72151493,  7.82210701,  7.35906546])
             # longrib = np.array([49.16690015, 48.11557968, 48.27217824, 49.70238655])
             # v = np.array([100, 133, 166, 200  ])
-            latgrib = np.array([ 8,  8,  8,  8])
-            longrib = np.array([45, 48.5, 49, 50])
-            v = np.array([200, 100, 100, 100  ])
+            # latgrib = np.array([ 8,  8,  8,  8])
+            # longrib = np.array([45, 48.5, 49, 50])
+            # v = np.array([200, 100, 100, 100  ])
+            
+            # OR load data points for the TEST from file
+            #data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106180600_idw.txt', delimiter='\t', skip_header=1)
+            #data = np.genfromtxt('/media/sf_VMSharedFolder/pyg2p_adw_cdd_test/pr199106170600_20230714101901.txt', delimiter='\t', skip_header=1)
+            data = np.genfromtxt('/media/sf_VMSharedFolder/test_split/tn202401010600_20240213140643.txt', delimiter='\t', skip_header=1)
+            longrib = data[:,0]
+            latgrib = data[:,1]
+            v = data[:,2]
+
             intertable_id, intertable_name = 'DEBUG_ADW','DEBUG_ADW.npy'
 
         nnear = self.scipy_modes_nnear[self._mode]
@@ -212,11 +229,22 @@ class Interpolator(Loggable):
                 self._log('Trying to interpolate without grib lat/lons. Probably a malformed grib!', 'ERROR')
                 raise ApplicationException.get_exc(5000)
 
+            # CR: to use float32 computations uncomment here:
+            # longrib=np.float32(longrib)
+            # latgrib=np.float32(latgrib)
+            # lonefas=np.float32(lonefas)
+            # latefas=np.float32(latefas)
+            # v=np.float32(v)
+            # self.mv_out=np.float32(self.mv_out)
+            
             self._log('\nInterpolating table not found\n Id: {}\nWill create file: {}'.format(intertable_id, intertable_name), 'WARN')
             scipy_interpolation = ScipyInterpolation(longrib, latgrib, grid_details, v.ravel(), nnear, self.mv_out,
                                           self._mv_grib, target_is_rotated=self._rotated_target_grid,
-                                          parallel=self.parallel, mode=self._mode, use_broadcasting=self._adw_broadcasting)
-            _, weights, indexes = scipy_interpolation.interpolate(lonefas, latefas)
+                                          parallel=self.parallel, mode=self._mode, 
+                                          cdd_map=self._cdd_map, cdd_mode=self._cdd_mode, cdd_options = self._cdd_options,
+                                          use_broadcasting=self._use_broadcasting,
+                                          num_of_splits=self._num_of_splits)
+            _, weights, indexes = scipy_interpolation.interpolate(lonefas, latefas)            
             result = self._interpolate_scipy_append_mv(v, weights, indexes, nnear)
 
             # saving interpolation lookup table

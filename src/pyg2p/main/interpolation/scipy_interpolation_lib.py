@@ -9,6 +9,9 @@ import math
 import scipy.optimize as opt  
 from scipy.spatial import cKDTree as KDTree, Delaunay
 
+from pyg2p.main.readers.netcdf import NetCDFReader
+from pyg2p.main.readers.pcr import PCRasterReader
+
 from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD
 from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
@@ -16,6 +19,8 @@ from pyg2p.util.strings import now_string
 
 #from matplotlib import pyplot as plt
 from scipy.integrate import quad
+
+from numba import njit
 
 
 DEBUG_BILINEAR_INTERPOLATION = False
@@ -36,10 +41,44 @@ DEBUG_ADW_INTERPOLATION = False
 # DEBUG_MIN_LON = -100
 # DEBUG_MAX_LAT = 25
 # DEBUG_MAX_LON = -50
-DEBUG_MIN_LAT = 7
-DEBUG_MIN_LON = 45
-DEBUG_MAX_LAT = 9
-DEBUG_MAX_LON = 50
+# DEBUG_MIN_LAT = 7
+# DEBUG_MIN_LON = 45
+# DEBUG_MAX_LAT = 9
+# DEBUG_MAX_LON = 50
+# DEBUG_MIN_LAT = (45.31663-2)
+# DEBUG_MIN_LON = (0.46648-2) #0.50048
+# DEBUG_MAX_LAT = (45.31663+2)
+# DEBUG_MAX_LON = (0.46648+2) #0.50048
+# DEBUG_MIN_LAT = (45.31663-2)
+# DEBUG_MIN_LON = (0.50048-2) 
+# DEBUG_MAX_LAT = (45.31663+2)
+# DEBUG_MAX_LON = (0.50048+2) 
+# lat 45.28263, lon 0.45948
+# DEBUG_MIN_LAT = (45.28263-2)
+# DEBUG_MIN_LON = (0.45948-2) 
+# DEBUG_MAX_LAT = (45.28263+2)
+# DEBUG_MAX_LON = (0.45948+2) 
+# lat 45.28263 lon 0.5517
+
+# DEBUG_MIN_LAT = (45.28263-40)
+# DEBUG_MIN_LON = (0.5517-60) 
+# DEBUG_MAX_LAT = (45.28263+40)
+# DEBUG_MAX_LON = (0.5517+60) 
+
+# Full European 1arcmin, step 0.01666666666667993:
+# DEBUG_MIN_LAT = 22.758333333333333
+# DEBUG_MIN_LON = -25.241666666666667
+# DEBUG_MAX_LAT = 72.24166666666667
+# DEBUG_MAX_LON = 50.24166666666666
+DEBUG_MIN_LAT = 45-10
+DEBUG_MIN_LON = 8-10
+DEBUG_MAX_LAT = 45+10
+DEBUG_MAX_LON = 8+10
+# DEBUG_MIN_LAT = 57.95-0
+# DEBUG_MIN_LON = 16.80-0
+# DEBUG_MAX_LAT = 57.95+5
+# DEBUG_MAX_LON = 16.80+5
+
 #DEBUG_NN = 15410182
 
 
@@ -279,6 +318,201 @@ def isPointInQuadrilateral(pt, v1, v2, v3, v4, is_convex):
 def integrand(x):
     return 1/np.cos(x)
 
+
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_compute_weights_from_cutoff_distances(distances, s, ref_radius):
+    # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
+    # actually s(d) should be 
+    #   1/d                     when 0 < d <= r'/3
+    #   (27/4r')*[(d/r'-1)^2]   when r'/3 < d <= r'
+    #   0                       when r' < d
+    # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
+    # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
+    # r'(C^n) = di(n+1) where di is the Point having the minimum distance major than the first n Points
+    # so that
+    #   r' = r' C^4 = di(5)     when n(C) <= 4
+    #   r' = r                  when 4 < n(C) <= 10
+    #   r' = r' C^10 = di(11)   when 10 < n(C)
+    #
+    # evaluate r from pi*r= 7(N/A):
+    # A = area of the polygon containing all points
+    # N = number of points
+    # trick: I can evaluate r from the KD Tree of distances: r should be the radius that contains 7 points as an average
+    # so I can set it as the value that contains 70% of the whole distance dataset.
+    # Given the ordered distances struct, the quickest way to do it is to evaluate the average of all distances of the 7th 
+    # element of the distance arrays
+    
+    if ref_radius==None:
+        r_ref = np.mean(distances[:, 6])
+    else:
+        r_ref = ref_radius 
+    
+    # prepare r, initialize with di(11):                 
+    r = distances[:, 10].copy()
+    # evaluate r' for each point. to do that, 
+    # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^4 (that is = di(5))
+    
+    r_1_flag = distances[:, 3] > r_ref
+    # copy the corresponding fifth distance di(5) as the radius
+    r[r_1_flag] = distances[r_1_flag, 4]
+    # 2) check if n(C)>4 and n(C)<=10
+    r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
+    # copy r as the radius
+    r[r_2_flag] = r_ref
+    # 3) all the other case, n(C)>10, will be equal to di(11) (already set at the initialization, so do nothing here)
+    
+    # apply the distance rule based on the radiuses
+    r_broadcasted = r.reshape(-1,1)
+    
+    #   1/d                     when 0 < d <= r'/3
+    dist_leq_r3 = distances <= r_broadcasted / 3
+    s.ravel()[dist_leq_r3.ravel()] = 1. / distances.ravel()[dist_leq_r3.ravel()]
+    
+    #   (27/4r')*(d/r'-1)       when r'/3 < d <= r'
+    dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r_broadcasted)
+    s.ravel()[dist_g_r3_leq_r.ravel()] = ((27 / (4 * r_broadcasted)) * ((distances / r_broadcasted - 1) ** 2)).ravel()[dist_g_r3_leq_r.ravel()]
+    
+    #   0                       when r' < d  (keep the default zero value)
+
+    # in case of Shepard we use the square of the coeafficient stored later in variable "s"
+    w = s ** 2
+    return w, s
+
+@njit(parallel=True, fastmath=False, cache=True)
+def cdd_hofstra_compute_weights_from_cutoff_distances(distances, CDD_map, s):
+    # Hofstra et al. 2008 
+    # CDD is the correlation distance decay to get the serach radius
+
+    # formula for weights:
+    # where m is fixed to 4 and x is the distance between the station i and the point 
+    m_const = 4.0 # constant
+    # wi = [e^(−x/CDD)]^m       when 0  < d <= CDD
+    #   0                       when CDD < d
+    # The orginal method consider a range of 3 to 10 data points e removes distant points
+    #
+
+    # 1) chech if the distance in the third position is higher that CDD, if so, we should store a missing value
+    # because it means we don't have a minimum of 3 points within the CDD radius
+    missingval_flag = distances[:, 2] > CDD_map
+    
+    # apply the distance rule based on the radiuses
+    CDD_broadcasted = CDD_map.reshape(-1,1)
+    
+    #   [e^(−x/CDD)]^m       when 0  < d <= CDD
+    dist_leq_CDD = distances <= CDD_broadcasted
+    s.ravel()[dist_leq_CDD.ravel()] = np.exp(-distances*m_const/CDD_broadcasted).ravel()[dist_leq_CDD.ravel()]
+        
+    #   0                       when CDD < d  (keep the default zero value)
+
+    s[missingval_flag] = 0
+    return s
+
+@njit(parallel=True, fastmath=False, cache=True)
+def cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, nnear, s, m_const = 4, min_num_of_station = 4, radius_ratio=1/3):
+    # mix Hofstra and Shepard methods 
+    # uses Shepard approach to smooth borders:
+    #   wi = [e^(−x/CDD)]^m                                             when 0  < d <= CDD*radius_ratio  e^(-radius_ratio)^m
+    #   [1/(radius_ratio-1)^2]*{[e^(-radius_ratio)]^m}*[(d/CDD-1)^2]    when CDD*radius_ratio < d <= CDD  
+    #   0                                                               when CDD < d
+    # furthermore, as in Shepard, increases adjust radius value in these cases:
+    #   having n(C) number of points having distance < CDD
+    #   r' = r' C^min_num_of_station = di(min_num_of_station+1)     when n(C) <= min_num_of_station
+    #   r' = CDD                when min_num_of_station < n(C) <= 10    n.b: 10 = [nnear-1]
+    #   r' = r' C^10 = di(11)   when 10 < n(C)                          n.b: 10 = [nnear-1]
+
+    r_ref = CDD_map
+    # prepare r, initialize with di(11) [nnear]:
+    #r = distances[:, 10].copy()
+    r = distances[:, nnear-1].copy()
+    # evaluate r' for each point. to do that, 
+    # 1) chech if the distance in the fourth position is higher that r_ref, if so, we are in case r' C^min_num_of_station (that is = di(min_num_of_station+1))
+    r_1_flag = distances[:, min_num_of_station-1] > r_ref
+    # copy the corresponding fifth distance di(min_num_of_station+1) as the radius
+    r[r_1_flag] = distances[r_1_flag, min_num_of_station]
+    # 2) check if n(C)>min_num_of_station and n(C)<=10 [nnear-1]
+    #r_2_flag = np.logical_and(~r_1_flag, distances[:, 9] > r_ref)
+    r_2_flag = np.logical_and(~r_1_flag, distances[:, nnear-2] > r_ref)
+    # copy CDD as the radius
+    r[r_2_flag] = r_ref[r_2_flag]
+    # 3) all the other case, n(C)>10 [nnear-1], will be equal to di(11) (already set at the initialization, so do nothing here)
+    
+    # apply the distance rule based on the radiuses
+    r_broadcasted = r.reshape(-1,1)
+    
+    #   wi = [e^(−x/CDD)]^m     when 0 < d <= CDD*radius_ratio  e^(-radius_ratio)^m
+    dist_leq_r3 = distances <= r_broadcasted * radius_ratio
+    s.ravel()[dist_leq_r3.ravel()] = np.exp(-distances*m_const/r_broadcasted).ravel()[dist_leq_r3.ravel()]
+    
+    #   [1/(radius_ratio-1)^2]*{[e^(-radius_ratio)]^m}*[(d/CDD-1)^2]   when CDD*radius_ratio < d <= CDD
+    dist_g_r3_leq_r = np.logical_and(~dist_leq_r3, distances <= r_broadcasted)
+    s.ravel()[dist_g_r3_leq_r.ravel()] = (( (1/(radius_ratio-1)**2) * np.exp(-m_const*radius_ratio)) * ((distances / r_broadcasted - 1) ** 2)).ravel()[dist_g_r3_leq_r.ravel()]
+    
+    #   0                       when r' < d  (keep the default zero value)
+    return s
+
+
+@njit(parallel=True, fastmath=False, cache=True)
+def cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexes, longrib, latgrib, TargetLonRes, TargetLatRes, LonOrigin, LatOrigin, s):
+    # New et al. 2000 
+    # no search radius applied
+    # consider all the available nearest station, and use their respective CDD to compute the weights
+
+    # formula for weights:
+    # where m is fixed to 4 and x is the distance between the station i and the point 
+    m_const = 4.0 # constant
+    # wi = [e^(−x/CDD)]^m       
+        
+    #   [e^(−x/CDD)]^m       when 0  < d <= CDD
+
+    CDD_values = CDD_map[np.clip(((LatOrigin-latgrib[indexes])/TargetLatRes).astype(int),0,CDD_map.shape[0]-1), \
+                                        np.clip(((LonOrigin-longrib[indexes])/TargetLonRes).astype(int),0,CDD_map.shape[1]-1)]
+    dist_leq_CDD = distances <= CDD_values
+    s.ravel()[dist_leq_CDD.ravel()] = np.exp(-distances*m_const/CDD_values).ravel()[dist_leq_CDD.ravel()]
+        
+    return s
+
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_and_cdd_compute_weights_directional_in_broadcasting(
+    s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
+    # All in broadcasting: 
+    # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
+    if DEBUG_ADW_INTERPOLATION:
+        print("\nUsing full broadcasting")
+    # Compute xi and yi for all elements
+    k=indexes.shape[1]
+    xi = latgrib.ravel()[indexes.ravel()]
+    yi = longrib.ravel()[indexes.ravel()]
+    # Compute xi_diff and yi_diff for all elements
+    xi_diff = lat_inALL.reshape(-1,1) - xi.reshape(-1,k)
+    yi_diff = lon_inALL.reshape(-1,1) - yi.reshape(-1,k)
+    # Compute Di for all elements
+    Di = np.sqrt(xi_diff**2 + yi_diff**2)
+    # Compute cos_theta for all elements
+    cos_theta = (xi_diff.reshape(-1,k,1)* xi_diff.reshape(-1,1,k) + yi_diff.reshape(-1,k,1) * yi_diff.reshape(-1,1,k)) / (Di.reshape(-1,k,1) * Di.reshape(-1,1,k))
+    # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
+    # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
+    # Delete the diagonal elements from cos_theta
+    # Reshape cos_theta to (n, nnear, nnear-1)
+    n = cos_theta.shape[0]
+    m = cos_theta.shape[1]
+    strided = np.lib.stride_tricks.as_strided
+    s0,s1,s2 = cos_theta[:].strides
+    cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
+    sj = s.T.repeat(k).reshape(k,-1,k).transpose(1,2,0).copy()
+    s0,s1,s2 = sj[:].strides
+    sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
+    # sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
+    # s0,s1,s2 = sj[:].strides
+    # sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+
+    numerator = np.sum((1 - cos_theta) * sj, axis=2)
+    denominator = np.sum(sj, axis=2)
+    # Compute weight_directional for all elements
+    weight_directional = numerator / denominator
+    
+    return weight_directional
+
+
 class ScipyInterpolation(object):
     """
     http://docs.scipy.org/doc/scipy/reference/spatial.html
@@ -288,7 +522,8 @@ class ScipyInterpolation(object):
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
                     mv_target, mv_source, target_is_rotated=False, parallel=False,
-                    mode='nearest', use_broadcasting = False):
+                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, use_broadcasting = False,
+                    num_of_splits = None):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
         self.source_grid_is_rotated = 'rotated' in grid_details.get('gridType')
@@ -299,7 +534,15 @@ class ScipyInterpolation(object):
         self.latgrib = latgrib
         self.nnear = nnear
         self.mode = mode
+        self.cdd_map = cdd_map
+        self.cdd_mode = cdd_mode
+        self.cdd_options = cdd_options
         self.use_broadcasting = use_broadcasting
+        self.num_of_splits = num_of_splits
+        
+        if DEBUG_ADW_INTERPOLATION:
+            self.use_broadcasting = True
+
         self._mv_target = mv_target
         self._mv_source = mv_source
         self.z = source_values
@@ -315,15 +558,61 @@ class ScipyInterpolation(object):
         stdout.write('Building KDTree...\n')
         self.tree = KDTree(source_locations, leafsize=30)  # build the tree
 
-        # we can calculate resolution in KM as described here:
-        # http://math.boisestate.edu/~wright/montestigliano/NearestNeighborSearches.pdf
-        # sphdist = R*acos(1-maxdist^2/2);
-        # Finding actual resolution of source GRID
-        distances, indexes = self.tree.query(source_locations, k=2, n_jobs=self.njobs)
-        # set max of distances as min upper bound and add an empirical correction value
-        self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
+        if self.mode == "adw":
+            self.min_upper_bound = None # not used in adw (Shepard) algorithm
+        else:
+            # we can calculate resolution in KM as described here:
+            # http://math.boisestate.edu/~wright/montestigliano/NearestNeighborSearches.pdf
+            # sphdist = R*acos(1-maxdist^2/2);
+            # Finding actual resolution of source GRID
+            distances, indexes = self.tree.query(source_locations, k=2, workers=self.njobs)
+            # set max of distances as min upper bound and add an empirical correction value
+            self.min_upper_bound = np.max(distances) + np.max(distances) * 4 / self.geodetic_info.get('Nj')
 
-    def interpolate(self, target_lons, target_lats):
+    def interpolate(self, lonefas, latefas):        
+        if (self.num_of_splits is not None):
+            ref_radius = None
+            if self.mode == 'adw' and self.nnear == 11:
+                start = time.time()
+                stdout.write('Finding global reference radius {} interpolation k=7\n'.format(self.mode))
+                x, y, z = self.to_3d(lonefas, latefas, to_regular=self.target_grid_is_rotated)
+                efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+                distances, indexes = self.tree.query(efas_locations, k=7, workers=self.njobs) 
+                if efas_locations.dtype==np.dtype('float32'):
+                    distances=np.float32(distances)
+
+                ref_radius=np.mean(distances[:, 6])
+                checktime = time.time()
+                stdout.write('KDtree find radius time (sec): {}\n'.format(checktime - start))
+
+            # Define the size of the subsets, only in lonm
+            subset_size = lonefas.shape[0]//self.num_of_splits
+
+            # Initialize empty arrays to store the results
+            weights = np.empty((lonefas.shape[0]*lonefas.shape[1],self.nnear),dtype=lonefas.dtype)
+            indexes = np.empty((lonefas.shape[0]*lonefas.shape[1],self.nnear),dtype=int)
+            result = np.empty((lonefas.shape[0]*lonefas.shape[1]),dtype=lonefas.dtype)
+
+            # Iterate over the subsets of the arrays
+            for i in range(0, lonefas.shape[0], subset_size):
+                subset_lonefas = lonefas[i:i+subset_size, :]
+                subset_latefas = latefas[i:i+subset_size, :]
+
+                # Call the interpolate function for the subset
+                subset_result, subset_weights, subset_indexes = self.interpolate_split(subset_lonefas, subset_latefas, ref_radius)
+
+                # Collect the results back into the weights and indexes arrays
+                weights[i*lonefas.shape[1]:(i+subset_size)*lonefas.shape[1],:] = subset_weights
+                indexes[i*lonefas.shape[1]:(i+subset_size)*lonefas.shape[1],:] = subset_indexes
+                result[i*lonefas.shape[1]:(i+subset_size)*lonefas.shape[1]] = subset_result
+        
+        else:
+            result, weights, indexes = self.interpolate_split(lonefas, latefas)
+
+        return result, weights, indexes
+
+
+    def interpolate_split(self, target_lons, target_lats, ref_radius=None):        
         # Target coordinates  HAVE to be rotated coords in case GRIB grid is rotated
         # Example of target rotated coords are COSMO lat/lon/dem PCRASTER maps
         self.target_latsOR=target_lats
@@ -334,7 +623,11 @@ class ScipyInterpolation(object):
             stdout.write('Finding indexes for {} interpolation k={}\n'.format(self.mode, self.nnear))
             x, y, z = self.to_3d(target_lons, target_lats, to_regular=self.target_grid_is_rotated)
             efas_locations = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
-            distances, indexes = self.tree.query(efas_locations, k=self.nnear, n_jobs=self.njobs) 
+            distances, indexes = self.tree.query(efas_locations, k=self.nnear, workers=self.njobs) 
+            if efas_locations.dtype==np.dtype('float32'):
+                distances=np.float32(distances)
+            checktime = time.time()
+            stdout.write('KDtree time (sec): {}\n'.format(checktime - start))
         
         if self.mode == 'nearest' and self.nnear == 1:
             # return results, indexes
@@ -344,10 +637,11 @@ class ScipyInterpolation(object):
             if self.mode == 'invdist': 
                 # return results, distances, indexes
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
-            elif self.mode == 'adw':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting)             
+            elif self.mode == 'adw' and self.nnear == 11:
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting, ref_radius=ref_radius)             
             elif self.mode == 'cdd':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting)
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, ref_radius=None,
+                                                                       cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
             elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
                 # BILINEAR INTERPOLATION
                 result, weights, indexes = self._build_weights_bilinear(distances, indexes, efas_locations, self.nnear) 
@@ -393,6 +687,12 @@ class ScipyInterpolation(object):
             x = ne.evaluate('r * {x}'.format(x=x_formula))
             y = ne.evaluate('r * {y}'.format(y=y_formula))
             z = ne.evaluate('r * {z}'.format(z=z_formula))
+
+        if lons.dtype==np.dtype('float32'):
+            x=np.float32(x)
+            y=np.float32(y)
+            z=np.float32(z)
+
         return x, y, z
 
     def _build_nn(self, distances, indexes):
@@ -471,16 +771,20 @@ class ScipyInterpolation(object):
     # Inverse distance weights (IDW) interpolation, with optional Angular distance weighting (ADW) factor
     # if adw_type == None -> simple IDW 
     # if adw_type == Shepard -> Shepard 1968 original formulation
-    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False):
+    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False, ref_radius = None, 
+                               cdd_map='', cdd_mode='', cdd_options=None):
         if DEBUG_ADW_INTERPOLATION:
-            self.min_upper_bound = 1000000000
+            if adw_type != "Shepard":
+                self.min_upper_bound = 1000000000
             if DEBUG_BILINEAR_INTERPOLATION:
-                n_debug=1940
+                #n_debug=1940
+                #n_debug=3120
+                n_debug=1120
             else:
                 n_debug=11805340
         z = self.z
-        result = mask_it(np.empty((len(distances),) + np.shape(z[0])), self._mv_target, 1)
-        weights = empty((len(distances),) + (nnear,))
+        result = mask_it(np.empty((len(distances),) + np.shape(z[0]),dtype=z.dtype), self._mv_target, 1)
+        weights = empty((len(distances),) + (nnear,),dtype=z.dtype)
         idxs = empty((len(indexes),) + (nnear,), fill_value=z.size, dtype=int)
         num_cells = result.size
         back_char, _ = progress_step_and_backchar(num_cells)
@@ -489,66 +793,165 @@ class ScipyInterpolation(object):
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 0, 5, 0, 0))
         stdout.flush()
 
-        dist_leq_1e_10 = distances[:, 0] <= 1e-10
-        dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
+        if (adw_type is None):
+            dist_leq_1e_10 = distances[:, 0] <= 1e-10
+            dist_leq_min_upper_bound = np.logical_and(~dist_leq_1e_10, distances[:, 0] <= self.min_upper_bound)
         
-        # distances <= 1e-10 : take exactly the point, weight = 1
-        onlyfirst_array = np.zeros(nnear)
-        onlyfirst_array[0] = 1
-        weights[dist_leq_1e_10] = onlyfirst_array
-        idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
-        result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
+            # distances <= 1e-10 : take exactly the point, weight = 1
+            onlyfirst_array = np.zeros(nnear)
+            onlyfirst_array[0] = 1
+            weights[dist_leq_1e_10] = onlyfirst_array
+            idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
+            result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
 
-        w = np.zeros_like(distances)
-        w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
+            w = np.zeros_like(distances)
+
+            # in case of normal IDW we use inverse squared distances
+            # while in case of Shepard we use the square of the coeafficient stored later in variable "s"
+            # while in case of CDD we use the same Wi coeafficient stored later in variable "s"
+            w[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound] ** 2
+
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 1, 5, 100/5))
         stdout.flush()
 
-        if (adw_type=='Shepard'):
-            # initialize weights
-            weight_directional = np.zeros_like(distances)
-
-            # get "s" vector as the inverse distance with power = 1 (in "w" we have the invdist power 2)
-            # actually s(d) should be 
-            #   1/d                     when 0 < d < r'/3
-            #   (27/4r')*(d/r'-1)       when r'/3 < d < r'
-            #   0                       when r' < d
-            # The orginal method consider a range of 4 to 10 data points e removes distant point using the rule:
-            # pi*r= 7(N/A)  where N id the number of points and A is the area of the largest poligon enclosed by data points
-            # r'(C^n) = di(n+1) where di is the Point having the minimum distance major than the first n Points
-            # so that
-            #   r' = r' C^4 = di(5)     when n(C) <= 4
-            #   r' = r                  when 4 < n(C) <= 10
-            #   r' = r' C^10 = di(11)   when 10 < n(C)
-            #
-            # TODO: check if the implementation needs to be updated accordingly
-            # here we take only the inverse of the distance in "s"
-            s = np.zeros_like(distances)       
-            s[dist_leq_min_upper_bound] = 1. / distances[dist_leq_min_upper_bound]
-
+        if (adw_type=='Shepard') or (adw_type=='CDD'):
             self.lat_inALL = self.target_latsOR.ravel()
             self.lon_inALL = self.target_lonsOR.ravel()
 
+            if (adw_type=='Shepard'): 
+                # this implementation is based on the manuscript by Shepard et al. 1968 
+                # now it applies the selection of station, too. k=11 stations are need to perform the full elavaluation
+
+                # initialize weights
+                if (use_broadcasting == False):
+                    weight_directional = np.zeros_like(distances)
+                start = time.time()
+                s = np.zeros_like(distances)
+                w, s = adw_compute_weights_from_cutoff_distances(distances, s, ref_radius)
+                checktime = time.time()
+                stdout.write('adw_compute_weights_from_cutoff_distances time (sec): {}\n'.format(checktime - start))
+
+            elif (adw_type=='CDD'):
+                # this implementation is based on the manuscript by Hofstra et al. 2008 and New et al. 2000 
+
+                #read CDD map or txt file
+                CDD_map = None
+                stdout.write(f'Reading CDD values from: {cdd_map}')
+                if cdd_map.endswith('.nc'):
+                    reader = NetCDFReader(cdd_map)
+                else:
+                    reader = PCRasterReader(cdd_map)
+                # CDD map values are in km, so convert to meters to compare with distances
+                CDD_map = reader.values * 1000
+
+                if DEBUG_BILINEAR_INTERPOLATION:
+                    # target_lats=target_lats[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+                    # target_lons=target_lons[1800-(9*20):1800-(-16*20), 3600+(-15*20):3600+(16*20)]
+                    if CDD_map.shape==(3600,7200):
+                        # Global_3arcmin DEBUG
+                        CDD_map=CDD_map[1800-int(DEBUG_MAX_LAT*20):1800-int(DEBUG_MIN_LAT*20), 3600+int(DEBUG_MIN_LON*20):3600+int(DEBUG_MAX_LON*20)]
+                        #latefas-=0.008369999999992217
+                        # lonefas-=0.00851999999999431
+                        #lonefas-=0.024519999999977227   
+
+                    else:
+                        # European_1arcmin DEBUG
+                        CDD_map=CDD_map[round((72.24166666666667-DEBUG_MAX_LAT)/0.01666666666667993):round((72.24166666666667-DEBUG_MIN_LAT)/0.01666666666667993), \
+                            round((-25.241666666666667-DEBUG_MIN_LON)/-0.01666666666667993):round((-25.241666666666667-DEBUG_MAX_LON)/-0.01666666666667993)]
+
+                #CDDmode = 'NewEtAl'
+                #CDDmode = 'Hofstra'
+                #CDDmode = 'MixHofstraShepard'       #uses Shepard approach to smooth borders
+                CDDmode = cdd_mode
+                
+                weights_mode = 'All'
+                #weights_mode = 'OnlyTOP10'
+                if (CDDmode == 'Hofstra'):
+                    CDD_map = CDD_map.ravel()
+                    try:
+                        assert(len(CDD_map)==len(self.lat_inALL)) 
+                    except AssertionError as e:
+                        ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nCDD map should have the same resolution of target map. CDD map len={}, target map len={}".format(len(CDD_map), len(self.lat_inALL)))
+
+                    stdout.write('\nEvaluating cutoffs...')
+                    
+                    s = np.zeros_like(distances)       
+                    s = cdd_hofstra_compute_weights_from_cutoff_distances(distances, CDD_map, s)
+                elif CDDmode == 'MixHofstraShepard':
+                    CDD_map = CDD_map.ravel()
+                    try:
+                        assert(len(CDD_map)==len(self.lat_inALL)) 
+                    except AssertionError as e:
+                        ApplicationException.get_exc(WEIRD_STUFF, details=str(e) + "\nCDD map should have the same resolution of target map. CDD map len={}, target map len={}".format(len(CDD_map), len(self.lat_inALL)))
+
+                    if DEBUG_ADW_INTERPOLATION:
+                        stdout.write('\nEvaluating cutoffs...')
+                    
+                    s = np.zeros_like(distances)      
+                    if cdd_options is None:
+                        # Hofstra standard values
+                        m_const = 4
+                        min_num_of_station = 4
+                        radius_ratio = 1/3
+                        weights_mode = "All"
+                    else:
+                        # Custom values
+                        m_const, min_num_of_station, radius_ratio, weights_mode = cdd_options.values()
+                    cdd_hofstra_shepard_compute_weights_from_cutoff_distances(distances, CDD_map, nnear, s, m_const, min_num_of_station, radius_ratio)
+                elif CDDmode == 'NewEtAl':
+                    s = np.zeros_like(distances)  
+                    TargetLonRes=self.target_lonsOR[0,0]-self.target_lonsOR[0,1]
+                    TargetLatRes=self.target_latsOR[0,0]-self.target_latsOR[1,0]
+                    LonOrigin=self.target_lonsOR[0,0]
+                    LatOrigin=self.target_latsOR[0,0]
+                    s = cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexes, self.longrib, self.latgrib, 
+                                                                        TargetLonRes, TargetLatRes, LonOrigin, LatOrigin, s)
+                else:
+                    ApplicationException.get_exc(WEIRD_STUFF, "\nCDD mode unknown={}".format(CDDmode))
+
+                # consider only TOP 10 weights instead of all:
+                if weights_mode == "OnlyTOP10":
+                    # indices of top 10 values in each row
+                    #   idx = np.argpartition(s, 10, axis=1)  # get indices of top 10 values
+                    #   rows = np.arange(s.shape[0])[:, None]
+                    #   s[rows, idx[:, :-10]] = 0
+                    # all in one row:
+                    s[np.arange(s.shape[0])[:, None], np.argpartition(s, 10, axis=1)[:, :-10]] = 0
+
+
+                
+                # ####### Old version: 
+                # CDD should be the correlation distance decay to get the search radius
+                # # in this implementation we take always k station, regardless of the radius
+                # # thus we can use CDD=max(distances)
+                # CDD = np.empty((len(distances),) + np.shape(z[0]))
+                # CDD[dist_leq_min_upper_bound] = np.max(distances[dist_leq_min_upper_bound],axis=1)
+                # # formula for weights:
+                # # wi = [e^(−x/CDD)]^m 
+                # # where m is fixed to 4 and x is the distance between the station i and the point 
+                # m_const = 4.0 # constant
+                # # initialize weights
+                # weight_directional = np.zeros_like(distances)
+                # # get distance weights            
+                # s = np.zeros_like(distances)       
+                # s[dist_leq_min_upper_bound] = np.exp(-distances[dist_leq_min_upper_bound]*m_const/CDD[dist_leq_min_upper_bound,np.newaxis])
+    
+
             # start_time = time.time()
             if not use_broadcasting:
+                weight_directional = np.zeros_like(distances)
                 for i in range(nnear):
                     xj_diff = self.lat_inALL[:, np.newaxis] - self.latgrib[indexes]
                     yj_diff = self.lon_inALL[:, np.newaxis] - self.longrib[indexes]
                     
                     Dj = np.sqrt(xj_diff**2 + yj_diff**2)
-                    # TODO: check here: we could use "distances", but we are actually evaluating the cos funcion on lat and lon values, that 
+                    # we could use "distances", but we are actually evaluating the cos funcion on lat and lon values, that 
                     # approximates the real angle... to use "distances" we need to operate in 3d version of the points
                     # in theory it should be OK to use the solution above, otherwise we can change it to 
                     # Di = distances[i]
                     # Dj = distances
                     # and formula cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj) + (z-zi)*(z-zj)] / di*dj
-                    
-                    # cos_theta = [(x-xi)*(x-xj) + (y-yi)*(y-yj)] / di*dj. 
-                    #cos_theta = (xi_diff[:,np.newaxis] * xj_diff + yi_diff[:,np.newaxis] * yj_diff) / (Di[:,np.newaxis] * Dj)
-                    # cos_theta = (xj_diff[:,i,np.newaxis] * xj_diff + yj_diff[:,i,np.newaxis] * yj_diff) / (Dj[:,i,np.newaxis] * Dj)
-                    # numerator = np.sum((1 - cos_theta) * s, axis=1)
-                    # denominator = np.sum(s, axis=1)
-                    
+                                        
                     cos_theta = (xj_diff[:,i,np.newaxis] * xj_diff + yj_diff[:,i,np.newaxis] * yj_diff) / (Dj[:,i,np.newaxis] * Dj)
                     # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
                     # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
@@ -556,8 +959,7 @@ class ScipyInterpolation(object):
                     sj = s[:,np.concatenate([np.arange(i), np.arange(i+1, s.shape[1])])]            
                     numerator = np.sum((1 - cos_theta) * sj, axis=1)
                     denominator = np.sum(sj, axis=1)
-                                        
-                    weight_directional[dist_leq_min_upper_bound, i] = numerator[dist_leq_min_upper_bound] / denominator[dist_leq_min_upper_bound]
+                    weight_directional[:,i] = numerator / denominator
 
                     # DEBUG: test the point at n_debug 11805340=lat 8.025 lon 47.0249999
                     if DEBUG_ADW_INTERPOLATION:
@@ -567,41 +969,29 @@ class ScipyInterpolation(object):
                         print("numerator: {}".format(numerator[n_debug]))
                         print("denominator: {}".format(denominator[n_debug]))
             else:
-                # All in broadcasting:            
-                # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
-                # TODO: check if it is worth to use it on HPC 
-                # Compute xi and yi for all elements
-                xi = self.latgrib[indexes]
-                yi = self.longrib[indexes]
-                # Compute xi_diff and yi_diff for all elements
-                xi_diff = self.lat_inALL[:, np.newaxis] - xi
-                yi_diff = self.lon_inALL[:, np.newaxis] - yi
-                # Compute Di for all elements
-                Di = np.sqrt(xi_diff**2 + yi_diff**2)
-                # Compute cos_theta for all elements
-                cos_theta = (xi_diff[:, :, np.newaxis] * xi_diff[:, np.newaxis, :] + yi_diff[:, :, np.newaxis] * yi_diff[:, np.newaxis, :]) / (Di[:, :, np.newaxis] * Di[:, np.newaxis, :])
-                # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
-                # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
-                # Delete the diagonal elements from cos_theta
-                # Reshape cos_theta to (n, nnear, nnear-1)
-                n = cos_theta.shape[0]
-                m = cos_theta.shape[1]
-                strided = np.lib.stride_tricks.as_strided
-                s0,s1,s2 = cos_theta[:].strides
-                cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
-                sj = np.tile(s[:, np.newaxis, :], (1, 4, 1))
-                s0,s1,s2 = sj[:].strides
-                sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+                # All in broadcasting:     
+                start = time.time()
+                weight_directional = adw_and_cdd_compute_weights_directional_in_broadcasting(
+                    s, self.latgrib, self.longrib, indexes,
+                    self.lat_inALL, self.lon_inALL)
+                checktime = time.time()
+                stdout.write('adw_and_cdd_compute_weights_directional_in_broadcasting time (sec): {}\n'.format(checktime - start))
 
-                numerator = np.sum((1 - cos_theta) * sj, axis=2)
-                denominator = np.sum(sj, axis=2)
-                # Compute weight_directional for all elements
-                weight_directional[dist_leq_min_upper_bound, :] = numerator[dist_leq_min_upper_bound, :] / denominator[dist_leq_min_upper_bound, :]
-    
+            # replace all the nan values with "1"
+            # this is because we have NaNs when denominator is zero, that happens when only one station is considered 
+            # in the angular evaluation, thus no agle is present
+            weight_directional = np.nan_to_num(weight_directional, nan=1)
+
             # end_time = time.time()
             # elapsed_time = end_time - start_time
             # print(f"Elapsed time for computation: {elapsed_time:.6f} seconds")
-    
+            if (adw_type=='CDD'):
+                w=s
+                # in CDD the weight_directional should be normalized before multiply by 1+...
+                # normalize weight_directional
+                sums_weight_directional = np.sum(weight_directional, axis=1, keepdims=True)
+                weight_directional = weight_directional / sums_weight_directional
+                
             # update weights with directional ones
             if DEBUG_ADW_INTERPOLATION:
                 print("weight_directional: {}".format(weight_directional[n_debug]))
@@ -609,23 +999,36 @@ class ScipyInterpolation(object):
             w = np.multiply(w,1+weight_directional)
             if DEBUG_ADW_INTERPOLATION:
                 print("w (after adding angular weights): {}".format(w[n_debug]))
-        elif (adw_type=='CDD'):
-            raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
-                        f"interpolation method not implemented yet (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
+
+            # if (adw_type=='Shepard'):
+            #     # TODO: Add Gradient
+            #     # for each D included in C', evaluate A and B
+            #     # A = Sum{wj[(zj-zi)(xj-xi)/d(Dj,Di)^2]}/Sum(wj)
+            #     # B = Sum{wj[(zj-zi)(yj-yi)/d(Dj,Di)^2]}/Sum(wj)
+            #     # v = O.1[max{zi} - min{zi}] / [max{(A^2+B^2)}]^(1/2). 
+            #     # Dzi = [Ai(x-xi) + Bi(y-yi)][v/(v+di)]
+            #     # final results:
+            #     # value = Sum[wi(zi+Dzi)] / Sum(wi) when d!=0, else zi
+
+
         elif (adw_type!=None):
             raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
                         f"interpolation method not supported (mode = {self.mode}, nnear = {self.nnear}, adw_type = {adw_type})")
 
-        #normalize weights
-        sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 2, 5, 2*100/5))
         stdout.flush()
-        weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
+        #normalize weights
+        if (adw_type=='Shepard') or (adw_type=='CDD'):
+            sums = np.sum(w, axis=1, keepdims=True)
+            weights = w / sums
+        else:
+            sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
+            weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
         if DEBUG_ADW_INTERPOLATION:
-            dist_smalltest = distances[:, 0] <= 10000
-            onlyfirst_array_test = np.zeros(nnear)
-            onlyfirst_array_test[0] = 1000
-            weights[dist_smalltest]=onlyfirst_array_test
+            # dist_smalltest = distances[:, 0] <= 10000
+            # onlyfirst_array_test = np.zeros(nnear)
+            # onlyfirst_array_test[0] = 1000
+            # weights[dist_smalltest]=onlyfirst_array_test
             print("weights (after normalization): {}".format(weights[n_debug]))
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 3, 5, 3*100/5))
         stdout.flush()
@@ -633,12 +1036,35 @@ class ScipyInterpolation(object):
         wz = np.einsum('ij,ij->i', weights, z[indexes])
         stdout.write('{}Building coeffs: {}/{} ({:.2f}%)\n'.format(back_char, 4, 5, 4*100/5))
         stdout.flush()
-        idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
-        result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
+        if (adw_type=='Shepard') or (adw_type=='CDD'):
+            idxs = indexes
+            result = wz
+            
+            if (adw_type=='Shepard'):
+                # in Shepard, we still have NaN values because of the denominator when the distance is equal to 0
+                # so we just take the exact value when the point is exacly on the station coordinates
+                dist_leq_1e_10 = distances[:, 0] <= 1e-10
+            
+                # distances <= 1e-10 : take exactly the point, weight = 1
+                onlyfirst_array = np.zeros(nnear, dtype=weights.dtype)
+                onlyfirst_array[0] = 1
+                weights[dist_leq_1e_10] = onlyfirst_array
+                idxs[dist_leq_1e_10] = indexes[dist_leq_1e_10]
+                result[dist_leq_1e_10] = z[indexes[dist_leq_1e_10][:, 0]]
+        else:
+            idxs[dist_leq_min_upper_bound] = indexes[dist_leq_min_upper_bound]
+            result[dist_leq_min_upper_bound] = wz[dist_leq_min_upper_bound]
         if DEBUG_ADW_INTERPOLATION:
             print("result: {}".format(result[n_debug]))
+            if adw_type is None:
+                self.lat_inALL = self.target_latsOR.ravel()
+                self.lon_inALL = self.target_lonsOR.ravel()
+
             print("lat: {}".format(self.lat_inALL[n_debug]))
             print("lon: {}".format(self.lon_inALL[n_debug]))
+            # Lon 0.46648 Lat 45.31663
+            # Lon 0.50048 Lat 45.31663
+
             print("idxs: {}".format(idxs[n_debug]))
             print("distances: {}".format(distances[n_debug]))
             print("latgrib: {}".format(self.latgrib[idxs[n_debug]]))
@@ -653,7 +1079,7 @@ class ScipyInterpolation(object):
     def replaceIndex(self, indexes_to_replace, indexes, nn, additional_points):
         additional_points += len(indexes_to_replace)
         # replace the unwanted index with next one:
-        _, replacement_indexes = self.tree.query(self.target_location, k=self.nnear+additional_points, n_jobs=self.njobs) 
+        _, replacement_indexes = self.tree.query(self.target_location, k=self.nnear+additional_points, workers=self.njobs) 
         # print("replacement_indexes: {}".format(replacement_indexes))
 
         # delete all the current indexes from the replaceent_indexes 
@@ -680,7 +1106,7 @@ class ScipyInterpolation(object):
         # replace up to 2 unwanted indexes with next ones:
         x, y, z = self.to_3d(new_lon, new_lat, to_regular=self.target_grid_is_rotated)
         new_target_location = [x,y,z]
-        _, replacement_indexes = self.tree.query(new_target_location, k=len(indexes_to_replace), n_jobs=self.njobs) 
+        _, replacement_indexes = self.tree.query(new_target_location, k=len(indexes_to_replace), workers=self.njobs) 
         # print("replacement_indexes: {}".format(replacement_indexes))
         
         # get rid of the wrong points and add the farthest among the new selected points
@@ -955,7 +1381,7 @@ class ScipyInterpolation(object):
             stdout.write('Finding nearest neighbor to exclude outside triangles\n')
             x_tmp, y_tmp, z_tmp = self.to_3d(self.target_lonsOR[:,:], self.target_latsOR[:,:], to_regular=self.target_grid_is_rotated)
             efas_locations = np.vstack((x_tmp.ravel(), y_tmp.ravel(), z_tmp.ravel())).T
-            distances, _ = self.tree.query(efas_locations, k=1, n_jobs=self.njobs) 
+            distances, _ = self.tree.query(efas_locations, k=1, workers=self.njobs) 
 
         gribpoints = np.stack((normalized_latgrib,normalized_longrib),axis=-1)
         gribpoints_scaled = gribpoints.copy()

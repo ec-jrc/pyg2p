@@ -360,7 +360,11 @@ class ExecutionContext(Context):
         self._vars['outMaps.clone'] = exec_conf['OutMaps']['@cloneMap']
         interpolation_conf = exec_conf['OutMaps']['Interpolation']
         self._vars['interpolation.mode'] = interpolation_conf.get('@mode', self.default_values['interpolation.mode'])
-        self._vars['interpolation.adw_broadcasting'] = interpolation_conf.get('@adw_broadcasting', False)
+        self._vars['interpolation.cdd_map'] = interpolation_conf.get('@cdd_map', '')
+        self._vars['interpolation.cdd_mode'] = interpolation_conf.get('@cdd_mode', '')
+        self._vars['interpolation.cdd_options'] = interpolation_conf.get('@cdd_options', None)
+        self._vars['interpolation.use_broadcasting'] = interpolation_conf.get('@use_broadcasting', False)
+        self._vars['interpolation.num_of_splits'] = interpolation_conf.get('@num_of_splits', None)
         self._vars['interpolation.rotated_target'] = interpolation_conf.get('@rotated_target', False)
         if not self._vars['interpolation.dir'] and interpolation_conf.get('@intertableDir'):
             # get from JSON

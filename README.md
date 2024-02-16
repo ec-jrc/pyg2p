@@ -670,8 +670,9 @@ Attributes p, leafsize and eps for the kd tree algorithm are default in scipy li
 | leafsize  | 10                   |
 
 #### ADW
-It's the Angular Distance Weighted (ADW) algorithm with scipy.kd_tree, using 4 neighbours.
-If @adw_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+It's the Angular Distance Weighted (ADW) algorithm by Shepard et al. 1968, with scipy.kd_tree using 11 neighbours.
+If @use_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+If @num_of_splits is set to any number, computations will be split on subset and then recollected into the final map, to save mamory (do not set it if you have enought memory to run interpolation)
 
 ```json
 {
@@ -679,7 +680,34 @@ If @adw_broadcasting is set to true, computations will run in full broadcasting 
   "@latMap": "/dataset/maps/europe5km/lat.map",
   "@lonMap": "/dataset/maps/europe5km/long.map",
   "@mode": "adw",
-  "@adw_broadcasting": false}
+  "@use_broadcasting": false,
+  "@num_of_splits": 10}
+}
+```
+
+#### CDD
+It's the Correlation Distance Decay (CDD) modified implementation of the Angular Distance Weighted algorithm, with scipy.kd_tree using 11 neighbours. It needs a map of CDD values for each point, to be specified in the field @cdd_map
+@cdd_mode can be one of the following values: "Hofstra", "NewEtAl" or "MixHofstraShepard"
+In case of mode "MixHofstraShepard", @cdd_options allows to customize the parameters of Hofstra and Shepard algorithm ("weights_mode": can be "All" or "OnlyTOP10" to take 10 higher values only in the interpolation of each point).
+If @use_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+If @num_of_splits is set to any number, computations will be split on subset and then recollected into the final map, to save mamory (do not set it if you have enought memory to run interpolation)
+
+```json
+{
+"Interpolation": {
+  "@latMap": "/dataset/maps/europe5km/lat.map",
+  "@lonMap": "/dataset/maps/europe5km/long.map",
+  "@mode": "cdd",
+  "@cdd_map": "/dataset/maps/europe5km/cdd_map.nc",
+  "@cdd_mode": "MixHofstraShepard",
+  "@cdd_options": {
+    "m_const": 4,
+    "min_num_of_station": 4,
+    "radius_ratio": 0.3333333333333333,
+    "weights_mode": "All"
+  },
+  "@use_broadcasting": false,
+  "@num_of_splits": 10}
 }
 ```
 
