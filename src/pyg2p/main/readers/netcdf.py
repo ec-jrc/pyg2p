@@ -4,7 +4,7 @@ import numpy as np
 
 from pyg2p import Loggable
 import netCDF4 as nc
-from netCDF4 import Dataset 
+from netCDF4 import Dataset, default_fillvals
 import warnings
 
 class NetCDFReader(Loggable):
@@ -32,7 +32,14 @@ class NetCDFReader(Loggable):
         self.lon_min = self._dataset.variables[self.label_lon][:].min()
         self.lat_max = self._dataset.variables[self.label_lat][:].max()
         self.lon_max = self._dataset.variables[self.label_lon][:].max()
-        self.mv = self._dataset.variables[self.var_name].missing_value
+        if hasattr(self._dataset.variables[self.var_name],'missing_value'):
+            self.mv = self._dataset.variables[self.var_name].missing_value
+        else:
+            if hasattr(self._dataset.variables[self.var_name],'_FillValue'):
+                self.mv = self._dataset.variables[self.var_name]._FillValue
+            else:
+                dtype = self._dataset.variables[self.var_name].dtype
+                self.mv = default_fillvals[dtype.str[1:]] if np.issubdtype(dtype, np.integer) else np.nan
 
     def find_main_var(self, path):
         variable_names = [k for k in self._dataset.variables if len(self._dataset.variables[k].dimensions) >= 2]
