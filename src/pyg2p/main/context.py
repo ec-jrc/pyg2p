@@ -268,7 +268,7 @@ class ExecutionContext(Context):
                             type=int, metavar='tend')
         parser.add_argument('-m', '--perturbationNumber', help='eps member number', type=int, metavar='eps_member')
         parser.add_argument('-T', '--dataTime', help='To select messages by dataTime key value', type=int,
-                            choices=['0', '1200'], metavar='data_time')
+                            choices=[0, 1200], metavar='data_time')
         parser.add_argument('-D', '--dataDate', help='<YYYYMMDD> to select messages by dataDate key value',
                             type=int, metavar='data_date')
 

@@ -157,7 +157,7 @@ setup_args = dict(name='pyg2p',
                   packages=find_packages('src'),
                   keywords="NetCDF GRIB PCRaster Lisflood EFAS GLOFAS",
                   scripts=['bin/pyg2p'],
-                  zip_safe=True,
+                  zip_safe=False,
                   # setup.py publish to pypi.
                   cmdclass={
                      'upload': UploadCommand,
