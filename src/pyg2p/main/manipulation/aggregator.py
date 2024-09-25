@@ -180,6 +180,7 @@ class Aggregator(Loggable):
                     iter_from = iter_ + 1
                     iter_to = iter_ + self._aggregation_step + 1
                 temp_sum = np.zeros(shape_iter)
+                sum_counter = 0.0
                 v_ord_keys = list(v_ord.keys())
 
                 if self._aggregation_halfweights:
@@ -188,8 +189,8 @@ class Aggregator(Loggable):
                         if iterator_avg in v_ord_keys:                
                             count_steps=count_steps+1
                     if count_steps>0:
-                        dt1=np.round(self._aggregation_step/count_steps,0)
-                        dt2=np.round(dt1/2,0)
+                        dt1=self._aggregation_step/count_steps
+                        dt2=dt1/2
 
                         for iterator_avg in range(iter_from, iter_to, 1):
                             if iterator_avg in v_ord_keys:
@@ -198,9 +199,11 @@ class Aggregator(Loggable):
                                 if iterator_avg==iter_from or iterator_avg==(iter_to-1):
                                     v_ma = v_ord[iterator_avg]*dt2
                                     print("Iterator: {} weight: {}".format(iterator_avg,dt2))
+                                    sum_counter += dt2
                                 else:
                                     v_ma = v_ord[iterator_avg]*dt1
                                     print("Iterator: {} weight: {}".format(iterator_avg,dt1))
+                                    sum_counter += dt1
                                 ne.evaluate('temp_sum + v_ma', out=temp_sum)
                 else:
                     for iterator_avg in range(iter_from, iter_to, 1):
@@ -208,24 +211,27 @@ class Aggregator(Loggable):
                             if self._logger.isEnabledFor(logging.DEBUG):
                                 self._log(f'temp_sum += grib[{iterator_avg}]')
                             v_ma = v_ord[iterator_avg]
+                            sum_counter += 1
+                            print("Iterator: {} weight: 1".format(iterator_avg))
                         else:
                             ind_next_ = bisect.bisect_left(list(v_ord_keys), iterator_avg)
                             next_ = list(v_ord_keys)[ind_next_]
                             if self._logger.isEnabledFor(logging.DEBUG):
                                 self._log(f'temp_sum += grib[{iterator_avg}] from -> grib[{next_}]')
                             v_ma = v_ord[next_]
+                            sum_counter += 1
+                            print("Iterator: {} weight: 1".format(next_))
                         ne.evaluate('temp_sum + v_ma', out=temp_sum)
 
                 # mask result with all maskes from GRIB original values used in average (if existing any)
                 # temp_sum = ma.masked_where(pyg2p.util.numeric.get_masks(v_ord.values()), temp_sum, copy=False)
                 key = Step(iter_, iter_ + self._aggregation_step, resolution_1, self._aggregation_step, level)
-                # used with numexpress that doesn't access self. DO NOT DELETE!
-                aggregation_step = self._aggregation_step
-                res = ne.evaluate('temp_sum/aggregation_step')
+                print("dividing sum by {}".format(sum_counter))
+                res = ne.evaluate('temp_sum/sum_counter')
                 # mask result with all maskes from GRIB original values used in average (if existing any)
                 out_values[key] = ma.masked_where(numeric.get_masks(v_ord.values()), res, copy=False)
                 if self._logger.isEnabledFor(logging.DEBUG):
-                    self._log(f'out[{key}] = temp_sum/{self._aggregation_step}')
+                    self._log(f'out[{key}] = temp_sum/{sum_counter}')
 
             return out_values
 
