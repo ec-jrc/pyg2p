@@ -167,13 +167,13 @@ class Aggregator(Loggable):
             v_ord = collections.OrderedDict(sorted(dict((k.end_step, v_) for (k, v_) in values.items()).items(), key=lambda k: k))
             if self._start == 0 or self._second_t_res:
                 iter_start = self._start
-                iter_end = self._end - self._aggregation_step + 2
+                iter_end = self._end - self._aggregation_step + 2       # CR: TODO: check if +2 instead of +1 is actually needed
             else:
                 iter_start = self._start - self._aggregation_step
                 iter_end = self._end - self._aggregation_step + 1
 
             for iter_ in range(iter_start, iter_end, self._aggregation_step):
-                if self._aggregation_halfweights or self._start == 0:
+                if self._aggregation_halfweights:
                     iter_from = iter_ 
                     iter_to = iter_ + self._aggregation_step + 1
                 else:

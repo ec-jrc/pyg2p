@@ -858,7 +858,7 @@ GRIB File: contains data starting from step 0 to 72 every 6 hours: 0,6,12,18,24,
 
   Day 2: same as Day 1 starting from (24+24)-24=24: the step 24 will have a weight of 3, while steps 30,36 and 42 will be counted 6 times, and finally the step 48 will have a weight of 3. 
 
-- if start_step is zero or is not specified, the aggregation will start from 0
+- if start_step is zero or is not specified, the aggregation will behave exactly as using start_step=24, so it will start from 1
 
 ### Accumulation
 For precipitation values, accumulation over 6 or 24 hours is often performed. Here's an example of configuration and execution output in DEBUG mode.
