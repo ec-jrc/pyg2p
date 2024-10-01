@@ -251,13 +251,13 @@
     "tp": {
         "@description": "Total precipitation", 
         "@shortName": "tp", 
-        "@unit": "kg m**-2 s**-1", 
+        "@unit": "m", 
         "Conversion": [
             {
                 "@cutOffNegative": true, 
                 "@function": "x=x", 
                 "@id": "cut", 
-                "@unit": "kg m**-2 s**-1"
+                "@unit": "m"
             }, 
             {
                 "@cutOffNegative": true, 
