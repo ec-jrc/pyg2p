@@ -139,7 +139,9 @@ def _get_gdal_version():
 gdal_version = _get_gdal_version()
 req_file = 'requirements.txt'
 requirements = [l for l in open(req_file).readlines() if l and not l.startswith('#')]
-requirements += [f'GDAL=={gdal_version}']
+# GDAL requirement is commented to avoid fixing GDAL version in pypi package
+# Install GDAL manually before installing pyg2p package
+#requirements += [f'GDAL=={gdal_version}']
 
 setup_args = dict(name='pyg2p',
                   version=version,
