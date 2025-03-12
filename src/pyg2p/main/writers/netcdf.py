@@ -2,6 +2,7 @@ import time
 import warnings
 
 import numpy as np
+import numpy.ma as ma
 from netCDF4 import Dataset, default_fillvals
 
 from pyg2p.main.readers.pcr import PCRasterReader
@@ -28,7 +29,11 @@ class NetCDFWriter(Writer):
         else:
             area = PCRasterReader(self._clone_map)
             self.area = area.values
-
+        
+        # add mask from clone map
+        self.area = ma.masked_values(self.area, area.mv)
+        self._mask = ma.getmask(self.area)
+        
         if lats_map.endswith('.nc'):
             if (lats_map!=lons_map):
                 raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, 
@@ -139,10 +144,12 @@ class NetCDFWriter(Writer):
         if varargs.get('valid_max', None) is not None:            
             values_nc.valid_max = (np.float64(varargs.get('valid_max', None)) - np.float64(varargs.get('offset', '0.0'))) / np.float64(varargs.get('scale_factor', '1.0'))
         values_nc.set_auto_maskandscale(True)         
-
-        # adjust missing values when scale_factor and offset are not 1.0 - 0.0 
-        values[np.isnan(values)] = np.float64(missing_value_to_use) * np.float64(varargs.get('scale_factor', '1.0')) + np.float64(varargs.get('offset', '0.0'))
         
+        # adjust missing values when scale_factor and offset are not 1.0 - 0.0 
+        mv_scaled = np.float64(missing_value_to_use) * np.float64(varargs.get('scale_factor', '1.0')) + np.float64(varargs.get('offset', '0.0'))
+        values = self._mask_values(values, mv_scaled)
+        values[np.isnan(values)] = mv_scaled
+
         for t in range(len(time_values)):
             if DEBUG_BILINEAR_INTERPOLATION:
                 if self.lats.shape==(3600,7200):
@@ -159,6 +166,21 @@ class NetCDFWriter(Writer):
                 values_nc[t, :, :] = values[t,:,:]
         longitude[:] = self.lons[0,:]
         latitude[:] = self.lats[:,0]
+
+    def _mask_values(self, values, mv):
+        # Extend the mask to match the shape of values
+        if self._mask.shape != values.shape[1:]:
+            raise ValueError("The shape of the mask does not match the shape of the values (excluding the first dimension).")
+        
+        extended_mask = np.broadcast_to(self._mask, values.shape)
+    
+        if isinstance(values, ma.core.MaskedArray):
+            masked = ma.masked_where((extended_mask | values.mask), values.data, copy=False)
+        else:
+            masked = ma.masked_where(extended_mask, values, copy=False)
+    
+        masked = ma.filled(masked, mv)
+        return masked
 
     def close(self):
         self.nf.close()
