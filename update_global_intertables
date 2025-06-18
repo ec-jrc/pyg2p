@@ -6,7 +6,12 @@ module load python3
 
 set -eux
 
-mod_version=${1:-3.0.0.post1}
+if [[ -z ${1} ]];then
+  echo "Please specify the version to update"
+  false
+fi
+mod_version=${1}
+
 if [[ $# -gt 0 ]]; then shift; fi
 hosts=${@:-deploy@aa-login deploy@ab-login deploy@ac-login deploy@ad-login}
 
@@ -45,36 +50,16 @@ for dest_host in $hosts; do
     ssh -x $dest_host bash -l << END
         set -eux
         module unload hdf5 python3 python gdal grib_api eccodes netcdf4 || :
-        module load $eccodes
-        module load netcdf4/4.9.3
-        module load gdal/3.10.2
         module load python3/3.12.9-01
-        module load hdf5/1.14.6 
-        module load gcc || : # on HPC ;;
         umask 022
-        mkdir -p \$SCRATCH/tmp_pyg2p
-        cd \$SCRATCH/tmp_pyg2p/
-        rsync -avz --exclude='.git/' -e ssh $src_host:$src_dir .
-        cd pyg2p
-        echo '{
-            "geopotentials": "$static_data_root/geopotentials",
-            "intertables": "$static_data_root/intertables"
-        }
-        ' > configuration/global/global_conf.json
         python_version=\$(python3 -c "import sys; print(f'python{sys.version_info.major}.{sys.version_info.minor}')")
-        export PYTHONPATH=$dest_dir/lib/\$python_version/site-packages
-        mkdir -p \$PYTHONPATH
-        PYTHONPATH=\$ECCODES_DIR/lib/\$python_version/site-packages/:${dest_dir}:\$PYTHONPATH
-        rm -rf $dest_dir
-        python3 -m venv $dest_dir --system-site-packages
-        source $dest_dir/bin/activate
-        pip3 install --upgrade --force-reinstall -r requirements.txt
-        python3 -m pip install .
-        cp -rf ${dest_dir}/pyg2p/configuration/ ${dest_dir}/lib/\${python_version}/site-packages/pyg2p/
+        mkdir -p ${dest_dir}/lib/\${python_version}/site-packages/pyg2p/configuration/ $src_dir/configuration/global/
+        rsync -avz --exclude='.git/' -e ssh $src_host:$src_dir/configuration/global/intertables.json ${dest_dir}/pyg2p/configuration/
+        rsync -avz --exclude='.git/' -e ssh $src_host:$src_dir/configuration/global/intertables.json ${dest_dir}/lib/\${python_version}/site-packages/pyg2p/configuration/
+        rsync -avz --exclude='.git/' -e ssh $src_host:$src_dir/configuration/global/geopotentials.json ${dest_dir}/pyg2p/configuration/
+        rsync -avz --exclude='.git/' -e ssh $src_host:$src_dir/configuration/global/geopotentials.json ${dest_dir}/lib/\${python_version}/site-packages/pyg2p/configuration/
+        rsync -avz --exclude='.git/' -e ssh $src_host:$src_dir/configuration/global/parameters.json ${dest_dir}/pyg2p/configuration/
+        rsync -avz --exclude='.git/' -e ssh $src_host:$src_dir/configuration/global/parameters.json ${dest_dir}/lib/\${python_version}/site-packages/pyg2p/configuration/
 END
     echo done
 done
-
-# Modulemgr commands
-
-modulemgr -m  tag comfies 0.3 default
