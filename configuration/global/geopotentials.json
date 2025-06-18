@@ -48,5 +48,9 @@
     "-25$15$1001$601$601601$rotated_ll": "cosmo_z_seemhews.grib",
     "7$49$1556$1066$1644290$regular_ll": "nmmb_z_seemhews.grib",
     "9.4$44.98$1187$1049$1244967$regular_ll": "alsmws_verif_geop_seemhews.grb2",
-    "9.4$45$1425$961$1369425$regular_ll": "icon_gp_seemhews.grib"
+    "9.4$45$1425$961$1369425$regular_ll": "icon_gp_seemhews.grib",
+    "0$359.964$M$5120$26306560$reduced_gg": "exdt.grb",
+    "0$359.9649$M$5120$26306560$reduced_gg": "z_lumi.grb",
+    "0$359.9299$M$2560$6599680$reduced_gg": "aifs.grb",
+    "0$359.7188$M$640$542080$reduced_gg": "z_aifs.grb"
 }
