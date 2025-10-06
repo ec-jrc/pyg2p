@@ -52,5 +52,7 @@
     "0$359.964$M$5120$26306560$reduced_gg": "exdt.grb",
     "0$359.9649$M$5120$26306560$reduced_gg": "z_lumi.grb",
     "0$359.9299$M$2560$6599680$reduced_gg": "aifs.grb",
-    "0$359.7188$M$640$542080$reduced_gg": "z_aifs.grb"
+    "0$359.7188$M$640$542080$reduced_gg": "z_aifs.grb",
+    "-40$80$M$853$651788$reduced_gg": "enfh_gp.grb"
+
 }
