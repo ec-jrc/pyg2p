@@ -1,6 +1,7 @@
 import csv
 import re
 from datetime import datetime
+from io import StringIO
 
 
 def to_boolean(bool_):
@@ -19,13 +20,15 @@ def to_boolean(bool_):
         return bool_[0].upper() == 'T' or bool_[0].upper() == 'Y'
 
 
-def _is_empty_string(string_):
-    return string_ is not ''
+def _is_not_empty_string(string_):
+    # Use '!='' instead of 'is not' for string comparison (best practice)
+    # The bool() check handles both None and empty string cases
+    return bool(string_) and string_ != ''
 
 
 def to_argv(string_):
-    c = csv.reader(csv.StringIO(string_), delimiter=" ")
-    return list(filter(_is_empty_string, list(c)[0]))
+    c = csv.reader(StringIO(string_), delimiter=" ")
+    return list(filter(_is_not_empty_string, list(c)[0]))
 
 
 def to_argdict(string_):

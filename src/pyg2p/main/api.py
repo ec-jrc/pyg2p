@@ -51,7 +51,7 @@ class Command:
         self._d[opt] = param
         return self
 
-    def __init__(self, cmd_string=None, **params):
+    def __init__(self, cmd_string='', **params):
         cmd_string = cmd_string.lstrip('pyg2p').strip()
         if params:
             opts = params.copy()
@@ -271,8 +271,14 @@ class Pyg2pApi:
         self._mask = ma.getmask(rs)
 
     def _mask_values(self, values):
-        if isinstance(values, ma.core.MaskedArray):
-            masked = ma.masked_where((self._mask | values.mask), values.data, copy=False)
+        if isinstance(values, ma.MaskedArray):
+            # Handle case where values.mask might be numpy.bool_(False) - no mask
+            value_mask = ma.getmask(values)
+            if value_mask is ma.nomask:
+                combined_mask = self._mask
+            else:
+                combined_mask = self._mask | value_mask
+            masked = ma.masked_where(combined_mask, values.data, copy=False)
         else:
             masked = ma.masked_where(self._mask, values, copy=False)
         masked = ma.filled(masked, self.mv)
