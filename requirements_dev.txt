@@ -1,5 +1,5 @@
 gdal<=3.5.3
-netCDF4>=1.7.2 # netCDF4 1.7.2 is required to avoid a bug in 1.6.4 that causes a segfault when used with Python 3.12
+netCDF4>=1.7.2
 ujson
 numpy>=1.18.2,<2.0.0
 scipy>=0.16.0
