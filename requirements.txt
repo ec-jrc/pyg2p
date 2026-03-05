@@ -1,9 +1,9 @@
 gdal<=3.5.3
-netCDF4>=1.7.2
+netCDF4==1.7.4
 ujson>=5.4.0
-numpy>=1.18.2,<2.0.0
-numba>=0.54.0
-scipy>=1.6.0
+numpy==1.26.4
+numba==0.64.0
+scipy==1.15.3
 # GDAL
 numexpr>=2.7.1
 importlib-metadata<5.0.0
