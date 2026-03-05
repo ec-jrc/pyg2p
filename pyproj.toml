@@ -32,7 +32,7 @@ classifiers = [
 ]
 dependencies = [
     "gdal<=3.5.3",
-    "netCDF4==1.7.4",
+    "netCDF4>=1.7.4",
     "ujson>=5.4.0",
     "numpy==1.26.4",
     "numba>=0.64.0",
