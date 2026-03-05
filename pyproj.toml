@@ -8,7 +8,7 @@ version = "3.2.8"
 description = "Convert GRIB files to netCDF or PCRaster"
 readme = "README.md"
 license = {text = "EUPL 1.2"}
-requires-python = "3.10"
+requires-python = "==3.10"
 authors = [
     {name = "Domenico Nappo", email = "domenico.nappo@gmail.com"},
     {name = "Carlo Russo", email = "carlo.russo@ext.ec.europa.eu"},
