@@ -6,6 +6,7 @@ scipy>=0.16.0
 # GDAL
 numexpr>=2.4.6
 eccodes-python  # replacing old GRIB API
+pyproj>=3.6.1
 
 # profiling
 memory_profiler
