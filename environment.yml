@@ -1,6 +1,5 @@
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - _openmp_mutex=4.5=20_gnu
   - alsa-lib=1.2.9=hd590300_0
