@@ -8,6 +8,7 @@ scipy==1.15.3
 numexpr>=2.7.1
 importlib-metadata<5.0.0
 pyproj>=3.7.1
+setuptools<82
 
 # dask packages for parallel interpolation
 dask[bag]
