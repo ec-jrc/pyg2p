@@ -1433,7 +1433,7 @@
         ]
     },
     "I0_359.9299_M_2560_6599680_reduced_gg_-25_22_0_0_22.76_72.24_-25_22_0_0_-25.24_50.24scipy_bilinear_delaunay": {
-        "filename": "tbl_0_grb_13454100_scipy_bilinear_delaunay.npy.gz",
+        "filename": "tbl_01_grb_13454100_scipy_bilinear_delaunay.npy.gz",
         "method": "bilinear_delaunay",
         "source_shape": [
             6599680

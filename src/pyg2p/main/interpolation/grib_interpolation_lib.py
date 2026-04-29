@@ -194,7 +194,7 @@ def apply_invdist_to_chunk(chunk, gid=None, mv=None):
 def invdist_parallel_step(chunk, gid, mv):
     lat, lon, x, y = chunk
     idx1 = idx2 = idx3 = idx4 = int_fill_value
-    inv1 = inv2 = inv3 = inv4 = np.NaN
+    inv1 = inv2 = inv3 = inv4 = np.nan
     if not (lon < -1.0e+10 or lon == mv):
         try:
             n_nearest = eccodes.codes_grib_find_nearest(gid, lat.item(), lon.item(), npoints=4)
