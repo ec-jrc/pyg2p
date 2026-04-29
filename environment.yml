@@ -215,7 +215,7 @@ dependencies:
       - joblib==1.5.3
       - jsonschema==4.26.0
       - jsonschema-specifications==2025.9.1
-      - lisflood-utilities==0.11.7
+      - lisflood-utilities==0.12.25
       - llvmlite==0.46.0
       - locket==1.0.0
       - lru-dict==1.4.1
@@ -236,7 +236,7 @@ dependencies:
       - pluggy==1.6.0
       - psutil==7.2.2
       - pycparser==3.0
-      - pyg2p==3.2.8
+      - pyg2p==3.2.9
       - pygments==2.19.2
       - pyparsing==3.3.2
       - pyproj==3.7.1
