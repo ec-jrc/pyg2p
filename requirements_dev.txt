@@ -1,7 +1,7 @@
 gdal<=3.5.3
-netCDF4>=1.7.2
 ujson
 numpy>=1.18.2,<2.0.0
+netCDF4>=1.7.2
 scipy>=0.16.0
 # GDAL
 numexpr>=2.4.6
