@@ -4,25 +4,28 @@ on: [push]
 
 jobs:
   tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
-      max-parallel: 5
+      matrix:
+        python-version: ["3.10"]
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: conda-incubator/setup-miniconda@v2
+    - name: Checkout github repo
+      uses: actions/checkout@v4
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
-        python-version: 3.8
+        python-version: "3.10"
+        miniforge-version: latest
     - name: Install python and gcc
       shell: bash -el {0}
       run: |
-        conda install -c conda-forge python=3.8
-        conda install -c conda-forge gcc=12.1.0
+        conda install -c conda-forge "gcc>=12.1.0"
     - name: Install gdal
       shell: bash -el {0}
       run: |
-        conda install -c conda-forge gdal eccodes
+        conda install -c conda-forge "gdal<=3.5.3" eccodes hdf5
     - name: Install dependencies
       shell: bash -el {0}
       run: |
@@ -33,7 +36,7 @@ jobs:
       run: |
         conda list
         pip install poppler-utils
-        conda install -c conda-forge 'poppler=>22.10.0'
+        conda install -c conda-forge "poppler>=22.10.0"
     - name: Check installation
       shell: bash -el {0}
       run: |

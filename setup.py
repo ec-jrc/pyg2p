@@ -145,6 +145,7 @@ requirements = [l for l in open(req_file).readlines() if l and not l.startswith(
 
 setup_args = dict(name='pyg2p',
                   version=version,
+                  python_requires='>=3.10',
                   description="Convert GRIB files to netCDF or PCRaster",
                   long_description=long_description,
                   long_description_content_type='text/markdown',
