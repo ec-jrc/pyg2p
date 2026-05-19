@@ -15,7 +15,7 @@ with open(version_file, 'r') as f:
     version = f.read().strip()
 
 __version__ = version
-__authors__ = "Domenico Nappo"
+__authors__ = "Domenico Nappo, Carlo Russo, Stefania Grimaldi"
 
 
 class Loggable:
