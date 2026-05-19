@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       shell: bash -el {0}
       run: |
-        pip install -r requirements.txt
+        pip install GDAL==$(gdal-config --version)
         pip install .
     - name: Workaround for poppler lib issue
       shell: bash -el {0}
