@@ -18,7 +18,7 @@ package at system level (executable script will be saved into /usr/local/bin in 
 * Create a conda env named "pyg2penv" and install dependencies:
 
   ```bash
-  conda create --name pyg2penv python=3.10 -c conda-forge
+  conda create --name pyg2penv "python>=3.10" -c conda-forge
   conda activate pyg2penv
   ```
 
@@ -27,7 +27,7 @@ package at system level (executable script will be saved into /usr/local/bin in 
 >Install eccodes (and GDAL): this can be done compiling from source code or using the available conda virtual environment package by running 
 
 ```bash
-$ conda install -c conda-forge "gdal<=3.5.3" eccodes
+$ conda install -c conda-forge gdal eccodes
 ```
 
 >Configure geopotentials and intertables paths in
