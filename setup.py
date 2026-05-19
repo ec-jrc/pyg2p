@@ -25,7 +25,7 @@ python setup.py testpypi
 python setup.py publish
 
 Test package install
-pip install --index-url https://test.pypi.org/simple/ pyg2p==3.2.1
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyg2p==3.3.0
 """
 
 class UploadCommand(Command):
