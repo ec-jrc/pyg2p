@@ -1,4 +1,4 @@
-[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20285111-blue.svg)](https://doi.org/10.5281/zenodo.20285111)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20285110-blue.svg)](https://doi.org/10.5281/zenodo.20285110)
 
 
 [ChangeLog](CHANGE_LOG.rst)
