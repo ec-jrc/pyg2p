@@ -20,7 +20,7 @@ from pyg2p.util.strings import now_string
 #from matplotlib import pyplot as plt
 from scipy.integrate import quad
 
-from numba import njit
+from numba import njit, prange
 
 
 DEBUG_BILINEAR_INTERPOLATION = False
@@ -472,7 +472,7 @@ def cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexe
     return s
 
 @njit(parallel=True, fastmath=False, cache=True)
-def adw_and_cdd_compute_weights_directional_in_broadcasting(
+def adw_and_cdd_compute_weights_directional_in_broadcasting_OLD(
     s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
     # All in broadcasting: 
     # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
@@ -510,6 +510,67 @@ def adw_and_cdd_compute_weights_directional_in_broadcasting(
     # Compute weight_directional for all elements
     weight_directional = numerator / denominator
     
+    return weight_directional
+
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_and_cdd_compute_weights_directional_in_broadcasting(
+    s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
+    # Per-cell parallel implementation (prange).
+    # The previous version built full (n, k, k) temporaries via broadcasting and
+    # as_strided().copy(), which is memory-bandwidth bound and parallelizes poorly
+    # (especially on VMs). This version computes the directional weight of each
+    # target cell independently in a prange loop, using only small (k,) and scalar
+    # work per cell, so it scales across cores and avoids the large allocations.
+    #
+    # For each target cell c and neighbour i, the directional weight is:
+    #   weight_directional[c, i] = sum_{j != i} (1 - cos_theta[c, i, j]) * s[c, j]
+    #                              / sum_{j != i} s[c, j]
+    # where cos_theta is the cosine of the angle between the vectors (cell -> station i)
+    # and (cell -> station j) in lat/lon space.
+    #
+    # When the denominator is zero (only one station contributes to the angular
+    # evaluation, so no angle exists) the result is defined as 1. The original code
+    # produced a NaN here and the caller replaced it with 1 via np.nan_to_num(nan=1);
+    # we handle it directly so this stays a drop-in replacement (the caller's
+    # nan_to_num becomes a harmless no-op). Note denominator == 0 implies all s[c, j!=i]
+    # are 0, which also makes the numerator 0, so the original always yielded 0/0 (NaN),
+    # never +/-inf.
+    if DEBUG_ADW_INTERPOLATION:
+        print("\nUsing per-cell prange implementation")
+    n = indexes.shape[0]
+    k = indexes.shape[1]
+    weight_directional = np.zeros((n, k), dtype=s.dtype)
+    for c in prange(n):
+        xi_diff = np.empty(k, dtype=s.dtype)
+        yi_diff = np.empty(k, dtype=s.dtype)
+        Di = np.empty(k, dtype=s.dtype)
+        lat_c = lat_inALL[c]
+        lon_c = lon_inALL[c]
+        for i in range(k):
+            idx = indexes[c, i]
+            dx = lat_c - latgrib[idx]
+            dy = lon_c - longrib[idx]
+            xi_diff[i] = dx
+            yi_diff[i] = dy
+            Di[i] = np.sqrt(dx * dx + dy * dy)
+        for i in range(k):
+            numerator = 0.0
+            denominator = 0.0
+            Di_i = Di[i]
+            xi = xi_diff[i]
+            yi = yi_diff[i]
+            for j in range(k):
+                if j == i:
+                    continue
+                cos_theta = (xi * xi_diff[j] + yi * yi_diff[j]) / (Di_i * Di[j])
+                sj = s[c, j]
+                numerator += (1.0 - cos_theta) * sj
+                denominator += sj
+            if denominator != 0.0:
+                weight_directional[c, i] = numerator / denominator
+            else:
+                # matches original behaviour after np.nan_to_num(..., nan=1)
+                weight_directional[c, i] = 1.0
     return weight_directional
 
 
