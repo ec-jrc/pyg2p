@@ -472,47 +472,6 @@ def cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexe
     return s
 
 @njit(parallel=True, fastmath=False, cache=True)
-def adw_and_cdd_compute_weights_directional_in_broadcasting_OLD(
-    s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
-    # All in broadcasting: 
-    # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
-    if DEBUG_ADW_INTERPOLATION:
-        print("\nUsing full broadcasting")
-    # Compute xi and yi for all elements
-    k=indexes.shape[1]
-    xi = latgrib.ravel()[indexes.ravel()]
-    yi = longrib.ravel()[indexes.ravel()]
-    # Compute xi_diff and yi_diff for all elements
-    xi_diff = lat_inALL.reshape(-1,1) - xi.reshape(-1,k)
-    yi_diff = lon_inALL.reshape(-1,1) - yi.reshape(-1,k)
-    # Compute Di for all elements
-    Di = np.sqrt(xi_diff**2 + yi_diff**2)
-    # Compute cos_theta for all elements
-    cos_theta = (xi_diff.reshape(-1,k,1)* xi_diff.reshape(-1,1,k) + yi_diff.reshape(-1,k,1) * yi_diff.reshape(-1,1,k)) / (Di.reshape(-1,k,1) * Di.reshape(-1,1,k))
-    # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
-    # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
-    # Delete the diagonal elements from cos_theta
-    # Reshape cos_theta to (n, nnear, nnear-1)
-    n = cos_theta.shape[0]
-    m = cos_theta.shape[1]
-    strided = np.lib.stride_tricks.as_strided
-    s0,s1,s2 = cos_theta[:].strides
-    cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
-    sj = s.T.repeat(k).reshape(k,-1,k).transpose(1,2,0).copy()
-    s0,s1,s2 = sj[:].strides
-    sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
-    # sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
-    # s0,s1,s2 = sj[:].strides
-    # sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
-
-    numerator = np.sum((1 - cos_theta) * sj, axis=2)
-    denominator = np.sum(sj, axis=2)
-    # Compute weight_directional for all elements
-    weight_directional = numerator / denominator
-    
-    return weight_directional
-
-@njit(parallel=True, fastmath=False, cache=True)
 def adw_and_cdd_compute_weights_directional_in_broadcasting(
     s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
     # Per-cell parallel implementation (prange).

@@ -162,10 +162,17 @@ class TestDirectionalGolden:
             inp["s"], inp["latgrib"], inp["longrib"],
             inp["indexes"], inp["lat_inALL"], inp["lon_inALL"],
         ))
-        # Compare raw output (NaNs included) exactly as stored.
+        # Compare at the caller-normalized level. The caller
+        # (ScipyInterpolation._build_weights_invdist) always applies
+        # np.nan_to_num(..., nan=1) to the directional weights before using them, so
+        # that is the output that actually matters downstream. Comparing the
+        # normalized form makes this test independent of how a given implementation
+        # represents the degenerate "only one contributing station" rows internally
+        # (the broadcasting version leaves a raw 0/0 NaN there; the prange version
+        # writes 1.0 directly). Both agree after nan_to_num.
         np.testing.assert_allclose(
-            out, golden["out_weight_directional"],
-            rtol=RTOL, atol=ATOL, equal_nan=True,
+            np.nan_to_num(out, nan=1), golden["out_weight_directional"],
+            rtol=RTOL, atol=ATOL,
         )
 
     def test_output_shape(self):

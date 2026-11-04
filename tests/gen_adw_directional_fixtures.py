@@ -39,6 +39,12 @@ def gen_directional():
             inp["s"], inp["latgrib"], inp["longrib"],
             inp["indexes"], inp["lat_inALL"], inp["lon_inALL"],
         ))
+        # Store the caller-normalized output (np.nan_to_num(nan=1)). This is the
+        # value the pipeline actually consumes, and it is identical for the
+        # broadcasting and prange implementations (they differ only in how they
+        # represent the degenerate 0/0 rows before this normalization). Storing the
+        # normalized form keeps the test independent of that internal detail.
+        out = np.nan_to_num(out, nan=1)
         path = os.path.join(DATA_DIR, f"directional_{case}.npz")
         np.savez(
             path,
