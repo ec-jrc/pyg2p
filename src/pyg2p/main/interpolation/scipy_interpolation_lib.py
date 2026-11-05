@@ -464,8 +464,8 @@ def cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexe
         
     #   [e^(−x/CDD)]^m       when 0  < d <= CDD
 
-    CDD_values = CDD_map[np.clip(((LatOrigin-latgrib[indexes])/TargetLatRes).astype(int),0,CDD_map.shape[0]-1), \
-                                        np.clip(((LonOrigin-longrib[indexes])/TargetLonRes).astype(int),0,CDD_map.shape[1]-1)]
+    CDD_values = CDD_map[np.clip(((LatOrigin-latgrib[indexes])/TargetLatRes).astype(np.int64),0,CDD_map.shape[0]-1), \
+                                        np.clip(((LonOrigin-longrib[indexes])/TargetLonRes).astype(np.int64),0,CDD_map.shape[1]-1)]
     dist_leq_CDD = distances <= CDD_values
     s.ravel()[dist_leq_CDD.ravel()] = np.exp(-distances*m_const/CDD_values).ravel()[dist_leq_CDD.ravel()]
         

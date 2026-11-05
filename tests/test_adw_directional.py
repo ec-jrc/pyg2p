@@ -132,11 +132,20 @@ def target_grid(nx, ny, lon0, lon1, lat0, lat1):
 
 
 # Fixed interpolation scenarios (name -> params). Kept in sync with the generator.
+#
+# The *_broadcast cases drive the jitted broadcasting directional function; the
+# *_loop cases set use_broadcasting=False, which exercises the pure-NumPy
+# directional loop inside _build_weights_invdist instead. Covering both makes sure
+# the two directional code paths in the ADW/Shepard mode stay pinned.
 INTERP_CASES = {
     "splits_broadcast": dict(seed=123, use_broadcasting=True, num_of_splits=4,
                              nx=30, ny=24, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
     "no_splits_broadcast": dict(seed=123, use_broadcasting=True, num_of_splits=None,
                                 nx=20, ny=16, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
+    "splits_loop": dict(seed=123, use_broadcasting=False, num_of_splits=4,
+                        nx=30, ny=24, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
+    "no_splits_loop": dict(seed=123, use_broadcasting=False, num_of_splits=None,
+                           nx=20, ny=16, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
 }
 
 
