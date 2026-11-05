@@ -252,18 +252,37 @@ def getWrongPointBestGridLikeShape(lat_in, lon_in, corners_points):
 
     return None, None, None
 
+# 2-D scalar cross product (z-component of the 3-D cross of the vectors extended
+# with z=0): a x b = a[0]*b[1] - a[1]*b[0]. Used instead of np.cross, whose 2-D
+# form was removed in NumPy 2.x.
+def cross2d(a, b):
+    return a[0] * b[1] - a[1] * b[0]
+
 # Return the intersection point of line segments `s1` and `s2`, or
 # None if they do not intersect.
 def intersection(s1, s2):
     p, r = s1[0], s1[1] - s1[0]
     q, s = s2[0], s2[1] - s2[0]
-    rxs = float(np.cross(r, s))
+    rxs = float(cross2d(r, s))
     if rxs == 0: return None
-    t = np.cross(q - p, s) / rxs
-    u = np.cross(q - p, r) / rxs
+    t = cross2d(q - p, s) / rxs
+    u = cross2d(q - p, r) / rxs
     if 0 < t < 1 and 0 < u < 1:
         return p + t * r
     return None
+
+# # Return the intersection point of line segments `s1` and `s2`, or
+# # None if they do not intersect.
+# def intersection(s1, s2):
+#     p, r = s1[0], s1[1] - s1[0]
+#     q, s = s2[0], s2[1] - s2[0]
+#     rxs = float(np.cross(r, s))
+#     if rxs == 0: return None
+#     t = np.cross(q - p, s) / rxs
+#     u = np.cross(q - p, r) / rxs
+#     if 0 < t < 1 and 0 < u < 1:
+#         return p + t * r
+#     return None
 
 # check if vertex make a convex quadrilateral
 def isConvexQuadrilateral(p1, p2, p3, p4):
