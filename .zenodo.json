@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "title": "ec-jrc/lisflood-utilities: A Python Tool for Converting and Interpolating Meteorological Data between GRIB, netCDF4, and PCRaster Formats",
+    "description": "pyg2p is a Python-based converter for meteorological and climate data formats. It enables conversion between GRIB (GRIdded Binary) files and netCDF4/PCRaster formats, with additional capabilities for manipulating GRIB messages through aggregation or unit conversion before applying format conversion. The tool also provides powerful interpolation capabilities to regrid meteorological maps to different resolutions and coordinate systems.",
+    "creators": [
+      {
+        "name": "Nappo, Domenico",
+        "affiliation": "AM-FLOW"
+      },
+      {
+        "name": "Russo, Carlo",
+        "affiliation": "Joint Research Centre",
+        "orcid": "0000-0001-8296-4345"
+      },
+      {
+        "name": "Grimaldi, Stefania",
+        "affiliation": "Joint Research Centre",
+        "orcid": "0000-0002-7025-7624"
+      },
+      {
+        "name": "Gomes, Gonçalo",
+        "affiliation": "Joint Research Centre",
+        "orcid": "0000-0001-8536-6623"
+      }
+    ]
+  }
+}
