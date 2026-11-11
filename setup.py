@@ -25,7 +25,7 @@ python setup.py testpypi
 python setup.py publish
 
 Test package install
-pip install --index-url https://test.pypi.org/simple/ pyg2p==3.2.1
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyg2p==3.3.0
 """
 
 class UploadCommand(Command):
@@ -152,7 +152,6 @@ setup_args = dict(name='pyg2p',
                   license="EUPL 1.2",
                   install_requires=requirements,
                   author="Domenico Nappo, Carlo Russo, Stefania Grimaldi",
-                  author_email="domenico.nappo@gmail.com,crl.russo@hotmail.com,ste.grimaldi.i@gmail.com",
                   package_dir={'': 'src/'},
                   py_modules=[os.path.splitext(os.path.basename(path))[0] for path in glob.glob('src/*.py*')],
                   include_package_data=True,
