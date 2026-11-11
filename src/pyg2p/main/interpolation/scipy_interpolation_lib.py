@@ -271,19 +271,6 @@ def intersection(s1, s2):
         return p + t * r
     return None
 
-# # Return the intersection point of line segments `s1` and `s2`, or
-# # None if they do not intersect.
-# def intersection(s1, s2):
-#     p, r = s1[0], s1[1] - s1[0]
-#     q, s = s2[0], s2[1] - s2[0]
-#     rxs = float(np.cross(r, s))
-#     if rxs == 0: return None
-#     t = np.cross(q - p, s) / rxs
-#     u = np.cross(q - p, r) / rxs
-#     if 0 < t < 1 and 0 < u < 1:
-#         return p + t * r
-#     return None
-
 # check if vertex make a convex quadrilateral
 def isConvexQuadrilateral(p1, p2, p3, p4):
     diagonal_intersectin = intersection([p1, p3],[p2, p4])
