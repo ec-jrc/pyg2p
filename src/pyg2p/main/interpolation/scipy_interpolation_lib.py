@@ -12,7 +12,7 @@ from scipy.spatial import cKDTree as KDTree, Delaunay
 from pyg2p.main.readers.netcdf import NetCDFReader
 from pyg2p.main.readers.pcr import PCRasterReader
 
-from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD
+from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD, INVALID_WEIGHT_MODE
 from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
 from pyg2p.util.strings import now_string
@@ -81,6 +81,7 @@ DEBUG_MAX_LON = 8+10
 
 #DEBUG_NN = 15410182
 
+ALLOWED_WEIGHTS_MODE = ('serial', 'broadcasting', 'parallel')
 
 ###########################################################################################
 ###### functions used to get correct quadrilateral points for the bilinear interpolation ####
@@ -480,10 +481,49 @@ def cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexe
 @njit(parallel=True, fastmath=False, cache=True)
 def adw_and_cdd_compute_weights_directional_in_broadcasting(
     s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
+    # All in broadcasting: 
+    # this algorithm uses huge amount of memory and deas not speed up much on standard Virtual Machine
+    if DEBUG_ADW_INTERPOLATION:
+        print("\nUsing full broadcasting")
+    # Compute xi and yi for all elements
+    k=indexes.shape[1]
+    xi = latgrib.ravel()[indexes.ravel()]
+    yi = longrib.ravel()[indexes.ravel()]
+    # Compute xi_diff and yi_diff for all elements
+    xi_diff = lat_inALL.reshape(-1,1) - xi.reshape(-1,k)
+    yi_diff = lon_inALL.reshape(-1,1) - yi.reshape(-1,k)
+    # Compute Di for all elements
+    Di = np.sqrt(xi_diff**2 + yi_diff**2)
+    # Compute cos_theta for all elements
+    cos_theta = (xi_diff.reshape(-1,k,1)* xi_diff.reshape(-1,1,k) + yi_diff.reshape(-1,k,1) * yi_diff.reshape(-1,1,k)) / (Di.reshape(-1,k,1) * Di.reshape(-1,1,k))
+    # skip when i==j, so that directional weight of i is evaluated on all points j where j!=i 
+    # TODO: tip: since cos_theta = 1 for i==j, to speed up we can skip this passage and apply i!=j only on denominator
+    # Delete the diagonal elements from cos_theta
+    # Reshape cos_theta to (n, nnear, nnear-1)
+    n = cos_theta.shape[0]
+    m = cos_theta.shape[1]
+    strided = np.lib.stride_tricks.as_strided
+    s0,s1,s2 = cos_theta[:].strides
+    cos_theta = strided(cos_theta.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
+    sj = s.T.repeat(k).reshape(k,-1,k).transpose(1,2,0).copy()
+    s0,s1,s2 = sj[:].strides
+    sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).copy().reshape(n,m,-1)
+    # sj = np.tile(s[:, np.newaxis, :], (1, m, 1))
+    # s0,s1,s2 = sj[:].strides
+    # sj = strided(sj.ravel()[1:], shape=(n,m-1,m), strides=(s0,s1+s2,s2)).reshape(n,m,-1)
+
+    numerator = np.sum((1 - cos_theta) * sj, axis=2)
+    denominator = np.sum(sj, axis=2)
+    # Compute weight_directional for all elements
+    weight_directional = numerator / denominator
+    
+    return weight_directional
+
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_and_cdd_compute_weights_directional_in_parallel(
+    s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
     # Per-cell parallel implementation (prange).
-    # The previous version built full (n, k, k) temporaries via broadcasting and
-    # as_strided().copy(), which is memory-bandwidth bound and parallelizes poorly
-    # (especially on VMs). This version computes the directional weight of each
+    # This version computes the directional weight of each
     # target cell independently in a prange loop, using only small (k,) and scalar
     # work per cell, so it scales across cores and avoids the large allocations.
     #
@@ -548,7 +588,7 @@ class ScipyInterpolation(object):
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
                     mv_target, mv_source, target_is_rotated=False, parallel=False,
-                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, use_broadcasting = False,
+                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, weights_mode = 'parallel',
                     num_of_splits = None):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
@@ -563,11 +603,11 @@ class ScipyInterpolation(object):
         self.cdd_map = cdd_map
         self.cdd_mode = cdd_mode
         self.cdd_options = cdd_options
-        self.use_broadcasting = use_broadcasting
+        self.weights_mode = weights_mode
         self.num_of_splits = num_of_splits
         
         if DEBUG_ADW_INTERPOLATION:
-            self.use_broadcasting = True
+            self.weights_mode = 'parallel'
 
         self._mv_target = mv_target
         self._mv_source = mv_source
@@ -664,9 +704,9 @@ class ScipyInterpolation(object):
                 # return results, distances, indexes
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
             elif self.mode == 'adw' and self.nnear == 11:
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting, ref_radius=ref_radius)             
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', weights_mode=self.weights_mode, ref_radius=ref_radius)             
             elif self.mode == 'cdd':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, ref_radius=None,
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', weights_mode=self.weights_mode, ref_radius=None,
                                                                        cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
             elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
                 # BILINEAR INTERPOLATION
@@ -797,8 +837,13 @@ class ScipyInterpolation(object):
     # Inverse distance weights (IDW) interpolation, with optional Angular distance weighting (ADW) factor
     # if adw_type == None -> simple IDW 
     # if adw_type == Shepard -> Shepard 1968 original formulation
-    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False, ref_radius = None, 
+    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, weights_mode = 'parallel', ref_radius = None, 
                                cdd_map='', cdd_mode='', cdd_options=None):
+
+        if not weights_mode in ALLOWED_WEIGHTS_MODE:
+            raise ApplicationException.get_exc(INVALID_WEIGHT_MODE,
+                f"weights mode not supported (weights_mode = {weights_mode})")
+
         if DEBUG_ADW_INTERPOLATION:
             if adw_type != "Shepard":
                 self.min_upper_bound = 1000000000
@@ -849,7 +894,7 @@ class ScipyInterpolation(object):
                 # now it applies the selection of station, too. k=11 stations are need to perform the full elavaluation
 
                 # initialize weights
-                if (use_broadcasting == False):
+                if weights_mode == 'serial':
                     weight_directional = np.zeros_like(distances)
                 start = time.time()
                 s = np.zeros_like(distances)
@@ -964,7 +1009,7 @@ class ScipyInterpolation(object):
     
 
             # start_time = time.time()
-            if not use_broadcasting:
+            if weights_mode == 'serial':
                 weight_directional = np.zeros_like(distances)
                 for i in range(nnear):
                     xj_diff = self.lat_inALL[:, np.newaxis] - self.latgrib[indexes]
@@ -997,11 +1042,14 @@ class ScipyInterpolation(object):
             else:
                 # All in broadcasting:     
                 start = time.time()
-                weight_directional = adw_and_cdd_compute_weights_directional_in_broadcasting(
-                    s, self.latgrib, self.longrib, indexes,
-                    self.lat_inALL, self.lon_inALL)
+                if weights_mode == 'parallel':
+                    weight_directional = adw_and_cdd_compute_weights_directional_in_parallel(
+                        s, self.latgrib, self.longrib, indexes, self.lat_inALL, self.lon_inALL)
+                else:
+                    weight_directional = adw_and_cdd_compute_weights_directional_in_broadcasting(
+                        s, self.latgrib, self.longrib, indexes, self.lat_inALL, self.lon_inALL)
                 checktime = time.time()
-                stdout.write('adw_and_cdd_compute_weights_directional_in_broadcasting time (sec): {}\n'.format(checktime - start))
+                stdout.write('adw_and_cdd_compute_weights_directional_in_{} time (sec): {}\n'.format(weights_mode, checktime - start))
 
             # replace all the nan values with "1"
             # this is because we have NaNs when denominator is zero, that happens when only one station is considered 

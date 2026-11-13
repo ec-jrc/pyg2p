@@ -20,6 +20,7 @@ NO_WRITE_PERMISSIONS = 8500
 NO_READ_PERMISSIONS = 8600
 NOT_EXISTING_PATH = 8600
 MISSING_CONFIG_FILES = 8700
+INVALID_WEIGHT_MODE = 8800
 WEIRD_STUFF = 9000
 WRONG_ARGS = 10000
 
@@ -61,6 +62,7 @@ class ApplicationException(Exception):
         JSON_ERROR: 'Error in json configuration file.',
         EXISTING_GEOPOTENTIAL: 'Geopotential already existing in configuration with same id',
         INVALID_INTERPOL_METHOD: 'Interpolation method not valid',
+        INVALID_WEIGHT_MODE: 'Weight mode not valid',
         WEIRD_STUFF: 'Cannot continue: weird stuff happening',
         NO_WRITE_PERMISSIONS: 'You cannot write to folder',
         NO_READ_PERMISSIONS: 'You cannot read from folder',

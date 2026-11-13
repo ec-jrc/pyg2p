@@ -107,7 +107,7 @@ def make_directional_inputs(case):
                 indexes=indexes, lat_inALL=lat_in, lon_inALL=lon_in)
 
 
-def build_adw_interpolator(seed, use_broadcasting, num_of_splits, n_stations=400):
+def build_adw_interpolator(seed, weights_mode, num_of_splits, n_stations=400):
     """Deterministic ADW ScipyInterpolation over synthetic stations."""
     rng = np.random.default_rng(seed)
     latgrib = rng.uniform(30.0, 60.0, size=n_stations)
@@ -118,7 +118,7 @@ def build_adw_interpolator(seed, use_broadcasting, num_of_splits, n_stations=400
         longrib, latgrib, grid_details, source_values,
         nnear=11, mv_target=-9999.0, mv_source=-9999.0,
         target_is_rotated=False, parallel=False, mode='adw',
-        use_broadcasting=use_broadcasting, num_of_splits=num_of_splits,
+        weights_mode=weights_mode, num_of_splits=num_of_splits,
     )
     si.min_upper_bound = 1e8
     return si
@@ -134,17 +134,17 @@ def target_grid(nx, ny, lon0, lon1, lat0, lat1):
 # Fixed interpolation scenarios (name -> params). Kept in sync with the generator.
 #
 # The *_broadcast cases drive the jitted broadcasting directional function; the
-# *_loop cases set use_broadcasting=False, which exercises the pure-NumPy
+# *_loop cases set weights_mode='serial', which exercises the pure-NumPy
 # directional loop inside _build_weights_invdist instead. Covering both makes sure
 # the two directional code paths in the ADW/Shepard mode stay pinned.
 INTERP_CASES = {
-    "splits_broadcast": dict(seed=123, use_broadcasting=True, num_of_splits=4,
+    "splits_broadcast": dict(seed=123, weights_mode='broadcasting', num_of_splits=4,
                              nx=30, ny=24, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
-    "no_splits_broadcast": dict(seed=123, use_broadcasting=True, num_of_splits=None,
+    "no_splits_broadcast": dict(seed=123, weights_mode='broadcasting', num_of_splits=None,
                                 nx=20, ny=16, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
-    "splits_loop": dict(seed=123, use_broadcasting=False, num_of_splits=4,
+    "splits_loop": dict(seed=123, weights_mode='serial', num_of_splits=4,
                         nx=30, ny=24, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
-    "no_splits_loop": dict(seed=123, use_broadcasting=False, num_of_splits=None,
+    "no_splits_loop": dict(seed=123, weights_mode='serial', num_of_splits=None,
                            nx=20, ny=16, lon0=-8.0, lon1=28.0, lat0=32.0, lat1=58.0),
 }
 
@@ -206,7 +206,7 @@ class TestInterpolateAdwGolden:
 
         si = build_adw_interpolator(
             seed=params["seed"],
-            use_broadcasting=params["use_broadcasting"],
+            weights_mode=params["weights_mode"],
             num_of_splits=params["num_of_splits"],
         )
         lonv, latv = target_grid(params["nx"], params["ny"],

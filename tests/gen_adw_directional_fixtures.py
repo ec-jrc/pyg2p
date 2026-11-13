@@ -63,7 +63,7 @@ def gen_interpolate():
     for case, params in INTERP_CASES.items():
         si = build_adw_interpolator(
             seed=params["seed"],
-            use_broadcasting=params["use_broadcasting"],
+            weights_mode=params["weights_mode"],
             num_of_splits=params["num_of_splits"],
         )
         lonv, latv = target_grid(params["nx"], params["ny"],

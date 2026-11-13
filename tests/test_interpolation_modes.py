@@ -79,7 +79,7 @@ def _load(name):
 # Fixed input builders (MUST stay identical to the generator module)
 # ---------------------------------------------------------------------------
 
-def build_interpolator(mode, seed=123, n_stations=400, use_broadcasting=True,
+def build_interpolator(mode, seed=123, n_stations=400, weights_mode='parallel',
                        num_of_splits=None, **kwargs):
     """Deterministic ScipyInterpolation over synthetic stations for a given mode."""
     rng = np.random.default_rng(seed)
@@ -91,7 +91,7 @@ def build_interpolator(mode, seed=123, n_stations=400, use_broadcasting=True,
         longrib, latgrib, grid_details, source_values,
         nnear=NNEAR[mode], mv_target=-9999.0, mv_source=-9999.0,
         target_is_rotated=False, parallel=False, mode=mode,
-        use_broadcasting=use_broadcasting, num_of_splits=num_of_splits, **kwargs)
+        weights_mode=weights_mode, num_of_splits=num_of_splits, **kwargs)
     return si
 
 
@@ -118,7 +118,7 @@ def build_cdd_interpolator(cdd_mode='MixHofstraShepard', seed=123, n_stations=50
         longrib, latgrib, grid_details, source_values,
         nnear=NNEAR["cdd"], mv_target=-9999.0, mv_source=-9999.0,
         target_is_rotated=False, parallel=False, mode='cdd',
-        use_broadcasting=True, num_of_splits=None,
+        weights_mode='broadcasting', num_of_splits=None,
         cdd_map=CDD_MAP, cdd_mode=cdd_mode, cdd_options=None)
     return si, lonv, latv
 

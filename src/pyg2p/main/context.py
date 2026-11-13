@@ -6,13 +6,14 @@ from . import Configuration
 from .. import __version__
 from ..util import files, strings
 from .manipulation.aggregator import ACCUMULATION
-from ..exceptions import (ApplicationException, INVALID_INTERPOL_METHOD,
+from ..exceptions import (ApplicationException, INVALID_INTERPOL_METHOD, INVALID_WEIGHT_MODE,
                           WRONG_ARGS, NOT_A_NUMBER, NOT_EXISTING_MAPS, MISSING_INPUT_GRIB, NOT_EXISTING_INPUT_GRIB)
 
 
 class Context:
     allowed_interp_methods = ('grib_nearest', 'grib_invdist', 'nearest', 'invdist', 'adw', 'cdd', 'bilinear', 'triangulation', 'bilinear_delaunay')
-    default_values = {'interpolation.mode': 'grib_nearest', 'outMaps.unitTime': '24'}
+    allowed_weights_mode = ('serial', 'broadcasting', 'parallel')
+    default_values = {'interpolation.mode': 'grib_nearest', 'outMaps.unitTime': '24', 'interpolation.weights_mode': 'parallel'}
 
     def __getitem__(self, param):
         return self._vars[param]
@@ -105,6 +106,9 @@ class Context:
 
             if not self._vars['interpolation.mode'] in self.allowed_interp_methods:
                 raise ApplicationException.get_exc(INVALID_INTERPOL_METHOD, details=self._vars['interpolation.mode'])
+
+            if not self._vars['interpolation.weights_mode'] in self.allowed_weights_mode:
+                raise ApplicationException.get_exc(INVALID_WEIGHT_MODE, details=self._vars['interpolation.weights_mode'])
 
             # create out dir if not existing
             try:
@@ -363,7 +367,7 @@ class ExecutionContext(Context):
         self._vars['interpolation.cdd_map'] = interpolation_conf.get('@cdd_map', '')
         self._vars['interpolation.cdd_mode'] = interpolation_conf.get('@cdd_mode', '')
         self._vars['interpolation.cdd_options'] = interpolation_conf.get('@cdd_options', None)
-        self._vars['interpolation.use_broadcasting'] = interpolation_conf.get('@use_broadcasting', False)
+        self._vars['interpolation.weights_mode'] = interpolation_conf.get('@weights_mode', self.default_values['interpolation.weights_mode'])
         self._vars['interpolation.num_of_splits'] = interpolation_conf.get('@num_of_splits', None)
         self._vars['interpolation.rotated_target'] = interpolation_conf.get('@rotated_target', False)
         if not self._vars['interpolation.dir'] and interpolation_conf.get('@intertableDir'):
