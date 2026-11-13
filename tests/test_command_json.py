@@ -8,8 +8,10 @@ tests here exercise the full CLI path:
     JSON command file  ->  Command / run_command  ->  pyg2p_exe  ->  Controller
                        ->  interpolation + conversion/aggregation  ->  output maps
 
-A temporary ``.json`` execution file is written on the fly for every test and fed
-to pyg2p via ``-c`` exactly like a user would on the command line. All inputs come
+The JSON command files are *committed* under ``tests/data/jsons/`` and fed to
+pyg2p via ``-c`` exactly like a user would on the command line. They use repo
+relative paths (``tests/data/...``), so the tests must run from the repository
+root (pytest's rootdir), which is where the suite already runs. All inputs come
 from the existing fixtures under ``tests/data``:
 
     input.grib   5 GRIB messages of ``2t`` (steps 0/6/12/18/24), rotated_ll grid,
@@ -20,13 +22,16 @@ from the existing fixtures under ``tests/data``:
 
 Interpolation mode
 ------------------
-The default tests use ``nearest`` so they reuse the intertable already committed
-in the repo (``tests/data/tbl_pf10slhf_550800_scipy_nearest.npy.gz``). That keeps
-them fast, deterministic and side-effect free: ``@intertableDir`` points at
+The ``nearest`` configs reuse the intertable already committed in the repo
+(``tests/data/tbl_pf10slhf_550800_scipy_nearest.npy.gz``). That keeps those tests
+fast, deterministic and side-effect free: the JSON ``@intertableDir`` points at
 ``tests/data`` and no new table is written.
 
-The ``invdist`` case has to *create* its intertable, so it is marked ``slow``
-(needs ``-X/--runslow``) and removes the generated table afterwards.
+The ``invdist`` and ``adw`` configs have no committed intertable, so those tests
+are marked ``slow`` (need ``-X/--runslow``). They create the table inside a
+throwaway temp dir (``-N/--intertableDir`` on the command line overrides the JSON)
+and redirect ``UserConfiguration.config_dir`` to a throwaway ``.pyg2p``, so neither
+the repo nor the real user configuration is touched.
 """
 
 import os
@@ -43,11 +48,12 @@ from pyg2p.main.readers.pcr import PCRasterReader
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(TESTS_DIR, 'data')
+JSONS_DIR = os.path.join(DATA_DIR, 'jsons')
+# The committed JSON command files use repo-relative paths (tests/data/...),
+# which pyg2p resolves against the current working directory.
+REPO_ROOT = os.path.dirname(TESTS_DIR)
 
 INPUT_GRIB = os.path.join(DATA_DIR, 'input.grib')
-LAT_MAP = os.path.join(DATA_DIR, 'lat.map')
-LON_MAP = os.path.join(DATA_DIR, 'lon.map')
-DEM_MAP = os.path.join(DATA_DIR, 'dem.map')
 
 # PCRaster missing value written by pyg2p for cells outside the valid area.
 PCR_MV = -3.4028234663852886e+38
@@ -63,82 +69,83 @@ EPS_MEMBER = 2
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _write_command_file(tmp_dir, execution):
-    """Serialize an ``Execution`` block to a real JSON command file on disk."""
-    path = os.path.join(tmp_dir, 'command.json')
-    with open(path, 'w') as f:
-        json.dump({'Execution': execution}, f, indent=2)
+def _json(name):
+    """Absolute path to a committed JSON command file under tests/data/jsons/."""
+    path = os.path.join(JSONS_DIR, name)
+    assert os.path.exists(path), f"Missing committed command file: {path}"
     return path
 
 
-def _base_execution(mode='nearest', extra_interpolation=None, parameter=None,
-                    out_format=None, aggregation=None, name='json-e2e'):
-    """Build an ``Execution`` dict pointing at the committed test fixtures."""
-    interpolation = {
-        '@latMap': LAT_MAP,
-        '@lonMap': LON_MAP,
-        '@mode': mode,
-        # Reuse / create tables next to the other fixtures instead of ~/.pyg2p.
-        '@intertableDir': DATA_DIR,
-    }
-    if extra_interpolation:
-        interpolation.update(extra_interpolation)
-
-    out_maps = {
-        '@cloneMap': DEM_MAP,
-        '@fmap': 1,
-        '@ext': 1,
-        '@unitTime': 24,
-        '@namePrefix': 'pg',
-        'Interpolation': interpolation,
-    }
-    if out_format:
-        out_maps['@format'] = out_format
-
-    execution = {
-        '@name': name,
-        'OutMaps': out_maps,
-        'Parameter': parameter or {'@shortName': '2t'},
-    }
-    if aggregation:
-        execution['Aggregation'] = aggregation
-    return execution
-
-
-def _run(tmp_dir, execution, create_intertable=False, intertable_dir=None):
-    """Write the JSON command file and run pyg2p through the CLI Command builder."""
-    cmd_path = _write_command_file(tmp_dir, execution)
+def _run(cmd_file, out_dir, create_intertable=False, intertable_dir=None):
+    """Run pyg2p against a committed JSON command file via the CLI Command builder."""
     cmd = (Command()
-           .with_cmdpath(cmd_path)
+           .with_cmdpath(cmd_file)
            .with_inputfile(INPUT_GRIB)
-           .with_outdir(tmp_dir)
+           .with_outdir(out_dir)
            .with_eps(EPS_MEMBER)
            .with_log_level('ERROR'))
     if intertable_dir:
         cmd = cmd.with_intertable_dir(intertable_dir)
     if create_intertable:
         cmd = cmd.with_create_intertable()
-    rc = run_command(cmd)
-    return rc, cmd_path
+    return run_command(cmd)
 
 
-def _pcr_outputs(tmp_dir, prefix='pg'):
-    return sorted(glob.glob(os.path.join(tmp_dir, f'{prefix}*')))
+def _pcr_outputs(out_dir, prefix='pg'):
+    return sorted(glob.glob(os.path.join(out_dir, f'{prefix}*')))
+
+
+class _FakeGlobalConf:
+    """Minimal stand-in for GlobalConf so global intertable/geopotential dirs
+    resolve to our temp dir instead of the unset (None) package defaults."""
+    def __init__(self, tables_dir):
+        self.vars = {'intertables': tables_dir, 'geopotentials': tables_dir}
+
+
+def _setup_throwaway_config(monkeypatch, tmp_dir):
+    """Point pyg2p at a throwaway ~/.pyg2p and a temp intertables dir.
+
+    Returns the intertables dir. Creating an intertable via the CLI requires an
+    ``INTERTABLES`` path in a ``.conf`` file (resolved from
+    ``UserConfiguration.config_dir``), and the intertable-id resolution also joins
+    the *global* intertables dir, which is unset (None) in the installed package.
+    We therefore redirect the user config dir to a temp ``.pyg2p`` and preseed the
+    ``GlobalConf`` singleton so the global dir points at the same temp dir. Nothing
+    touches the repo or the real user configuration.
+    """
+    from pyg2p.main.config import UserConfiguration, GlobalConf
+
+    conf_dir = os.path.join(tmp_dir, 'pyg2p_conf') + os.sep
+    os.makedirs(conf_dir)
+    tables_dir = os.path.join(tmp_dir, 'intertables')
+    os.makedirs(tables_dir)
+    with open(os.path.join(conf_dir, 'paths.conf'), 'w') as f:
+        f.write(f'INTERTABLES={tables_dir}\n')
+        f.write(f'GEOPOTENTIALS={tables_dir}\n')
+    monkeypatch.setattr(UserConfiguration, 'config_dir', conf_dir)
+    # Replace the cached GlobalConf singleton so global_data_path != None.
+    monkeypatch.setattr(GlobalConf, 'instance', _FakeGlobalConf(tables_dir))
+    return tables_dir
 
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def _run_from_repo_root(monkeypatch):
+    """Resolve the JSON's repo-relative paths regardless of pytest's launch dir."""
+    monkeypatch.chdir(REPO_ROOT)
+
+
 class TestCommandJson:
 
     def test_nearest_pcraster_output(self):
         """Full run from a JSON file: one PCRaster map per GRIB step, right shape."""
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            execution = _base_execution(mode='nearest')
-            rc, _ = _run(tmp_dir, execution)
+        with tempfile.TemporaryDirectory() as out_dir:
+            rc = _run(_json('nearest.json'), out_dir)
 
             assert rc == 0
-            outputs = _pcr_outputs(tmp_dir)
+            outputs = _pcr_outputs(out_dir)
             assert len(outputs) == N_STEPS
 
             for out in outputs:
@@ -149,22 +156,16 @@ class TestCommandJson:
 
     def test_nearest_applies_conversion(self):
         """@applyConversion k2c must turn Kelvin into plausible Celsius values."""
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # Same run without conversion...
-            exec_k = _base_execution(mode='nearest', parameter={'@shortName': '2t'})
-            rc_k, _ = _run(tmp_dir, exec_k)
-            assert rc_k == 0
-            raw = PCRasterReader(_pcr_outputs(tmp_dir)[0]).values
+        with tempfile.TemporaryDirectory() as out_dir:
+            # Same config without conversion...
+            assert _run(_json('nearest.json'), out_dir) == 0
+            raw = PCRasterReader(_pcr_outputs(out_dir)[0]).values
             raw_valid = raw[raw != PCR_MV]
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with tempfile.TemporaryDirectory() as out_dir:
             # ...and with k2c conversion.
-            exec_c = _base_execution(
-                mode='nearest',
-                parameter={'@shortName': '2t', '@applyConversion': 'k2c'})
-            rc_c, _ = _run(tmp_dir, exec_c)
-            assert rc_c == 0
-            conv = PCRasterReader(_pcr_outputs(tmp_dir)[0]).values
+            assert _run(_json('nearest_k2c.json'), out_dir) == 0
+            conv = PCRasterReader(_pcr_outputs(out_dir)[0]).values
             conv_valid = conv[conv != PCR_MV]
 
         # Kelvin values are ~273 higher than the converted Celsius ones.
@@ -175,15 +176,11 @@ class TestCommandJson:
     def test_nearest_netcdf_output(self):
         """@format netcdf must produce a single NetCDF file with all timesteps."""
         netCDF4 = pytest.importorskip('netCDF4')
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            execution = _base_execution(
-                mode='nearest',
-                out_format='netcdf',
-                parameter={'@shortName': '2t', '@applyConversion': 'k2c'})
-            rc, _ = _run(tmp_dir, execution)
+        with tempfile.TemporaryDirectory() as out_dir:
+            rc = _run(_json('nearest_netcdf.json'), out_dir)
 
             assert rc == 0
-            nc_files = glob.glob(os.path.join(tmp_dir, '*.nc'))
+            nc_files = glob.glob(os.path.join(out_dir, '*.nc'))
             assert len(nc_files) == 1
 
             ds = netCDF4.Dataset(nc_files[0])
@@ -198,16 +195,11 @@ class TestCommandJson:
 
     def test_nearest_accumulation_aggregation(self):
         """Accumulation aggregation over 24h collapses the 5 steps into fewer maps."""
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            execution = _base_execution(
-                mode='nearest',
-                parameter={'@shortName': '2t'},
-                aggregation={'@step': 24, '@type': 'accumulation',
-                             '@forceZeroArray': 'y'})
-            rc, _ = _run(tmp_dir, execution)
+        with tempfile.TemporaryDirectory() as out_dir:
+            rc = _run(_json('nearest_accumulation.json'), out_dir)
 
             assert rc == 0
-            outputs = _pcr_outputs(tmp_dir)
+            outputs = _pcr_outputs(out_dir)
             # Aggregating to 24h windows yields fewer maps than the 5 raw steps.
             assert 0 < len(outputs) < N_STEPS
             for out in outputs:
@@ -215,11 +207,11 @@ class TestCommandJson:
 
     def test_missing_command_file_returns_error(self):
         """pyg2p_exe reports a non-zero return code for a missing JSON file."""
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with tempfile.TemporaryDirectory() as out_dir:
             cmd = (Command()
-                   .with_cmdpath(os.path.join(tmp_dir, 'does_not_exist.json'))
+                   .with_cmdpath(os.path.join(out_dir, 'does_not_exist.json'))
                    .with_inputfile(INPUT_GRIB)
-                   .with_outdir(tmp_dir)
+                   .with_outdir(out_dir)
                    .with_eps(EPS_MEMBER)
                    .with_log_level('ERROR'))
             assert run_command(cmd) == 1
@@ -227,51 +219,29 @@ class TestCommandJson:
     def test_json_run_is_deterministic(self):
         """Running the very same JSON command file twice yields identical maps."""
         def first_map_values():
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                execution = _base_execution(
-                    mode='nearest',
-                    parameter={'@shortName': '2t', '@applyConversion': 'k2c'})
-                rc, _ = _run(tmp_dir, execution)
-                assert rc == 0
-                return PCRasterReader(_pcr_outputs(tmp_dir)[0]).values
+            with tempfile.TemporaryDirectory() as out_dir:
+                assert _run(_json('nearest_k2c.json'), out_dir) == 0
+                return PCRasterReader(_pcr_outputs(out_dir)[0]).values
 
         assert np.array_equal(first_map_values(), first_map_values(), equal_nan=True)
 
     @pytest.mark.slow
     def test_invdist_creates_and_uses_intertable(self, monkeypatch):
-        """invdist from a JSON file; the intertable is created inside the temp dir.
-
-        ``nearest`` reuses a committed table, but ``invdist`` has none, so this run
-        needs the ``-B/createIntertable`` flag plus an ``INTERTABLES`` path in a
-        ``.conf`` file (that is how pyg2p resolves where to write a new table).
-        ``UserConfiguration.config_dir`` is redirected to a throwaway ``.pyg2p`` so
-        neither the repo nor the real user configuration is touched.
-        """
-        from pyg2p.main.config import UserConfiguration
-
+        """invdist from a JSON file; the intertable is created inside the temp dir."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            conf_dir = os.path.join(tmp_dir, 'pyg2p_conf') + os.sep
-            os.makedirs(conf_dir)
-            tables_dir = os.path.join(tmp_dir, 'intertables')
-            os.makedirs(tables_dir)
-            with open(os.path.join(conf_dir, 'paths.conf'), 'w') as f:
-                f.write(f'INTERTABLES={tables_dir}\n')
-                f.write(f'GEOPOTENTIALS={tables_dir}\n')
+            tables_dir = _setup_throwaway_config(monkeypatch, tmp_dir)
+            out_dir = os.path.join(tmp_dir, 'out')
+            os.makedirs(out_dir)
 
-            monkeypatch.setattr(UserConfiguration, 'config_dir', conf_dir)
-
-            execution = _base_execution(
-                mode='invdist',
-                extra_interpolation={'@intertableDir': tables_dir})
-            rc, _ = _run(tmp_dir, execution,
-                         create_intertable=True, intertable_dir=tables_dir)
+            rc = _run(_json('invdist.json'), out_dir,
+                      create_intertable=True, intertable_dir=tables_dir)
 
             assert rc == 0
             # The intertable must have been generated under the temp dir.
             tables = glob.glob(os.path.join(tables_dir, '*_scipy_invdist.npy.gz'))
             assert len(tables) == 1
 
-            outputs = _pcr_outputs(tmp_dir)
+            outputs = _pcr_outputs(out_dir)
             assert len(outputs) == N_STEPS
             for out in outputs:
                 assert PCRasterReader(out).values.shape == TARGET_SHAPE
@@ -279,41 +249,32 @@ class TestCommandJson:
     def _run_adw_weights_mode(self, monkeypatch, weights_mode):
         """Run the full ADW JSON pipeline once for a given @weights_mode.
 
-        Returns the stacked output maps (one per GRIB step). ADW has no committed
-        intertable, so a throwaway config dir plus the create-intertable flag are
-        used, exactly like ``test_invdist_creates_and_uses_intertable``.
+        Reads the committed ``adw_<weights_mode>.json`` command file, confirms it
+        carries the expected ``@weights_mode``, runs it, and returns the stacked
+        output maps (one per GRIB step). ADW has no committed intertable, so a
+        throwaway config dir plus the create-intertable flag are used, exactly like
+        ``test_invdist_creates_and_uses_intertable``.
         """
-        from pyg2p.main.config import UserConfiguration
+        cmd_file = _json(f'adw_{weights_mode}.json')
+        # The committed JSON really carries the expected @weights_mode.
+        with open(cmd_file) as f:
+            interp = json.load(f)['Execution']['OutMaps']['Interpolation']
+        assert interp['@weights_mode'] == weights_mode
+        assert interp['@mode'] == 'adw'
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            conf_dir = os.path.join(tmp_dir, 'pyg2p_conf') + os.sep
-            os.makedirs(conf_dir)
-            tables_dir = os.path.join(tmp_dir, 'intertables')
-            os.makedirs(tables_dir)
-            with open(os.path.join(conf_dir, 'paths.conf'), 'w') as f:
-                f.write(f'INTERTABLES={tables_dir}\n')
-                f.write(f'GEOPOTENTIALS={tables_dir}\n')
+            tables_dir = _setup_throwaway_config(monkeypatch, tmp_dir)
+            out_dir = os.path.join(tmp_dir, 'out')
+            os.makedirs(out_dir)
 
-            monkeypatch.setattr(UserConfiguration, 'config_dir', conf_dir)
-
-            execution = _base_execution(
-                mode='adw',
-                extra_interpolation={'@intertableDir': tables_dir,
-                                     '@weights_mode': weights_mode})
-            rc, cmd_path = _run(tmp_dir, execution,
-                                create_intertable=True, intertable_dir=tables_dir)
-
-            # The JSON file on disk really carries the @weights_mode key.
-            with open(cmd_path) as f:
-                written = json.load(f)
-            interp = written['Execution']['OutMaps']['Interpolation']
-            assert interp['@weights_mode'] == weights_mode
+            rc = _run(cmd_file, out_dir,
+                      create_intertable=True, intertable_dir=tables_dir)
 
             assert rc == 0
             tables = glob.glob(os.path.join(tables_dir, '*_scipy_adw.npy.gz'))
             assert len(tables) == 1
 
-            outputs = _pcr_outputs(tmp_dir)
+            outputs = _pcr_outputs(out_dir)
             assert len(outputs) == N_STEPS
             maps = np.array([PCRasterReader(out).values for out in outputs])
             assert maps.shape[1:] == TARGET_SHAPE
@@ -331,7 +292,8 @@ class TestCommandJson:
         stations on a small grid, so they are not directly comparable to a real
         JSON run over input.grib on the 810x680 target grid. Instead we use that
         same equivalence as the reference here: run the full JSON pipeline once per
-        mode and require the resulting maps to match.
+        mode (from the committed adw_*.json files) and require the resulting maps to
+        match.
 
         Tolerance note: the golden ADW tests compare float64 arrays straight from
         ScipyInterpolation and can use RTOL=1e-9. Here the values have been written
@@ -361,24 +323,12 @@ class TestCommandJson:
     @pytest.mark.slow
     def test_invalid_weights_mode_rejected(self, monkeypatch):
         """An unsupported @weights_mode makes the JSON-driven run fail cleanly."""
-        from pyg2p.main.config import UserConfiguration
-
         with tempfile.TemporaryDirectory() as tmp_dir:
-            conf_dir = os.path.join(tmp_dir, 'pyg2p_conf') + os.sep
-            os.makedirs(conf_dir)
-            tables_dir = os.path.join(tmp_dir, 'intertables')
-            os.makedirs(tables_dir)
-            with open(os.path.join(conf_dir, 'paths.conf'), 'w') as f:
-                f.write(f'INTERTABLES={tables_dir}\n')
-                f.write(f'GEOPOTENTIALS={tables_dir}\n')
+            tables_dir = _setup_throwaway_config(monkeypatch, tmp_dir)
+            out_dir = os.path.join(tmp_dir, 'out')
+            os.makedirs(out_dir)
 
-            monkeypatch.setattr(UserConfiguration, 'config_dir', conf_dir)
-
-            execution = _base_execution(
-                mode='adw',
-                extra_interpolation={'@intertableDir': tables_dir,
-                                     '@weights_mode': 'not-a-mode'})
-            rc, _ = _run(tmp_dir, execution,
-                         create_intertable=True, intertable_dir=tables_dir)
+            rc = _run(_json('adw_invalid_weights_mode.json'), out_dir,
+                      create_intertable=True, intertable_dir=tables_dir)
 
             assert rc == 1
