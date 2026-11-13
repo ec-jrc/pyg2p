@@ -51,7 +51,7 @@ class TestInterpolation:
         d['interpolation.create'] = True
         d['interpolation.parallel'] = True
         d['interpolation.mode'] = 'adw'
-        d['interpolation.use_broadcasting'] = True
+        d['interpolation.weights_mode'] = 'parallel'
         file = d['input.file']
         reader = GRIBReader(file)
         messages = reader.select_messages(shortName='2t')
@@ -77,7 +77,7 @@ class TestInterpolation:
         d['interpolation.cdd_map'] = 'tests/data/cdd_temp_map.nc'
         d['interpolation.cdd_options'] = None
         d['interpolation.cdd_mode'] = 'MixHofstraShepard'
-        d['interpolation.use_broadcasting'] = True
+        d['interpolation.weights_mode'] = 'broadcasting'
         file = d['input.file']
         reader = GRIBReader(file)
         messages = reader.select_messages(shortName='2t')

@@ -12,7 +12,7 @@ from scipy.spatial import cKDTree as KDTree, Delaunay
 from pyg2p.main.readers.netcdf import NetCDFReader
 from pyg2p.main.readers.pcr import PCRasterReader
 
-from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD
+from ...exceptions import ApplicationException, WEIRD_STUFF, INVALID_INTERPOL_METHOD, INVALID_WEIGHT_MODE
 from pyg2p.util.numeric import mask_it, empty
 from pyg2p.util.generics import progress_step_and_backchar
 from pyg2p.util.strings import now_string
@@ -20,7 +20,7 @@ from pyg2p.util.strings import now_string
 #from matplotlib import pyplot as plt
 from scipy.integrate import quad
 
-from numba import njit
+from numba import njit, prange
 
 
 DEBUG_BILINEAR_INTERPOLATION = False
@@ -81,6 +81,7 @@ DEBUG_MAX_LON = 8+10
 
 #DEBUG_NN = 15410182
 
+ALLOWED_WEIGHTS_MODE = ('serial', 'broadcasting', 'parallel')
 
 ###########################################################################################
 ###### functions used to get correct quadrilateral points for the bilinear interpolation ####
@@ -252,15 +253,21 @@ def getWrongPointBestGridLikeShape(lat_in, lon_in, corners_points):
 
     return None, None, None
 
+# 2-D scalar cross product (z-component of the 3-D cross of the vectors extended
+# with z=0): a x b = a[0]*b[1] - a[1]*b[0]. Used instead of np.cross, whose 2-D
+# form was removed in NumPy 2.x.
+def cross2d(a, b):
+    return a[0] * b[1] - a[1] * b[0]
+
 # Return the intersection point of line segments `s1` and `s2`, or
 # None if they do not intersect.
 def intersection(s1, s2):
     p, r = s1[0], s1[1] - s1[0]
     q, s = s2[0], s2[1] - s2[0]
-    rxs = float(np.cross(r, s))
+    rxs = float(cross2d(r, s))
     if rxs == 0: return None
-    t = np.cross(q - p, s) / rxs
-    u = np.cross(q - p, r) / rxs
+    t = cross2d(q - p, s) / rxs
+    u = cross2d(q - p, r) / rxs
     if 0 < t < 1 and 0 < u < 1:
         return p + t * r
     return None
@@ -464,8 +471,8 @@ def cdd_newetal_compute_weights_from_cutoff_distances(distances, CDD_map, indexe
         
     #   [e^(−x/CDD)]^m       when 0  < d <= CDD
 
-    CDD_values = CDD_map[np.clip(((LatOrigin-latgrib[indexes])/TargetLatRes).astype(int),0,CDD_map.shape[0]-1), \
-                                        np.clip(((LonOrigin-longrib[indexes])/TargetLonRes).astype(int),0,CDD_map.shape[1]-1)]
+    CDD_values = CDD_map[np.clip(((LatOrigin-latgrib[indexes])/TargetLatRes).astype(np.int64),0,CDD_map.shape[0]-1), \
+                                        np.clip(((LonOrigin-longrib[indexes])/TargetLonRes).astype(np.int64),0,CDD_map.shape[1]-1)]
     dist_leq_CDD = distances <= CDD_values
     s.ravel()[dist_leq_CDD.ravel()] = np.exp(-distances*m_const/CDD_values).ravel()[dist_leq_CDD.ravel()]
         
@@ -512,6 +519,65 @@ def adw_and_cdd_compute_weights_directional_in_broadcasting(
     
     return weight_directional
 
+@njit(parallel=True, fastmath=False, cache=True)
+def adw_and_cdd_compute_weights_directional_in_parallel(
+    s,latgrib,longrib,indexes,lat_inALL,lon_inALL):
+    # Per-cell parallel implementation (prange).
+    # This version computes the directional weight of each
+    # target cell independently in a prange loop, using only small (k,) and scalar
+    # work per cell, so it scales across cores and avoids the large allocations.
+    #
+    # For each target cell c and neighbour i, the directional weight is:
+    #   weight_directional[c, i] = sum_{j != i} (1 - cos_theta[c, i, j]) * s[c, j]
+    #                              / sum_{j != i} s[c, j]
+    # where cos_theta is the cosine of the angle between the vectors (cell -> station i)
+    # and (cell -> station j) in lat/lon space.
+    #
+    # When the denominator is zero (only one station contributes to the angular
+    # evaluation, so no angle exists) the result is defined as 1. The original code
+    # produced a NaN here and the caller replaced it with 1 via np.nan_to_num(nan=1);
+    # we handle it directly so this stays a drop-in replacement (the caller's
+    # nan_to_num becomes a harmless no-op). Note denominator == 0 implies all s[c, j!=i]
+    # are 0, which also makes the numerator 0, so the original always yielded 0/0 (NaN),
+    # never +/-inf.
+    if DEBUG_ADW_INTERPOLATION:
+        print("\nUsing per-cell prange implementation")
+    n = indexes.shape[0]
+    k = indexes.shape[1]
+    weight_directional = np.zeros((n, k), dtype=s.dtype)
+    for c in prange(n):
+        xi_diff = np.empty(k, dtype=s.dtype)
+        yi_diff = np.empty(k, dtype=s.dtype)
+        Di = np.empty(k, dtype=s.dtype)
+        lat_c = lat_inALL[c]
+        lon_c = lon_inALL[c]
+        for i in range(k):
+            idx = indexes[c, i]
+            dx = lat_c - latgrib[idx]
+            dy = lon_c - longrib[idx]
+            xi_diff[i] = dx
+            yi_diff[i] = dy
+            Di[i] = np.sqrt(dx * dx + dy * dy)
+        for i in range(k):
+            numerator = 0.0
+            denominator = 0.0
+            Di_i = Di[i]
+            xi = xi_diff[i]
+            yi = yi_diff[i]
+            for j in range(k):
+                if j == i:
+                    continue
+                cos_theta = (xi * xi_diff[j] + yi * yi_diff[j]) / (Di_i * Di[j])
+                sj = s[c, j]
+                numerator += (1.0 - cos_theta) * sj
+                denominator += sj
+            if denominator != 0.0:
+                weight_directional[c, i] = numerator / denominator
+            else:
+                # matches original behaviour after np.nan_to_num(..., nan=1)
+                weight_directional[c, i] = 1.0
+    return weight_directional
+
 
 class ScipyInterpolation(object):
     """
@@ -522,7 +588,7 @@ class ScipyInterpolation(object):
 
     def __init__(self, longrib, latgrib, grid_details, source_values, nnear, 
                     mv_target, mv_source, target_is_rotated=False, parallel=False,
-                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, use_broadcasting = False,
+                    mode='nearest', cdd_map='', cdd_mode='', cdd_options = None, weights_mode = 'parallel',
                     num_of_splits = None):
         stdout.write('Start scipy interpolation: {}\n'.format(now_string()))
         self.geodetic_info = grid_details
@@ -537,11 +603,11 @@ class ScipyInterpolation(object):
         self.cdd_map = cdd_map
         self.cdd_mode = cdd_mode
         self.cdd_options = cdd_options
-        self.use_broadcasting = use_broadcasting
+        self.weights_mode = weights_mode
         self.num_of_splits = num_of_splits
         
         if DEBUG_ADW_INTERPOLATION:
-            self.use_broadcasting = True
+            self.weights_mode = 'parallel'
 
         self._mv_target = mv_target
         self._mv_source = mv_source
@@ -638,9 +704,9 @@ class ScipyInterpolation(object):
                 # return results, distances, indexes
                 result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear)
             elif self.mode == 'adw' and self.nnear == 11:
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', use_broadcasting=self.use_broadcasting, ref_radius=ref_radius)             
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='Shepard', weights_mode=self.weights_mode, ref_radius=ref_radius)             
             elif self.mode == 'cdd':
-                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', use_broadcasting=self.use_broadcasting, ref_radius=None,
+                result, weights, indexes = self._build_weights_invdist(distances, indexes, self.nnear, adw_type='CDD', weights_mode=self.weights_mode, ref_radius=None,
                                                                        cdd_map=self.cdd_map, cdd_mode=self.cdd_mode, cdd_options=self.cdd_options)
             elif self.mode == 'bilinear' and self.nnear == 4: # bilinear interpolation only supported with nnear = 4
                 # BILINEAR INTERPOLATION
@@ -771,8 +837,13 @@ class ScipyInterpolation(object):
     # Inverse distance weights (IDW) interpolation, with optional Angular distance weighting (ADW) factor
     # if adw_type == None -> simple IDW 
     # if adw_type == Shepard -> Shepard 1968 original formulation
-    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, use_broadcasting = False, ref_radius = None, 
+    def _build_weights_invdist(self, distances, indexes, nnear, adw_type = None, weights_mode = 'parallel', ref_radius = None, 
                                cdd_map='', cdd_mode='', cdd_options=None):
+
+        if not weights_mode in ALLOWED_WEIGHTS_MODE:
+            raise ApplicationException.get_exc(INVALID_WEIGHT_MODE,
+                f"weights mode not supported (weights_mode = {weights_mode})")
+
         if DEBUG_ADW_INTERPOLATION:
             if adw_type != "Shepard":
                 self.min_upper_bound = 1000000000
@@ -823,7 +894,7 @@ class ScipyInterpolation(object):
                 # now it applies the selection of station, too. k=11 stations are need to perform the full elavaluation
 
                 # initialize weights
-                if (use_broadcasting == False):
+                if weights_mode == 'serial':
                     weight_directional = np.zeros_like(distances)
                 start = time.time()
                 s = np.zeros_like(distances)
@@ -938,7 +1009,7 @@ class ScipyInterpolation(object):
     
 
             # start_time = time.time()
-            if not use_broadcasting:
+            if weights_mode == 'serial':
                 weight_directional = np.zeros_like(distances)
                 for i in range(nnear):
                     xj_diff = self.lat_inALL[:, np.newaxis] - self.latgrib[indexes]
@@ -971,11 +1042,14 @@ class ScipyInterpolation(object):
             else:
                 # All in broadcasting:     
                 start = time.time()
-                weight_directional = adw_and_cdd_compute_weights_directional_in_broadcasting(
-                    s, self.latgrib, self.longrib, indexes,
-                    self.lat_inALL, self.lon_inALL)
+                if weights_mode == 'parallel':
+                    weight_directional = adw_and_cdd_compute_weights_directional_in_parallel(
+                        s, self.latgrib, self.longrib, indexes, self.lat_inALL, self.lon_inALL)
+                else:
+                    weight_directional = adw_and_cdd_compute_weights_directional_in_broadcasting(
+                        s, self.latgrib, self.longrib, indexes, self.lat_inALL, self.lon_inALL)
                 checktime = time.time()
-                stdout.write('adw_and_cdd_compute_weights_directional_in_broadcasting time (sec): {}\n'.format(checktime - start))
+                stdout.write('adw_and_cdd_compute_weights_directional_in_{} time (sec): {}\n'.format(weights_mode, checktime - start))
 
             # replace all the nan values with "1"
             # this is because we have NaNs when denominator is zero, that happens when only one station is considered 
@@ -1020,7 +1094,16 @@ class ScipyInterpolation(object):
         #normalize weights
         if (adw_type=='Shepard') or (adw_type=='CDD'):
             sums = np.sum(w, axis=1, keepdims=True)
-            weights = w / sums
+            # Some target cells may have an all-zero weight row (e.g. in the CDD
+            # 'NewEtAl' mode when no neighbouring station falls within the cell's
+            # cutoff/correlation-decay distance). Dividing by a zero row sum would
+            # produce 0/0 = NaN and raise "invalid value encountered in divide".
+            # Those cells have no usable data and must stay NaN, so we guard the
+            # division to avoid the warning and assign NaN explicitly instead.
+            empty_rows = (sums == 0)
+            safe_sums = np.where(empty_rows, 1, sums)
+            weights = w / safe_sums
+            weights[np.broadcast_to(empty_rows, weights.shape)] = np.nan
         else:
             sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
             weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums

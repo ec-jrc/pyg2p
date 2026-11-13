@@ -1,0 +1,21 @@
+{
+  "Execution": {
+    "@name": "json-e2e adw broadcasting",
+    "OutMaps": {
+      "@cloneMap": "tests/data/dem.map",
+      "@fmap": 1,
+      "@ext": 1,
+      "@unitTime": 24,
+      "@namePrefix": "pg",
+      "Interpolation": {
+        "@latMap": "tests/data/lat.map",
+        "@lonMap": "tests/data/lon.map",
+        "@mode": "adw",
+        "@weights_mode": "broadcasting"
+      }
+    },
+    "Parameter": {
+      "@shortName": "2t"
+    }
+  }
+}
