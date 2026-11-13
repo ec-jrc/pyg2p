@@ -1094,7 +1094,16 @@ class ScipyInterpolation(object):
         #normalize weights
         if (adw_type=='Shepard') or (adw_type=='CDD'):
             sums = np.sum(w, axis=1, keepdims=True)
-            weights = w / sums
+            # Some target cells may have an all-zero weight row (e.g. in the CDD
+            # 'NewEtAl' mode when no neighbouring station falls within the cell's
+            # cutoff/correlation-decay distance). Dividing by a zero row sum would
+            # produce 0/0 = NaN and raise "invalid value encountered in divide".
+            # Those cells have no usable data and must stay NaN, so we guard the
+            # division to avoid the warning and assign NaN explicitly instead.
+            empty_rows = (sums == 0)
+            safe_sums = np.where(empty_rows, 1, sums)
+            weights = w / safe_sums
+            weights[np.broadcast_to(empty_rows, weights.shape)] = np.nan
         else:
             sums = np.sum(w[dist_leq_min_upper_bound], axis=1, keepdims=True)
             weights[dist_leq_min_upper_bound] = w[dist_leq_min_upper_bound] / sums
