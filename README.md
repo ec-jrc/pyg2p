@@ -674,7 +674,11 @@ Attributes p, leafsize and eps for the kd tree algorithm are default in scipy li
 
 #### ADW
 It's the Angular Distance Weighted (ADW) algorithm by Shepard et al. 1968, with scipy.kd_tree using 11 neighbours.
-If @use_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+@weights_mode selects how the directional weights are computed. It can be one of the following values:
+- "serial": computations run in a plain loop, using the least memory
+- "broadcasting": computations run in full broadcasting mode, which is faster but requires more memory
+- "parallel" (default): computations are distributed across available cores
+
 If @num_of_splits is set to any number, computations will be split on subset and then recollected into the final map, to save mamory (do not set it if you have enought memory to run interpolation)
 
 ```json
@@ -683,7 +687,7 @@ If @num_of_splits is set to any number, computations will be split on subset and
   "@latMap": "/dataset/maps/europe5km/lat.map",
   "@lonMap": "/dataset/maps/europe5km/long.map",
   "@mode": "adw",
-  "@use_broadcasting": false,
+  "@weights_mode": "parallel",
   "@num_of_splits": 10}
 }
 ```
@@ -691,8 +695,12 @@ If @num_of_splits is set to any number, computations will be split on subset and
 #### CDD
 It's the Correlation Distance Decay (CDD) modified implementation of the Angular Distance Weighted algorithm, with scipy.kd_tree using 11 neighbours. It needs a map of CDD values for each point, to be specified in the field @cdd_map
 @cdd_mode can be one of the following values: "Hofstra", "NewEtAl" or "MixHofstraShepard"
-In case of mode "MixHofstraShepard", @cdd_options allows to customize the parameters of Hofstra and Shepard algorithm ("weights_mode": can be "All" or "OnlyTOP10" to take 10 higher values only in the interpolation of each point).
-If @use_broadcasting is set to true, computations will run in full broadcasting mode but requires more memory
+In case of mode "MixHofstraShepard", @cdd_options allows to customize the parameters of Hofstra and Shepard algorithm (the inner "weights_mode": can be "All" or "OnlyTOP10" to take 10 higher values only in the interpolation of each point).
+@weights_mode selects how the directional weights are computed. It can be one of the following values:
+- "serial": computations run in a plain loop, using the least memory
+- "broadcasting": computations run in full broadcasting mode, which is faster but requires more memory
+- "parallel" (default): computations are distributed across available cores
+
 If @num_of_splits is set to any number, computations will be split on subset and then recollected into the final map, to save mamory (do not set it if you have enought memory to run interpolation)
 
 ```json
@@ -709,7 +717,7 @@ If @num_of_splits is set to any number, computations will be split on subset and
     "radius_ratio": 0.3333333333333333,
     "weights_mode": "All"
   },
-  "@use_broadcasting": false,
+  "@weights_mode": "parallel",
   "@num_of_splits": 10}
 }
 ```

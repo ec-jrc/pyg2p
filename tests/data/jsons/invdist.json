@@ -1,0 +1,20 @@
+{
+  "Execution": {
+    "@name": "json-e2e invdist",
+    "OutMaps": {
+      "@cloneMap": "tests/data/dem.map",
+      "@fmap": 1,
+      "@ext": 1,
+      "@unitTime": 24,
+      "@namePrefix": "pg",
+      "Interpolation": {
+        "@latMap": "tests/data/lat.map",
+        "@lonMap": "tests/data/lon.map",
+        "@mode": "invdist"
+      }
+    },
+    "Parameter": {
+      "@shortName": "2t"
+    }
+  }
+}
