@@ -4,7 +4,7 @@ import re
 from copy import deepcopy
 from ftplib import FTP
 import itertools
-from pkg_resources import resource_stream
+from importlib import resources
 
 import pyg2p
 from ..main.readers import GRIBReader
@@ -109,7 +109,9 @@ class BaseConfiguration(pyg2p.Loggable):
 
     def load_global(self):
         try:
-            res = self._load(resource_stream(pyg2p.__name__, self.global_config_file))
+            # importlib.resources replaces pkg_resources.resource_stream, removed in setuptools >= 83
+            resource = resources.files(pyg2p.__name__).joinpath(self.global_config_file)
+            res = self._load(resource.open('rb'))
         except IOError:
             try:
                 res = self._load(open(self.global_config_file_debug, 'r'))
