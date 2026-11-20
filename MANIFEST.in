@@ -2,3 +2,5 @@ include requirements.txt
 include VERSION
 include templates/*
 include configuration/*
+# keep heavy test fixtures (tests/data) out of the source distribution
+prune tests/data
